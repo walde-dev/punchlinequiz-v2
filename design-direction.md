@@ -55,11 +55,11 @@ Option B: **Gold** (#ffd700) — crown/king energy, "der Beste" vibe
 Option C: **Electric Purple** (#a855f7) — modern, stands out from Spotify
 Option D: **Red** (#ef4444) — aggressive, bold, attention-grabbing
 
-**Recommendation:** Start with green (#1ed760) for music familiarity. Can customize per artist later (Kollegah = gold, Haftbefehl = red, etc).
+**CHOSEN: Gold (#fbbf24)** — crown/king energy, "der Beste" vibe. Gamified, competitive, premium. Works on dark backgrounds with high contrast. Customizable per artist later if needed.
 
 ### Semantic
 ```
---correct:     #1ed760   (green — right answer)
+--correct:     #fbbf24   (gold — right answer, king energy)
 --wrong:       #f3727f   (red — wrong answer)
 --streak:      #ffa42b   (orange — streak indicator)
 --info:        #539df5   (blue — info states)
@@ -127,7 +127,7 @@ Option D: **Red** (#ef4444) — aggressive, bold, attention-grabbing
 │  │  Deine Antwort...           │   │  ← pill input, dark bg
 │  └─────────────────────────────┘   │
 │                                     │
-│  [  RATEN  ]  ← pill button, green │
+│  [  RATEN  ]  ← pill button, gold   │
 │                                     │
 └─────────────────────────────────────┘
 ```
@@ -176,7 +176,7 @@ Option D: **Red** (#ef4444) — aggressive, bold, attention-grabbing
 - Mobile: horizontal scroll
 
 ### Correct Answer Animation
-1. Text turns green (#1ed760)
+1. Text turns gold (#fbbf24)
 2. Confetti burst (react-confetti)
 3. Solution revealed with slide-in from bottom
 4. Album art slides in from right (desktop) / bottom (mobile)
