@@ -276,3 +276,68 @@ Dimensions: 1080×1080 (Instagram square) or 1200×630 (Twitter/WhatsApp)
 - **Duolingo:** gamification, streaks, progress, competitive
 - **Discord:** dark UI, gaming community aesthetic
 - **Refero.design:** inspiration gallery for modern web design
+
+## shadcn/ui Configuration
+
+Use shadcn/ui as the component library foundation. It's built on Radix primitives + Tailwind, highly customizable.
+
+### Setup
+```bash
+npx shadcn@latest init
+# Choose: Dark theme, CSS variables, Zinc base
+```
+
+### Tailwind CSS Variables (globals.css)
+```css
+:root {
+  --background: 0 0% 7.5%;          /* #131313 */
+  --foreground: 0 0% 100%;           /* #ffffff */
+  --card: 0 0% 9.4%;                /* #181818 */
+  --card-foreground: 0 0% 100%;      /* #ffffff */
+  --popover: 0 0% 9.4%;             /* #181818 */
+  --popover-foreground: 0 0% 100%;   /* #ffffff */
+  --primary: 43 96% 56%;             /* #fbbf24 — GOLD */
+  --primary-foreground: 0 0% 7.5%;   /* #131313 — dark text on gold */
+  --secondary: 0 0% 12.2%;          /* #1f1f1f */
+  --secondary-foreground: 0 0% 100%; /* #ffffff */
+  --muted: 0 0% 12.2%;              /* #1f1f1f */
+  --muted-foreground: 0 0% 70.6%;   /* #b3b3b3 */
+  --accent: 0 0% 12.2%;             /* #1f1f1f */
+  --accent-foreground: 0 0% 100%;    /* #ffffff */
+  --destructive: 0 72% 51%;         /* #f3727f */
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 18%;               /* #2e2e2e */
+  --input: 0 0% 18%;                /* #2e2e2e */
+  --ring: 43 96% 56%;               /* #fbbf24 — gold focus ring */
+  --radius: 0.75rem;
+}
+```
+
+### Components to Install
+```bash
+npx shadcn@latest add button card input badge progress alert dialog tabs
+```
+
+### Button Variants (extend shadcn defaults)
+```tsx
+// In button.tsx — add these variants
+{
+  variants: {
+    variant: {
+      gold: "bg-[#fbbf24] text-[#131313] hover:bg-[#f59e0b] font-bold uppercase tracking-wider",
+      outline: "border border-[#2e2e2e] text-white hover:bg-[#1f1f1f]",
+      ghost: "text-[#b3b3b3] hover:text-white hover:bg-[#1f1f1f]",
+    },
+    size: {
+      pill: "h-10 px-6 rounded-full",  /* Spotify-style pill */
+    }
+  }
+}
+```
+
+### Key shadcn Customizations
+- Default radius: `0.75rem` (cards), `9999px` (pill buttons)
+- All buttons default to uppercase + tracking-wider (1.4px)
+- Card backgrounds: `#181818` with subtle border `#2e2e2e`
+- Input focus ring: gold (`#fbbf24`)
+- Progress bar: gold fill on dark track
