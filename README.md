@@ -1,20 +1,21 @@
-# PunchlineQuiz v2
+# shadcn/ui monorepo template
 
-German hip hop punchline quiz. Guess the missing words.
+This is a TanStack Start monorepo template with shadcn/ui.
 
-## Docs
+## Adding components
 
-- [Overview](docs/overview.md) — what this is and why it exists
-- [v1 Analysis](docs/v1-analysis.md) — what the old version did right and wrong
-- [v2 Spec](docs/v2-spec.md) — what to build
-- [Distribution](docs/distribution.md) — how to get users
-- [Punchline Data](docs/punchline-data.md) — how to seed punchlines
-- [Effectuation Context](docs/effectuation-context.md) — business context
+To add components to your app, run the following command at the root of your `web` app:
 
-## Domain
+```bash
+pnpm dlx shadcn@latest add button -c apps/web
+```
 
-punchlinequiz.de
+This will place the ui components in the `packages/ui/src/components` directory.
 
-## Status
+## Using components
 
-Pre-build. Docs only. Scaffold with Claude.
+To use the components in your app, import them from the `ui` package.
+
+```tsx
+import { Button } from "@workspace/ui/components/button";
+```
