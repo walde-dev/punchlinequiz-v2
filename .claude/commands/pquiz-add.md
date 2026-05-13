@@ -12,8 +12,12 @@ Parse them into:
 - `artist` (required)
 - `song` (required, the track title)
 - `line` (required, the bar — keep original casing and punctuation)
+- `distractor1` (required, artist name — the first wrong choice shown to the player)
+- `distractor2` (required, artist name — the second wrong choice; must differ from `artist` and `distractor1`)
 - `album` (optional)
 - `releaseYear` (optional, integer 1980–2100)
+
+Distractors are stored on the punchline and shown verbatim in the UI in randomized order. Pick plausible wrong answers from the same scene/era so guessing is hard. Unknown distractor artists are auto-created — but prefer existing ones when possible.
 
 If anything required is unclear, ask **one** concise clarifying question. Otherwise proceed.
 

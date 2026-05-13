@@ -8,6 +8,8 @@ export type UpsertBarInput = {
   artist: string
   song: string
   line: string
+  distractor1: string
+  distractor2: string
   album?: string
   releaseYear?: number
   perfectSolution?: string[]
@@ -18,7 +20,14 @@ export type UpsertResult = {
   punchlineId: number
   songId: number
   artistId: number
-  created: { artist: boolean; song: boolean }
+  distractor1Id: number
+  distractor2Id: number
+  created: {
+    artist: boolean
+    song: boolean
+    distractor1: boolean
+    distractor2: boolean
+  }
   artwork: {
     artistExternalId: string | null
     trackId: string | null
@@ -26,44 +35,63 @@ export type UpsertResult = {
   }
 }
 
-/** Resolve or create artist + song, then insert a punchline. Throws HttpError 409 on dup line. */
-export async function upsertBar(input: UpsertBarInput): Promise<UpsertResult> {
-  const artistName = input.artist
-  const slug = slugify(artistName)
+type ArtistRow = typeof artists.$inferSelect
 
-  let artistRow = (
+/** Resolve an artist by name (case-insensitive) or slug; auto-create if missing. */
+async function resolveOrCreateArtist(
+  name: string,
+): Promise<{ row: ArtistRow; created: boolean }> {
+  const slug = slugify(name)
+  const existing = (
     await db
       .select()
       .from(artists)
-      .where(sql`lower(${artists.name}) = lower(${artistName}) or ${artists.slug} = ${slug}`)
+      .where(sql`lower(${artists.name}) = lower(${name}) or ${artists.slug} = ${slug}`)
       .limit(1)
   )[0]
+  if (existing) return { row: existing, created: false }
 
-  let artistCreated = false
-  if (!artistRow) {
-    // Ensure slug uniqueness on collision: append a numeric suffix.
-    let candidate = slug || `artist-${Date.now()}`
-    let attempt = 0
-    while (
-      (await db.select().from(artists).where(eq(artists.slug, candidate)).limit(1)).length > 0
-    ) {
-      attempt += 1
-      candidate = `${slug}-${attempt}`
-      if (attempt > 50) throw new HttpError(500, "slug_collision", "Could not generate unique slug.")
-    }
-    const artistArt = await searchArtist(artistName)
-    const [created] = await db
-      .insert(artists)
-      .values({
-        slug: candidate,
-        name: artistName,
-        imageUrl: artistArt?.imageUrl ?? null,
-        artworkProvider: artistArt ? "deezer" : null,
-        artworkExternalId: artistArt?.id ?? null,
-      })
-      .returning()
-    artistRow = created
-    artistCreated = true
+  let candidate = slug || `artist-${Date.now()}`
+  let attempt = 0
+  while (
+    (await db.select().from(artists).where(eq(artists.slug, candidate)).limit(1)).length > 0
+  ) {
+    attempt += 1
+    candidate = `${slug}-${attempt}`
+    if (attempt > 50) throw new HttpError(500, "slug_collision", "Could not generate unique slug.")
+  }
+  const art = await searchArtist(name)
+  const [created] = await db
+    .insert(artists)
+    .values({
+      slug: candidate,
+      name,
+      imageUrl: art?.imageUrl ?? null,
+      artworkProvider: art ? "deezer" : null,
+      artworkExternalId: art?.id ?? null,
+    })
+    .returning()
+  return { row: created, created: true }
+}
+
+/** Resolve or create artist + song, then insert a punchline. Throws HttpError 409 on dup line. */
+export async function upsertBar(input: UpsertBarInput): Promise<UpsertResult> {
+  const correct = await resolveOrCreateArtist(input.artist)
+  const artistRow = correct.row
+  const artistCreated = correct.created
+
+  const d1 = await resolveOrCreateArtist(input.distractor1)
+  const d2 = await resolveOrCreateArtist(input.distractor2)
+
+  if (d1.row.id === artistRow.id || d2.row.id === artistRow.id) {
+    throw new HttpError(
+      400,
+      "distractor_conflict",
+      "Distractors must differ from the correct artist.",
+    )
+  }
+  if (d1.row.id === d2.row.id) {
+    throw new HttpError(400, "distractor_conflict", "Distractors must be two different artists.")
   }
 
   let songRow = (
@@ -125,6 +153,8 @@ export async function upsertBar(input: UpsertBarInput): Promise<UpsertResult> {
       acceptableSolutions: input.acceptableSolutions
         ? input.acceptableSolutions.map((arr) => arr.map((s) => s.trim()))
         : [],
+      distractor1Id: d1.row.id,
+      distractor2Id: d2.row.id,
     })
     .returning()
 
@@ -132,7 +162,14 @@ export async function upsertBar(input: UpsertBarInput): Promise<UpsertResult> {
     punchlineId: bar.id,
     songId: songRow.id,
     artistId: artistRow.id,
-    created: { artist: artistCreated, song: songCreated },
+    distractor1Id: d1.row.id,
+    distractor2Id: d2.row.id,
+    created: {
+      artist: artistCreated,
+      song: songCreated,
+      distractor1: d1.created,
+      distractor2: d2.created,
+    },
     artwork: {
       artistExternalId: artistRow.artworkExternalId ?? null,
       trackId: songRow.artworkTrackId ?? null,

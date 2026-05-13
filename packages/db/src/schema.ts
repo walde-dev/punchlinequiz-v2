@@ -34,6 +34,12 @@ export const punchlines = pgTable("punchlines", {
   line: text("line").notNull(),
   perfectSolution: json("perfect_solution").$type<string[]>().notNull().default([]),
   acceptableSolutions: json("acceptable_solutions").$type<string[][]>().notNull().default([]),
+  distractor1Id: integer("distractor1_id")
+    .notNull()
+    .references(() => artists.id),
+  distractor2Id: integer("distractor2_id")
+    .notNull()
+    .references(() => artists.id),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 })

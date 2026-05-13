@@ -187,17 +187,34 @@ async function seed() {
   await db.delete(songs)
   await db.delete(artists)
 
-  console.log("Seeding...")
+  console.log("Seeding artists...")
+  const artistIds = new Map<string, number>()
   for (const a of data) {
     const [artist] = await db
       .insert(artists)
       .values({ slug: a.slug, name: a.name, imageUrl: null })
       .returning()
+    artistIds.set(a.slug, artist.id)
+  }
+
+  function pickDistractors(correctId: number): [number, number] {
+    const pool = [...artistIds.values()].filter((id) => id !== correctId)
+    if (pool.length < 2) throw new Error("Need ≥3 artists to seed distractors")
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[pool[i], pool[j]] = [pool[j], pool[i]]
+    }
+    return [pool[0], pool[1]]
+  }
+
+  console.log("Seeding songs + punchlines...")
+  for (const a of data) {
+    const artistId = artistIds.get(a.slug)!
     for (const s of a.songs) {
       const [song] = await db
         .insert(songs)
         .values({
-          artistId: artist.id,
+          artistId,
           title: s.title,
           album: s.album,
           albumArtUrl: null,
@@ -205,11 +222,14 @@ async function seed() {
         })
         .returning()
       for (const bar of s.bars) {
+        const [d1, d2] = pickDistractors(artistId)
         await db.insert(punchlines).values({
           songId: song.id,
           line: bar,
           perfectSolution: [],
           acceptableSolutions: [],
+          distractor1Id: d1,
+          distractor2Id: d2,
         })
       }
     }

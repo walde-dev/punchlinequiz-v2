@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start"
-import { and, eq, ne, sql } from "drizzle-orm"
+import { and, eq, inArray, ne, sql } from "drizzle-orm"
 import { artists, punchlines, songs } from "@workspace/db"
 import { db } from "./db"
 
@@ -35,7 +35,7 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-/** Fetch one random active punchline + 3 artist choices (1 correct, 2 distractors). */
+/** Fetch one random active punchline + its 3 hardcoded artist choices, shuffled for display. */
 export const getRound = createServerFn({ method: "GET" })
   .inputValidator((d: { excludeId?: number } | undefined) => d ?? {})
   .handler(async ({ data }): Promise<Round> => {
@@ -45,6 +45,8 @@ export const getRound = createServerFn({ method: "GET" })
         punchlineId: punchlines.id,
         line: punchlines.line,
         artistId: songs.artistId,
+        distractor1Id: punchlines.distractor1Id,
+        distractor2Id: punchlines.distractor2Id,
       })
       .from(punchlines)
       .innerJoin(songs, eq(songs.id, punchlines.songId))
@@ -59,25 +61,19 @@ export const getRound = createServerFn({ method: "GET" })
     if (baseRows.length === 0) throw new Error("No punchlines available")
     const row = baseRows[0]
 
-    // Correct artist
-    const [correct] = await db
+    const ids = [row.artistId, row.distractor1Id, row.distractor2Id]
+    const rows = await db
       .select({ id: artists.id, name: artists.name, imageUrl: artists.imageUrl })
       .from(artists)
-      .where(eq(artists.id, row.artistId))
-      .limit(1)
+      .where(inArray(artists.id, ids))
 
-    // 2 distractor artists (different from the correct one), random
-    const distractors = await db
-      .select({ id: artists.id, name: artists.name, imageUrl: artists.imageUrl })
-      .from(artists)
-      .where(and(eq(artists.active, true), ne(artists.id, row.artistId)))
-      .orderBy(sql`random()`)
-      .limit(2)
+    const byId = new Map(rows.map((r) => [r.id, r]))
+    const ordered = ids.map((id) => byId.get(id)).filter((x): x is ArtistChoice => Boolean(x))
 
     return {
       punchlineId: row.punchlineId,
       line: row.line,
-      choices: shuffle([correct, ...distractors]),
+      choices: shuffle(ordered),
     }
   })
 

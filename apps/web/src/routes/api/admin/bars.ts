@@ -29,6 +29,8 @@ export const Route = createFileRoute("/api/admin/bars")({
             artist: requireString(body.artist, "artist", { max: 200 }),
             song: requireString(body.song, "song", { max: 300 }),
             line: requireString(body.line, "line", { max: 1000 }),
+            distractor1: requireString(body.distractor1, "distractor1", { max: 200 }),
+            distractor2: requireString(body.distractor2, "distractor2", { max: 200 }),
             album: optionalString(body.album, "album", { max: 300 }),
             releaseYear: optionalInt(body.releaseYear, "releaseYear", { min: 1980, max: 2100 }),
             perfectSolution: optionalStringArray(body.perfectSolution, "perfectSolution"),
@@ -43,6 +45,8 @@ export const Route = createFileRoute("/api/admin/bars")({
             punchlineId: result.punchlineId,
             songId: result.songId,
             artistId: result.artistId,
+            distractor1Id: result.distractor1Id,
+            distractor2Id: result.distractor2Id,
             created: result.created,
           })
           return json(result, 201)
@@ -84,6 +88,8 @@ export const Route = createFileRoute("/api/admin/bars")({
               artistId: artists.id,
               artistName: artists.name,
               artistSlug: artists.slug,
+              distractor1Id: punchlines.distractor1Id,
+              distractor2Id: punchlines.distractor2Id,
             })
             .from(punchlines)
             .innerJoin(songs, eq(songs.id, punchlines.songId))

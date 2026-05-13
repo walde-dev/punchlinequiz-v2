@@ -8,6 +8,7 @@ import {
   handleError,
   HttpError,
   json,
+  optionalInt,
   optionalString,
   optionalStringArray,
   readJsonBody,
@@ -22,6 +23,8 @@ async function loadBar(id: number) {
       active: punchlines.active,
       perfectSolution: punchlines.perfectSolution,
       acceptableSolutions: punchlines.acceptableSolutions,
+      distractor1Id: punchlines.distractor1Id,
+      distractor2Id: punchlines.distractor2Id,
       createdAt: punchlines.createdAt,
       songId: songs.id,
       songTitle: songs.title,
@@ -86,6 +89,28 @@ export const Route = createFileRoute("/api/admin/bars/$id")({
               (arr, i) => optionalStringArray(arr, `acceptableSolutions[${i}]`) ?? [],
             )
           }
+          const d1 = optionalInt(body.distractor1Id, "distractor1Id", { min: 1 })
+          if (d1 !== undefined) patch.distractor1Id = d1
+          const d2 = optionalInt(body.distractor2Id, "distractor2Id", { min: 1 })
+          if (d2 !== undefined) patch.distractor2Id = d2
+
+          const nextD1 = (patch.distractor1Id as number | undefined) ?? bar.distractor1Id
+          const nextD2 = (patch.distractor2Id as number | undefined) ?? bar.distractor2Id
+          if (nextD1 === bar.artistId || nextD2 === bar.artistId) {
+            throw new HttpError(
+              400,
+              "distractor_conflict",
+              "Distractors must differ from the correct artist.",
+            )
+          }
+          if (nextD1 === nextD2) {
+            throw new HttpError(
+              400,
+              "distractor_conflict",
+              "Distractors must be two different artists.",
+            )
+          }
+
           if (Object.keys(patch).length === 0)
             throw new HttpError(400, "empty_patch", "Provide at least one field to update.")
 
