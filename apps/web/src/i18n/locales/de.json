@@ -1,0 +1,17 @@
+{
+  "home": {
+    "hero": "Kennst du die Punchline?",
+    "subtext": "Teste dein Rap-Wissen mit den härtesten Bars der deutschen Hip-Hop-Geschichte.",
+    "cta": "Jetzt spielen",
+    "artistMode": "Artist-Modus",
+    "stats": "Meine Stats"
+  },
+  "footer": {
+    "beta": "Public Beta",
+    "betaNotice": "Das Spiel ist noch in der Entwicklung. Feedback ist willkommen.",
+    "madeWith": "Gemacht mit Liebe für die Kultur."
+  },
+  "nav": {
+    "logo": "punchlinequiz"
+  }
+}

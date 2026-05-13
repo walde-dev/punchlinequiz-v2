@@ -1,0 +1,116 @@
+import { createFileRoute } from "@tanstack/react-router"
+import { and, desc, eq, ilike, sql } from "drizzle-orm"
+import { artists, punchlines, songs } from "@workspace/db"
+
+import { db } from "../../../lib/db"
+import {
+  audit,
+  errorJson,
+  handleError,
+  json,
+  optionalInt,
+  optionalString,
+  optionalStringArray,
+  readJsonBody,
+  requireAdmin,
+  requireString,
+} from "../../../lib/admin"
+import { upsertBar } from "../../../lib/upsert"
+
+export const Route = createFileRoute("/api/admin/bars")({
+  server: {
+    handlers: {
+      POST: async ({ request }) => {
+        const unauthorized = requireAdmin(request)
+        if (unauthorized) return unauthorized
+        try {
+          const body = await readJsonBody<Record<string, unknown>>(request)
+          const input = {
+            artist: requireString(body.artist, "artist", { max: 200 }),
+            song: requireString(body.song, "song", { max: 300 }),
+            line: requireString(body.line, "line", { max: 1000 }),
+            album: optionalString(body.album, "album", { max: 300 }),
+            releaseYear: optionalInt(body.releaseYear, "releaseYear", { min: 1980, max: 2100 }),
+            perfectSolution: optionalStringArray(body.perfectSolution, "perfectSolution"),
+            acceptableSolutions: Array.isArray(body.acceptableSolutions)
+              ? (body.acceptableSolutions as unknown[]).map(
+                  (arr, i) => optionalStringArray(arr, `acceptableSolutions[${i}]`) ?? [],
+                )
+              : undefined,
+          }
+          const result = await upsertBar(input)
+          audit("add_bar", {
+            punchlineId: result.punchlineId,
+            songId: result.songId,
+            artistId: result.artistId,
+            created: result.created,
+          })
+          return json(result, 201)
+        } catch (err) {
+          return handleError(err)
+        }
+      },
+      GET: async ({ request }) => {
+        const unauthorized = requireAdmin(request)
+        if (unauthorized) return unauthorized
+        try {
+          const url = new URL(request.url)
+          const artistQ = url.searchParams.get("artist")
+          const songQ = url.searchParams.get("song")
+          const searchQ = url.searchParams.get("search")
+          const limit = Math.min(
+            Number(url.searchParams.get("limit") ?? "50") || 50,
+            200,
+          )
+          const offset = Math.max(Number(url.searchParams.get("offset") ?? "0") || 0, 0)
+          const includeInactive = url.searchParams.get("includeInactive") === "true"
+
+          const conds = []
+          if (!includeInactive) conds.push(eq(punchlines.active, true))
+          if (artistQ) conds.push(ilike(artists.name, `%${artistQ}%`))
+          if (songQ) conds.push(ilike(songs.title, `%${songQ}%`))
+          if (searchQ) conds.push(ilike(punchlines.line, `%${searchQ}%`))
+
+          const rows = await db
+            .select({
+              id: punchlines.id,
+              line: punchlines.line,
+              active: punchlines.active,
+              createdAt: punchlines.createdAt,
+              songId: songs.id,
+              songTitle: songs.title,
+              songAlbum: songs.album,
+              releaseYear: songs.releaseYear,
+              artistId: artists.id,
+              artistName: artists.name,
+              artistSlug: artists.slug,
+            })
+            .from(punchlines)
+            .innerJoin(songs, eq(songs.id, punchlines.songId))
+            .innerJoin(artists, eq(artists.id, songs.artistId))
+            .where(conds.length ? and(...conds) : undefined)
+            .orderBy(desc(punchlines.createdAt))
+            .limit(limit)
+            .offset(offset)
+
+          const [{ total }] = await db
+            .select({ total: sql<number>`count(*)::int` })
+            .from(punchlines)
+            .innerJoin(songs, eq(songs.id, punchlines.songId))
+            .innerJoin(artists, eq(artists.id, songs.artistId))
+            .where(conds.length ? and(...conds) : undefined)
+
+          return json({ items: rows, total, limit, offset })
+        } catch (err) {
+          return handleError(err)
+        }
+      },
+    },
+  },
+})
+
+// Catch-all for unknown methods on this path.
+export const _allow = ["POST", "GET"] as const
+export function _methodNotAllowed() {
+  return errorJson("method_not_allowed", "Method not allowed.", 405)
+}

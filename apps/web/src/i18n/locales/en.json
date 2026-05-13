@@ -1,0 +1,17 @@
+{
+  "home": {
+    "hero": "Do you know the punchline?",
+    "subtext": "Test your rap knowledge with the hardest bars in German hip-hop history.",
+    "cta": "Play now",
+    "artistMode": "Artist mode",
+    "stats": "My stats"
+  },
+  "footer": {
+    "beta": "Public Beta",
+    "betaNotice": "The game is still in development. Feedback is welcome.",
+    "madeWith": "Made with love for the culture."
+  },
+  "nav": {
+    "logo": "punchlinequiz"
+  }
+}

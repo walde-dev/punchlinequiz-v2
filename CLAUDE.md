@@ -1,3 +1,30 @@
+## Design Context
+
+### Users
+German hip hop fans, age 16–30. Using the app on their phone during downtime — commuting, between classes, late at night. They know the culture deeply and want to prove it. The job: **flex rap knowledge, beat friends, feel like the real one in the room.** They arrived via a Reddit post or WhatsApp share card.
+
+### Brand Personality
+**Competitive, Cultural, Slick.** Tone is a skilled trash talker who respects the culture — like a friend who roasts you but buys the next round. Not mean, not friendly. The energy is: *"You should know this. Let's see."*
+
+Correct: "Ehre. Du kennst das." / Wrong (3 fails): "Nicht mal nah dran. Hier ist die Lösung."
+
+### Aesthetic Direction
+- **Background:** Deep charcoal blacks, #121212–#1f1f1f. Never white or light. Dark only.
+- **Accent:** Gold #fbbf24 — ONE accent, used consistently. Never a second accent color.
+- **Font:** Figtree Variable — geometric, modern, confident.
+- **Buttons:** Pill-shaped (9999px radius). Gold primary, ghost for secondary.
+- **Visuals:** Album art and artist photos only — no stock illustrations, no decorative icons.
+- **Anti-patterns:** Glassmorphism, light backgrounds, serif fonts, multiple accents, "fun learning" feel.
+
+### Design Principles
+1. **The punchline is the hero.** UI chrome recedes, content glows.
+2. **One accent, everywhere consistently.** Gold only.
+3. **Competitive but not cruel.** Edge in copy, never punching the user — punching the lack of knowledge.
+4. **Share-first design.** Every result state should feel worth screenshotting. The share card is the growth engine.
+5. **Speed over spectacle.** Animations serve feedback, not decoration. Never delay a game interaction.
+
+---
+
 # Logging Rules
 
 ## Always Aggressive Log

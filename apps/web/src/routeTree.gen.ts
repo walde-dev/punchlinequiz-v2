@@ -8,59 +8,199 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from "./routes/__root"
-import { Route as IndexRouteImport } from "./routes/index"
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as PlayRouteImport } from './routes/play'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiAdminPingRouteImport } from './routes/api/admin/ping'
+import { Route as ApiAdminBarsRouteImport } from './routes/api/admin/bars'
+import { Route as ApiAdminSongsIdRouteImport } from './routes/api/admin/songs.$id'
+import { Route as ApiAdminBarsIdRouteImport } from './routes/api/admin/bars.$id'
+import { Route as ApiAdminArtistsIdRouteImport } from './routes/api/admin/artists.$id'
 
+const PlayRoute = PlayRouteImport.update({
+  id: '/play',
+  path: '/play',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminPingRoute = ApiAdminPingRouteImport.update({
+  id: '/api/admin/ping',
+  path: '/api/admin/ping',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminBarsRoute = ApiAdminBarsRouteImport.update({
+  id: '/api/admin/bars',
+  path: '/api/admin/bars',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminSongsIdRoute = ApiAdminSongsIdRouteImport.update({
+  id: '/api/admin/songs/$id',
+  path: '/api/admin/songs/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminBarsIdRoute = ApiAdminBarsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiAdminBarsRoute,
+} as any)
+const ApiAdminArtistsIdRoute = ApiAdminArtistsIdRouteImport.update({
+  id: '/api/admin/artists/$id',
+  path: '/api/admin/artists/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
-  "/": typeof IndexRoute
+  '/': typeof IndexRoute
+  '/play': typeof PlayRoute
+  '/api/admin/bars': typeof ApiAdminBarsRouteWithChildren
+  '/api/admin/ping': typeof ApiAdminPingRoute
+  '/api/admin/artists/$id': typeof ApiAdminArtistsIdRoute
+  '/api/admin/bars/$id': typeof ApiAdminBarsIdRoute
+  '/api/admin/songs/$id': typeof ApiAdminSongsIdRoute
 }
 export interface FileRoutesByTo {
-  "/": typeof IndexRoute
+  '/': typeof IndexRoute
+  '/play': typeof PlayRoute
+  '/api/admin/bars': typeof ApiAdminBarsRouteWithChildren
+  '/api/admin/ping': typeof ApiAdminPingRoute
+  '/api/admin/artists/$id': typeof ApiAdminArtistsIdRoute
+  '/api/admin/bars/$id': typeof ApiAdminBarsIdRoute
+  '/api/admin/songs/$id': typeof ApiAdminSongsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  "/": typeof IndexRoute
+  '/': typeof IndexRoute
+  '/play': typeof PlayRoute
+  '/api/admin/bars': typeof ApiAdminBarsRouteWithChildren
+  '/api/admin/ping': typeof ApiAdminPingRoute
+  '/api/admin/artists/$id': typeof ApiAdminArtistsIdRoute
+  '/api/admin/bars/$id': typeof ApiAdminBarsIdRoute
+  '/api/admin/songs/$id': typeof ApiAdminSongsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: "/"
+  fullPaths:
+    | '/'
+    | '/play'
+    | '/api/admin/bars'
+    | '/api/admin/ping'
+    | '/api/admin/artists/$id'
+    | '/api/admin/bars/$id'
+    | '/api/admin/songs/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: "/"
-  id: "__root__" | "/"
+  to:
+    | '/'
+    | '/play'
+    | '/api/admin/bars'
+    | '/api/admin/ping'
+    | '/api/admin/artists/$id'
+    | '/api/admin/bars/$id'
+    | '/api/admin/songs/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/play'
+    | '/api/admin/bars'
+    | '/api/admin/ping'
+    | '/api/admin/artists/$id'
+    | '/api/admin/bars/$id'
+    | '/api/admin/songs/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  PlayRoute: typeof PlayRoute
+  ApiAdminBarsRoute: typeof ApiAdminBarsRouteWithChildren
+  ApiAdminPingRoute: typeof ApiAdminPingRoute
+  ApiAdminArtistsIdRoute: typeof ApiAdminArtistsIdRoute
+  ApiAdminSongsIdRoute: typeof ApiAdminSongsIdRoute
 }
 
-declare module "@tanstack/react-router" {
+declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    "/": {
-      id: "/"
-      path: "/"
-      fullPath: "/"
+    '/play': {
+      id: '/play'
+      path: '/play'
+      fullPath: '/play'
+      preLoaderRoute: typeof PlayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/ping': {
+      id: '/api/admin/ping'
+      path: '/api/admin/ping'
+      fullPath: '/api/admin/ping'
+      preLoaderRoute: typeof ApiAdminPingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/bars': {
+      id: '/api/admin/bars'
+      path: '/api/admin/bars'
+      fullPath: '/api/admin/bars'
+      preLoaderRoute: typeof ApiAdminBarsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/songs/$id': {
+      id: '/api/admin/songs/$id'
+      path: '/api/admin/songs/$id'
+      fullPath: '/api/admin/songs/$id'
+      preLoaderRoute: typeof ApiAdminSongsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/bars/$id': {
+      id: '/api/admin/bars/$id'
+      path: '/$id'
+      fullPath: '/api/admin/bars/$id'
+      preLoaderRoute: typeof ApiAdminBarsIdRouteImport
+      parentRoute: typeof ApiAdminBarsRoute
+    }
+    '/api/admin/artists/$id': {
+      id: '/api/admin/artists/$id'
+      path: '/api/admin/artists/$id'
+      fullPath: '/api/admin/artists/$id'
+      preLoaderRoute: typeof ApiAdminArtistsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
 }
 
+interface ApiAdminBarsRouteChildren {
+  ApiAdminBarsIdRoute: typeof ApiAdminBarsIdRoute
+}
+
+const ApiAdminBarsRouteChildren: ApiAdminBarsRouteChildren = {
+  ApiAdminBarsIdRoute: ApiAdminBarsIdRoute,
+}
+
+const ApiAdminBarsRouteWithChildren = ApiAdminBarsRoute._addFileChildren(
+  ApiAdminBarsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  PlayRoute: PlayRoute,
+  ApiAdminBarsRoute: ApiAdminBarsRouteWithChildren,
+  ApiAdminPingRoute: ApiAdminPingRoute,
+  ApiAdminArtistsIdRoute: ApiAdminArtistsIdRoute,
+  ApiAdminSongsIdRoute: ApiAdminSongsIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
 
-import type { getRouter } from "./router.tsx"
-import type { createStart } from "@tanstack/react-start"
-declare module "@tanstack/react-start" {
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
     router: Awaited<ReturnType<typeof getRouter>>
