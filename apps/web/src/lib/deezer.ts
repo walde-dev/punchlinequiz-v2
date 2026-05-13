@@ -299,18 +299,27 @@ export async function getArtistById(id: string): Promise<DeezerArtistMatch | nul
   }
 }
 
-export async function getTrackById(id: string): Promise<DeezerTrackMatch | null> {
+export async function getTrackById(
+  id: string,
+): Promise<(DeezerTrackMatch & { releaseYear: number | null; albumTitle: string }) | null> {
   try {
     const body = (await deezerFetch(`/track/${encodeURIComponent(id)}`)) as Record<string, unknown>
     if (!body || !body.id) return null
     const album = (body.album as Record<string, unknown> | undefined) ?? {}
     const artist = (body.artist as Record<string, unknown> | undefined) ?? {}
+    const releaseDate =
+      (typeof body.release_date === "string" && body.release_date) ||
+      (typeof album.release_date === "string" && album.release_date) ||
+      ""
+    const yearNum = releaseDate ? Number(releaseDate.slice(0, 4)) : NaN
     return {
       trackId: String(body.id),
       albumId: String(album.id ?? ""),
       title: String(body.title ?? ""),
       artistName: String(artist.name ?? ""),
       albumArtUrl: pickAlbumImage(album),
+      albumTitle: String(album.title ?? ""),
+      releaseYear: Number.isFinite(yearNum) ? yearNum : null,
     }
   } catch (e) {
     audit("artwork_resolve_failed", {

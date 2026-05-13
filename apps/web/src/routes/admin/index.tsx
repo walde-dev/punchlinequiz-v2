@@ -10,6 +10,7 @@ import {
   fetchArtists,
   fetchBars,
   createBar,
+  getDeezerTrack,
   patchBar,
   searchDeezerArtists,
   searchDeezerTracks,
@@ -269,12 +270,17 @@ function CreateBarForm({ onCreated }: { onCreated: () => Promise<void> }) {
           <TrackCombobox
             value={song}
             onChange={setSong}
-            onPickTrack={(t) => {
+            onPickTrack={async (t) => {
               setSong(t.title)
               if (t.albumTitle) setAlbum(t.albumTitle)
               if (t.releaseYear) setYear(String(t.releaseYear))
               if (!artist.trim() && t.artistName) setArtist(t.artistName)
               setCoverUrl(t.albumArtUrl)
+              // /search hits don't include release_date — fetch /track/:id for the year.
+              if (!t.releaseYear) {
+                const full = await getDeezerTrack(t.trackId).catch(() => null)
+                if (full?.releaseYear) setYear(String(full.releaseYear))
+              }
             }}
           />
         </label>
@@ -373,7 +379,7 @@ function TrackCombobox({
     albumTitle: string
     albumArtUrl: string | null
     releaseYear: number | null
-  }) => void
+  }) => void | Promise<void>
 }) {
   return (
     <Combobox

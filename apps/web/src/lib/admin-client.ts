@@ -136,6 +136,32 @@ export async function searchDeezerArtists(q: string): Promise<DeezerArtistHit[]>
   return body.items
 }
 
+export async function getDeezerTrack(id: string): Promise<DeezerTrackHit | null> {
+  const res = await fetch(`/api/admin/search/track/${encodeURIComponent(id)}`, {
+    credentials: "same-origin",
+  })
+  if (res.status === 404) return null
+  const body = await jsonOrThrow<{
+    trackId: string
+    title: string
+    artistName: string
+    albumId: string
+    albumTitle: string
+    albumArtUrl: string | null
+    releaseYear: number | null
+  }>(res)
+  return {
+    trackId: body.trackId,
+    title: body.title,
+    artistName: body.artistName,
+    artistId: "",
+    albumId: body.albumId,
+    albumTitle: body.albumTitle,
+    albumArtUrl: body.albumArtUrl,
+    releaseYear: body.releaseYear,
+  }
+}
+
 export async function searchDeezerTracks(q: string): Promise<DeezerTrackHit[]> {
   if (!q.trim()) return []
   const url = new URL("/api/admin/search/tracks", window.location.origin)

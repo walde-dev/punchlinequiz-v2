@@ -15,15 +15,25 @@ export type Round = {
   choices: ArtistChoice[] // 3 artists, shuffled — exactly one is correct
 }
 
+export type SongReveal = {
+  title: string
+  album: string | null
+  albumArtUrl: string | null
+  releaseYear: number | null
+}
+
 export type AnswerResult = {
   isCorrect: boolean
   correctArtist: ArtistChoice
-  song: {
-    title: string
-    album: string | null
-    albumArtUrl: string | null
-    releaseYear: number | null
-  }
+  // Only present when the artist guess was WRONG — the round is over so we
+  // can show the full answer. When the artist guess is correct, the client
+  // must call submitSongGuess (or skip) to reveal the song.
+  song: SongReveal | null
+}
+
+export type SongGuessResult = {
+  isCorrect: boolean
+  song: SongReveal
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -33,6 +43,48 @@ function shuffle<T>(arr: T[]): T[] {
     ;[a[i], a[j]] = [a[j], a[i]]
   }
   return a
+}
+
+/**
+ * Loose string normalization for free-typed song titles. Goal: forgive
+ * realistic typos and orthography differences without accepting nonsense.
+ * - lowercase, NFD-strip diacritics
+ * - ß → ss
+ * - common ampersand/word substitutions
+ * - drop apostrophes & quote marks entirely (don't → dont)
+ * - everything else non-alphanumeric → space; collapse whitespace
+ */
+export function normalizeTitle(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/ß/g, "ss")
+    .replace(/[''`´‚‛ʼʹʻʽˈˊˋʼ’‘]/g, "")
+    .replace(/[""„‟«»]/g, "")
+    .replace(/\s*&\s*/g, " und ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+/** Build candidate normalized forms of the canonical title for matching. */
+function titleCandidates(title: string): string[] {
+  const variants = new Set<string>()
+  variants.add(title)
+  // Strip parenthetical/bracketed segments: "(feat. X)", "[Bonus]", etc.
+  variants.add(title.replace(/[([{][^)\]}]*[)\]}]/g, ""))
+  // Strip "feat./ft./featuring …" tails
+  variants.add(title.replace(/\s+(feat\.?|ft\.?|featuring)\s.+$/i, ""))
+  // Strip "prod. by …" tails
+  variants.add(title.replace(/\s+(prod\.?|produced)\s.+$/i, ""))
+  return Array.from(variants).map(normalizeTitle).filter(Boolean)
+}
+
+function songGuessMatches(guess: string, title: string): boolean {
+  const g = normalizeTitle(guess)
+  if (!g) return false
+  return titleCandidates(title).some((c) => c === g)
 }
 
 /** Fetch one random active punchline + its 3 hardcoded artist choices, shuffled for display. */
@@ -77,7 +129,11 @@ export const getRound = createServerFn({ method: "GET" })
     }
   })
 
-/** Validate a guess against the DB-stored correct artist for a punchline. */
+/**
+ * Validate the artist guess. When the guess is correct we deliberately do NOT
+ * return song/album info — the client moves to the song-guessing phase and
+ * has to call submitSongGuess to reveal it.
+ */
 export const submitAnswer = createServerFn({ method: "POST" })
   .inputValidator((d: { punchlineId: number; artistId: number }) => d)
   .handler(async ({ data }): Promise<AnswerResult> => {
@@ -99,15 +155,54 @@ export const submitAnswer = createServerFn({ method: "POST" })
 
     if (rows.length === 0) throw new Error("Punchline not found")
     const r = rows[0]
+    const isCorrect = r.correctArtistId === data.artistId
     return {
-      isCorrect: r.correctArtistId === data.artistId,
+      isCorrect,
       correctArtist: {
         id: r.correctArtistId,
         name: r.artistName,
         imageUrl: r.artistImageUrl,
       },
+      // Wrong artist → round is over, show song. Right artist → withhold.
+      song: isCorrect
+        ? null
+        : {
+            title: r.songTitle,
+            album: r.album,
+            albumArtUrl: r.albumArtUrl,
+            releaseYear: r.releaseYear,
+          },
+    }
+  })
+
+/**
+ * Validate a free-typed song guess. Empty string is treated as "skip" — the
+ * reply still returns the song reveal but with isCorrect=false. The matching
+ * is intentionally lenient (see normalizeTitle / titleCandidates).
+ */
+export const submitSongGuess = createServerFn({ method: "POST" })
+  .inputValidator((d: { punchlineId: number; guess: string }) => d)
+  .handler(async ({ data }): Promise<SongGuessResult> => {
+    const rows = await db
+      .select({
+        title: songs.title,
+        album: songs.album,
+        albumArtUrl: songs.albumArtUrl,
+        releaseYear: songs.releaseYear,
+      })
+      .from(punchlines)
+      .innerJoin(songs, eq(songs.id, punchlines.songId))
+      .where(eq(punchlines.id, data.punchlineId))
+      .limit(1)
+
+    if (rows.length === 0) throw new Error("Punchline not found")
+    const r = rows[0]
+    const guess = (data.guess ?? "").trim()
+    const isCorrect = guess.length > 0 && songGuessMatches(guess, r.title)
+    return {
+      isCorrect,
       song: {
-        title: r.songTitle,
+        title: r.title,
         album: r.album,
         albumArtUrl: r.albumArtUrl,
         releaseYear: r.releaseYear,

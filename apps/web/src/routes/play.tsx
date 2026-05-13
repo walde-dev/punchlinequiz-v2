@@ -11,7 +11,16 @@ import {
   type ArtistRow,
   type BarRow,
 } from "../lib/admin-client"
-import { getRound, submitAnswer, type ArtistChoice, type AnswerResult, type Round } from "../lib/game"
+import {
+  getRound,
+  submitAnswer,
+  submitSongGuess,
+  type AnswerResult,
+  type ArtistChoice,
+  type Round,
+  type SongGuessResult,
+  type SongReveal,
+} from "../lib/game"
 import { isAdminFn } from "../lib/session"
 import { logEvent } from "../lib/track"
 
@@ -25,7 +34,7 @@ export const Route = createFileRoute("/play")({
 
 const ease = "cubic-bezier(0.16, 1, 0.3, 1)"
 
-type Phase = "guessing" | "revealing" | "loading-next"
+type Phase = "guessing" | "song-guessing" | "revealing" | "loading-next"
 
 function PlayPage() {
   const loaded = Route.useLoaderData()
@@ -33,7 +42,8 @@ function PlayPage() {
   const isAdmin = loaded.isAdmin
   const [phase, setPhase] = useState<Phase>("guessing")
   const [selectedId, setSelectedId] = useState<number | null>(null)
-  const [result, setResult] = useState<AnswerResult | null>(null)
+  const [artistResult, setArtistResult] = useState<AnswerResult | null>(null)
+  const [songResult, setSongResult] = useState<SongGuessResult | null>(null)
   const [streak, setStreak] = useState(0)
   const [score, setScore] = useState({ right: 0, total: 0 })
   const [confettiKey, setConfettiKey] = useState(0)
@@ -67,23 +77,25 @@ function PlayPage() {
     }
   }
 
+  function resetRoundState() {
+    setArtistResult(null)
+    setSongResult(null)
+    setSelectedId(null)
+    setPhase("guessing")
+  }
+
   async function onEditSaved() {
     if (!editing) return
     setEditing(null)
-    // Pull a fresh round — artist / song / distractors may have changed,
-    // so the cached choices array could be stale.
     try {
       const next = await getRound({ data: {} })
       setRound(next)
-      setResult(null)
-      setSelectedId(null)
-      setPhase("guessing")
+      resetRoundState()
     } catch {
       // ignore; user can hit "Nächste Bar"
     }
   }
 
-  // Log round impressions once per round
   const loggedRoundRef = useRef<number | null>(null)
   useEffect(() => {
     if (loggedRoundRef.current === round.punchlineId) return
@@ -109,8 +121,7 @@ function PlayPage() {
       const res = await submitAnswer({
         data: { punchlineId: round.punchlineId, artistId: choice.id },
       })
-      setResult(res)
-      setScore((s) => ({ right: s.right + (res.isCorrect ? 1 : 0), total: s.total + 1 }))
+      setArtistResult(res)
       logEvent("answer_revealed", {
         punchline_id: round.punchlineId,
         artist_id: choice.id,
@@ -118,17 +129,53 @@ function PlayPage() {
         correct_artist_id: res.correctArtist.id,
       })
       if (res.isCorrect) {
-        setStreak((s) => s + 1)
         setConfettiKey((k) => k + 1)
+        // Move on to the song-guessing phase. Score is awarded only after
+        // the song step resolves so a single round counts once.
+        setPhase("song-guessing")
       } else {
         setStreak(0)
         setWrongShake((s) => s + 1)
+        setScore((s) => ({ right: s.right, total: s.total + 1 }))
+        setPhase("revealing")
       }
-      setPhase("revealing")
     } catch (err) {
       console.error(err)
       logEvent("answer_error", { punchline_id: round.punchlineId, message: String(err) })
       setSelectedId(null)
+    }
+  }
+
+  async function onSongSubmit(guess: string) {
+    if (phase !== "song-guessing") return
+    const trimmed = guess.trim()
+    logEvent("song_guess_submitted", {
+      punchline_id: round.punchlineId,
+      skipped: trimmed.length === 0,
+    })
+    try {
+      const res = await submitSongGuess({
+        data: { punchlineId: round.punchlineId, guess: trimmed },
+      })
+      setSongResult(res)
+      logEvent("song_guess_revealed", {
+        punchline_id: round.punchlineId,
+        is_correct: res.isCorrect,
+        skipped: trimmed.length === 0,
+      })
+      if (res.isCorrect) {
+        setConfettiKey((k) => k + 1)
+        setStreak((s) => s + 1)
+      } else {
+        setStreak(0)
+      }
+      // Artist was already right — count the round as right regardless of
+      // whether the bonus song step was nailed.
+      setScore((s) => ({ right: s.right + 1, total: s.total + 1 }))
+      setPhase("revealing")
+    } catch (err) {
+      console.error(err)
+      logEvent("song_guess_error", { punchline_id: round.punchlineId, message: String(err) })
     }
   }
 
@@ -138,9 +185,7 @@ function PlayPage() {
     try {
       const next = await getRound({ data: { excludeId: round.punchlineId } })
       setRound(next)
-      setResult(null)
-      setSelectedId(null)
-      setPhase("guessing")
+      resetRoundState()
     } catch (err) {
       console.error(err)
       logEvent("next_error", { message: String(err) })
@@ -183,16 +228,28 @@ function PlayPage() {
 
           <div className="relative">
             <Confetti trigger={confettiKey} />
-            {phase === "guessing" ? (
+            {phase === "guessing" && (
               <Choices
                 choices={round.choices}
                 onChoose={onChoose}
                 selectedId={selectedId}
                 disabled={selectedId !== null}
               />
-            ) : result ? (
-              <Reveal result={result} onNext={onNext} loading={phase === "loading-next"} />
-            ) : null}
+            )}
+            {phase === "song-guessing" && artistResult && (
+              <SongGuess
+                artist={artistResult.correctArtist}
+                onSubmit={onSongSubmit}
+              />
+            )}
+            {phase !== "guessing" && phase !== "song-guessing" && artistResult && (
+              <Reveal
+                artistResult={artistResult}
+                songResult={songResult}
+                onNext={onNext}
+                loading={phase === "loading-next"}
+              />
+            )}
           </div>
         </div>
       </main>
@@ -263,12 +320,29 @@ function BarDisplay({
         }}
       >
         <span className="text-primary/40 select-none mr-1">"</span>
-        {line}
+        {renderBarLines(line)}
         <span className="text-primary/40 select-none ml-1">"</span>
       </blockquote>
       <p className="text-sm text-muted-foreground">Von wem ist die Bar?</p>
     </div>
   )
+}
+
+/**
+ * Rap notation uses "/" as a bar separator — render each segment on its own
+ * line, with the slash kept inline at the end (gold, slightly faded).
+ */
+function renderBarLines(line: string): React.ReactNode {
+  const parts = line.split("/")
+  return parts.map((seg, i) => {
+    const isLast = i === parts.length - 1
+    return (
+      <span key={i} className="block">
+        {seg.trimStart().replace(/\s+$/, "")}
+        {!isLast && <span className="text-primary/50 select-none"> /</span>}
+      </span>
+    )
+  })
 }
 
 function Choices({
@@ -321,17 +395,128 @@ function Choices({
   )
 }
 
+function SongGuess({
+  artist,
+  onSubmit,
+}: {
+  artist: ArtistChoice
+  onSubmit: (guess: string) => void
+}) {
+  const [value, setValue] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+  const inputRef = useRef<HTMLInputElement | null>(null)
+
+  useEffect(() => {
+    // Soft autofocus so users on desktop can type immediately. On mobile this
+    // pops the keyboard — desired here since song-guess is the active task.
+    inputRef.current?.focus()
+  }, [])
+
+  async function submit(guess: string) {
+    if (submitting) return
+    setSubmitting(true)
+    try {
+      await onSubmit(guess)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div
+      className={cn(
+        "flex flex-col items-center gap-5 rounded-3xl p-6 text-center",
+        "border border-primary/40 bg-card/40 backdrop-blur-[2px]",
+      )}
+      style={{ animation: `pq-fade-up 0.55s ${ease} both` }}
+    >
+      <span
+        role="status"
+        aria-live="polite"
+        className="inline-flex items-center gap-2 text-xs font-bold tracking-[0.16em] uppercase text-primary"
+      >
+        <span className="opacity-50">/</span> artist saß
+      </span>
+
+      <div className="flex flex-col items-center gap-2">
+        <ArtistAvatar artist={artist} size={56} />
+        <p className="text-lg font-extrabold leading-tight tracking-tight">{artist.name}</p>
+        <p className="text-sm text-muted-foreground max-w-xs text-balance">
+          Und der Song? Tipp ein — oder skip wenn du raten musst.
+        </p>
+      </div>
+
+      <form
+        className="flex w-full flex-col items-stretch gap-3"
+        onSubmit={(e) => {
+          e.preventDefault()
+          submit(value)
+        }}
+      >
+        <input
+          ref={inputRef}
+          type="text"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder="Song-Titel…"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          disabled={submitting}
+          aria-label="Song-Titel eingeben"
+          className={cn(
+            "w-full min-h-12 rounded-full border bg-background/60 px-5 text-base font-semibold",
+            "border-border/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
+            "placeholder:text-muted-foreground/50 disabled:opacity-60",
+          )}
+        />
+        <div className="flex w-full gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => submit("")}
+            disabled={submitting}
+            className="flex-1 min-h-12 rounded-full text-sm font-bold text-muted-foreground hover:text-foreground"
+          >
+            Skip
+          </Button>
+          <Button
+            type="submit"
+            size="lg"
+            disabled={submitting || value.trim().length === 0}
+            className="flex-[2] cta-glow min-h-12 text-base font-bold"
+          >
+            {submitting ? "…" : "Bestätigen"}
+          </Button>
+        </div>
+      </form>
+    </div>
+  )
+}
+
 function Reveal({
-  result,
+  artistResult,
+  songResult,
   onNext,
   loading,
 }: {
-  result: AnswerResult
+  artistResult: AnswerResult
+  songResult: SongGuessResult | null
   onNext: () => void
   loading: boolean
 }) {
-  const { isCorrect, correctArtist, song } = result
-  const verdict = useMemo(() => verdictCopy(isCorrect), [isCorrect])
+  // Artist was correct iff artistResult.isCorrect. The song reveal is in
+  // songResult when we went through the song-guess phase, otherwise it
+  // comes from artistResult.song (wrong-artist path).
+  const artistCorrect = artistResult.isCorrect
+  const song: SongReveal | null = songResult?.song ?? artistResult.song
+  const songCorrect = songResult?.isCorrect ?? false
+  const verdict = useMemo(
+    () => verdictCopy(artistCorrect, songResult ? songCorrect : null),
+    [artistCorrect, songCorrect, songResult],
+  )
+  const highlight = artistCorrect
 
   return (
     <div className="relative">
@@ -339,7 +524,7 @@ function Reveal({
         className={cn(
           "flex flex-col items-center gap-5 rounded-3xl p-6 text-center",
           "border bg-card/40 backdrop-blur-[2px]",
-          isCorrect ? "border-primary/40" : "border-border/50",
+          highlight ? "border-primary/40" : "border-border/50",
         )}
         style={{ animation: `pq-fade-up 0.55s ${ease} both` }}
       >
@@ -348,25 +533,33 @@ function Reveal({
           aria-live="polite"
           className={cn(
             "inline-flex items-center gap-2 text-xs font-bold tracking-[0.16em] uppercase",
-            isCorrect ? "text-primary" : "text-muted-foreground",
+            highlight ? "text-primary" : "text-muted-foreground",
           )}
         >
           <span className="opacity-50">/</span>
           {verdict.label}
         </span>
 
-        {/* Album art — square gradient placeholder when missing */}
-        <AlbumArt artist={correctArtist} song={song} highlight={isCorrect} />
+        <AlbumArt artist={artistResult.correctArtist} song={song} highlight={highlight} />
 
         <div className="flex flex-col items-center gap-1.5">
           <p className="text-xl font-extrabold leading-tight tracking-tight">
-            {correctArtist.name}
+            {artistResult.correctArtist.name}
           </p>
-          <p className="text-sm text-muted-foreground">
-            <span className="text-foreground/80">{song.title}</span>
-            {song.album && <span className="opacity-50"> · {song.album}</span>}
-            {song.releaseYear && <span className="opacity-50"> · {song.releaseYear}</span>}
-          </p>
+          {song && (
+            <p className="text-sm text-muted-foreground">
+              <span
+                className={cn(
+                  "text-foreground/80",
+                  songCorrect && "text-primary font-bold",
+                )}
+              >
+                {song.title}
+              </span>
+              {song.album && <span className="opacity-50"> · {song.album}</span>}
+              {song.releaseYear && <span className="opacity-50"> · {song.releaseYear}</span>}
+            </p>
+          )}
         </div>
 
         <p className="text-sm text-muted-foreground/80 max-w-xs text-balance">{verdict.line}</p>
@@ -412,10 +605,9 @@ function AlbumArt({
   highlight,
 }: {
   artist: ArtistChoice
-  song: AnswerResult["song"]
+  song: SongReveal | null
   highlight: boolean
 }) {
-  // Token-driven gradient placeholder (gold over charcoal). Never a stock illustration.
   return (
     <div
       className={cn(
@@ -428,14 +620,14 @@ function AlbumArt({
           "radial-gradient(ellipse 80% 60% at 30% 25%, color-mix(in oklch, var(--primary), transparent 55%) 0%, transparent 70%), linear-gradient(160deg, var(--card), var(--background))",
       }}
     >
-      {song.albumArtUrl && (
+      {song?.albumArtUrl && (
         <img
           src={song.albumArtUrl}
           alt={`${song.album ?? song.title} cover`}
           className="absolute inset-0 h-full w-full object-cover"
         />
       )}
-      {!song.albumArtUrl && (
+      {song && !song.albumArtUrl && (
         <div className="absolute inset-0 flex flex-col items-start justify-end p-4">
           <span className="text-[0.65rem] font-bold uppercase tracking-[0.18em] text-primary/80">
             {artist.name}
@@ -459,14 +651,29 @@ function AlbumArt({
   )
 }
 
-function verdictCopy(isCorrect: boolean): { label: string; line: string } {
-  if (isCorrect) {
+function verdictCopy(
+  artistCorrect: boolean,
+  songCorrect: boolean | null,
+): { label: string; line: string } {
+  if (artistCorrect && songCorrect === true) {
     const opts = [
-      { label: "ehre", line: "Ehre. Du kennst das." },
-      { label: "real", line: "Real recognize real." },
-      { label: "auf jeden", line: "Auf jeden. Das saß." },
+      { label: "doppel-ehre", line: "Doppel-Ehre. Artist UND Song — du bist drin." },
+      { label: "lockdown", line: "Lockdown. Du kennst jede Silbe." },
+      { label: "real real", line: "Real recognize real recognize real." },
     ]
     return opts[Math.floor(Math.random() * opts.length)]
+  }
+  if (artistCorrect && songCorrect === false) {
+    const opts = [
+      { label: "halbe ehre", line: "Artist saß. Song war's nicht — beim nächsten." },
+      { label: "knapp", line: "Artist hattest du — Song nicht ganz." },
+      { label: "weiter", line: "Halb durch. Pack den nächsten." },
+    ]
+    return opts[Math.floor(Math.random() * opts.length)]
+  }
+  if (artistCorrect && songCorrect === null) {
+    // Shouldn't happen in normal flow; safe fallback.
+    return { label: "ehre", line: "Artist saß. Auf zum nächsten." }
   }
   const opts = [
     { label: "daneben", line: "Nicht mal nah dran. Hier ist die Antwort." },

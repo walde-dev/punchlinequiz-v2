@@ -22,6 +22,7 @@ import { Route as ApiAdminSearchTracksRouteImport } from './routes/api/admin/sea
 import { Route as ApiAdminSearchArtistsRouteImport } from './routes/api/admin/search.artists'
 import { Route as ApiAdminBarsIdRouteImport } from './routes/api/admin/bars.$id'
 import { Route as ApiAdminArtistsIdRouteImport } from './routes/api/admin/artists.$id'
+import { Route as ApiAdminSearchTrackIdRouteImport } from './routes/api/admin/search.track.$id'
 
 const PlayRoute = PlayRouteImport.update({
   id: '/play',
@@ -88,6 +89,11 @@ const ApiAdminArtistsIdRoute = ApiAdminArtistsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => ApiAdminArtistsRoute,
 } as any)
+const ApiAdminSearchTrackIdRoute = ApiAdminSearchTrackIdRouteImport.update({
+  id: '/api/admin/search/track/$id',
+  path: '/api/admin/search/track/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -103,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/search/artists': typeof ApiAdminSearchArtistsRoute
   '/api/admin/search/tracks': typeof ApiAdminSearchTracksRoute
   '/api/admin/songs/$id': typeof ApiAdminSongsIdRoute
+  '/api/admin/search/track/$id': typeof ApiAdminSearchTrackIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -118,6 +125,7 @@ export interface FileRoutesByTo {
   '/api/admin/search/artists': typeof ApiAdminSearchArtistsRoute
   '/api/admin/search/tracks': typeof ApiAdminSearchTracksRoute
   '/api/admin/songs/$id': typeof ApiAdminSongsIdRoute
+  '/api/admin/search/track/$id': typeof ApiAdminSearchTrackIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -134,6 +142,7 @@ export interface FileRoutesById {
   '/api/admin/search/artists': typeof ApiAdminSearchArtistsRoute
   '/api/admin/search/tracks': typeof ApiAdminSearchTracksRoute
   '/api/admin/songs/$id': typeof ApiAdminSongsIdRoute
+  '/api/admin/search/track/$id': typeof ApiAdminSearchTrackIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -151,6 +160,7 @@ export interface FileRouteTypes {
     | '/api/admin/search/artists'
     | '/api/admin/search/tracks'
     | '/api/admin/songs/$id'
+    | '/api/admin/search/track/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/api/admin/search/artists'
     | '/api/admin/search/tracks'
     | '/api/admin/songs/$id'
+    | '/api/admin/search/track/$id'
   id:
     | '__root__'
     | '/'
@@ -181,6 +192,7 @@ export interface FileRouteTypes {
     | '/api/admin/search/artists'
     | '/api/admin/search/tracks'
     | '/api/admin/songs/$id'
+    | '/api/admin/search/track/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -195,6 +207,7 @@ export interface RootRouteChildren {
   ApiAdminSearchArtistsRoute: typeof ApiAdminSearchArtistsRoute
   ApiAdminSearchTracksRoute: typeof ApiAdminSearchTracksRoute
   ApiAdminSongsIdRoute: typeof ApiAdminSongsIdRoute
+  ApiAdminSearchTrackIdRoute: typeof ApiAdminSearchTrackIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -290,6 +303,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminArtistsIdRouteImport
       parentRoute: typeof ApiAdminArtistsRoute
     }
+    '/api/admin/search/track/$id': {
+      id: '/api/admin/search/track/$id'
+      path: '/api/admin/search/track/$id'
+      fullPath: '/api/admin/search/track/$id'
+      preLoaderRoute: typeof ApiAdminSearchTrackIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -329,6 +349,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminSearchArtistsRoute: ApiAdminSearchArtistsRoute,
   ApiAdminSearchTracksRoute: ApiAdminSearchTracksRoute,
   ApiAdminSongsIdRoute: ApiAdminSongsIdRoute,
+  ApiAdminSearchTrackIdRoute: ApiAdminSearchTrackIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
