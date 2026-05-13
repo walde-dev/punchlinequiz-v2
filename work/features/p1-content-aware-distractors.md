@@ -41,11 +41,12 @@ Artists have **multiple scene tags with weights**. Not one scene — many.
 ```typescript
 export const ARTIST_TAGS: Record<string, ArtistTag[]> = {
   "Kollegah": [
-    { tag: "frankfurt", weight: 0.8 },
+    { tag: "hessen", weight: 0.6 },
     { tag: "wordplay", weight: 1.0 },
     { tag: "braggadocio", weight: 0.9 },
     { tag: "old-school", weight: 0.7 },
     { tag: "hard", weight: 0.8 },
+    { tag: "battle", weight: 0.9 },
   ],
   "Haftbefehl": [
     { tag: "frankfurt", weight: 1.0 },
@@ -92,7 +93,7 @@ function tagOverlap(a: string, b: string): number {
 }
 ```
 
-Two artists are good distractors for each other if they share tags with high weight. Kollegah vs Haftbefehl: both "frankfurt" + "hard" → high overlap. Kollegah vs Apache 207: low overlap → bad distractors.
+Two artists are good distractors for each other if they share tags with high weight. Haftbefehl vs SSIO: both "frankfurt" + "street" + "hard" → high overlap. Kollegah vs Haftbefehl: share "hard" but different cities → medium overlap. Kollegah vs Apache 207: near-zero overlap → bad distractors.
 
 ## part 2: content-aware matching
 
@@ -221,9 +222,9 @@ Even with smart matching, the user knows best. During `lyrics:curate`, show assi
 ```
 ── Kaiseraura (King, 2014)
   ✓  1. [8.2] Ich hab Nerven wie Drahtseile, ihr habt Nerven wie Zahnseide
-     → distractors: Haftbefehl, SSIO
+     → distractors: Farid Bang, Bushido
   ✓  2. [7.5] Ja, ich würd auch gern mal voller Deepness über Probleme rappen – doch ich hab keine
-     → distractors: Haftbefehl, SSIO
+     → distractors: Farid Bang, Bushido
 
 pick: 1 2
 override distractors? [enter to keep, or: d1=<name> d2=<name>]
