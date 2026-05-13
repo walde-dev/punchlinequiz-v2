@@ -24,6 +24,8 @@ def post_bar(base_url: str, token: str, bar: dict) -> dict:
         "artist": bar["artist"],
         "song": bar["song"],
         "line": bar["line"],
+        "distractor1": bar["distractor1"],
+        "distractor2": bar["distractor2"],
     }
     if bar.get("album"):
         payload["album"] = bar["album"]
