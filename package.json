@@ -7,11 +7,16 @@
     "dev": "turbo dev",
     "lint": "turbo lint",
     "format": "turbo format",
-    "typecheck": "turbo typecheck"
+    "typecheck": "turbo typecheck",
+    "lyrics:fetch": "tsx scripts/lyrics/fetch.ts",
+    "lyrics:extract": "tsx scripts/lyrics/extract.ts",
+    "lyrics:curate": "tsx scripts/lyrics/curate.ts",
+    "lyrics:insert": "tsx scripts/lyrics/insert.ts"
   },
   "devDependencies": {
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
+    "tsx": "^4.21.0",
     "turbo": "^2.8.17",
     "typescript": "5.9.3"
   },

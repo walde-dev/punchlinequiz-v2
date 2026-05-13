@@ -33,3 +33,6 @@ npm-debug.log*
 .DS_Store
 *.pem
 node_modules/
+
+# Lyrics pipeline working data (raw lyrics, candidates, curated picks)
+scripts/lyrics/data/
