@@ -24,21 +24,53 @@ export function errorJson(
   return json({ error: code, message, ...(details ? { details } : {}) } satisfies ApiError, status)
 }
 
-/** Constant-time bearer-token auth. Returns Response on failure, null on success. */
+/** Name of the httpOnly cookie that carries the admin token in browser sessions. */
+export const ADMIN_COOKIE = "pquiz_admin"
+
+function constantTimeMatch(a: string, b: string): boolean {
+  const ab = Buffer.from(a)
+  const bb = Buffer.from(b)
+  return ab.length === bb.length && timingSafeEqual(ab, bb)
+}
+
+function extractToken(request: Request): string | null {
+  const header = request.headers.get("authorization") ?? ""
+  if (header.startsWith("Bearer ")) {
+    const t = header.slice(7).trim()
+    if (t) return t
+  }
+  const cookie = request.headers.get("cookie") ?? ""
+  if (!cookie) return null
+  for (const part of cookie.split(";")) {
+    const [rawName, ...rawVal] = part.split("=")
+    const name = rawName?.trim()
+    if (name === ADMIN_COOKIE) {
+      return decodeURIComponent(rawVal.join("=").trim()) || null
+    }
+  }
+  return null
+}
+
+/** Returns true if the request carries a valid admin credential (Bearer or cookie). */
+export function isAdminRequest(request: Request): boolean {
+  const expected = process.env.PQUIZ_ADMIN_TOKEN
+  if (!expected) return false
+  const presented = extractToken(request)
+  if (!presented) return false
+  return constantTimeMatch(presented, expected)
+}
+
+/** Constant-time auth via Bearer header OR `pquiz_admin` cookie. Returns Response on failure, null on success. */
 export function requireAdmin(request: Request): Response | null {
   const expected = process.env.PQUIZ_ADMIN_TOKEN
   if (!expected) {
     console.error("[admin] PQUIZ_ADMIN_TOKEN is not set on the server")
     return errorJson("server_misconfigured", "Admin token not configured.", 500)
   }
-  const header = request.headers.get("authorization") ?? ""
-  const presented = header.startsWith("Bearer ") ? header.slice(7).trim() : ""
-  if (!presented) return errorJson("unauthorized", "Missing bearer token.", 401)
-
-  const a = Buffer.from(presented)
-  const b = Buffer.from(expected)
-  if (a.length !== b.length || !timingSafeEqual(a, b)) {
-    return errorJson("unauthorized", "Bad bearer token.", 401)
+  const presented = extractToken(request)
+  if (!presented) return errorJson("unauthorized", "Missing admin token.", 401)
+  if (!constantTimeMatch(presented, expected)) {
+    return errorJson("unauthorized", "Bad admin token.", 401)
   }
   return null
 }

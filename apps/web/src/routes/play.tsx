@@ -5,12 +5,22 @@ import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { Confetti } from "../components/confetti"
+import { EditBarDrawer } from "../components/edit-bar-drawer"
+import {
+  fetchArtists,
+  type ArtistRow,
+  type BarRow,
+} from "../lib/admin-client"
 import { getRound, submitAnswer, type ArtistChoice, type AnswerResult, type Round } from "../lib/game"
+import { isAdminFn } from "../lib/session"
 import { logEvent } from "../lib/track"
 
 export const Route = createFileRoute("/play")({
   component: PlayPage,
-  loader: () => getRound({ data: {} }),
+  loader: async () => {
+    const [round, session] = await Promise.all([getRound({ data: {} }), isAdminFn()])
+    return { round, isAdmin: session.admin }
+  },
 })
 
 const ease = "cubic-bezier(0.16, 1, 0.3, 1)"
@@ -18,8 +28,9 @@ const ease = "cubic-bezier(0.16, 1, 0.3, 1)"
 type Phase = "guessing" | "revealing" | "loading-next"
 
 function PlayPage() {
-  const initial = Route.useLoaderData()
-  const [round, setRound] = useState<Round>(initial)
+  const loaded = Route.useLoaderData()
+  const [round, setRound] = useState<Round>(loaded.round)
+  const isAdmin = loaded.isAdmin
   const [phase, setPhase] = useState<Phase>("guessing")
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [result, setResult] = useState<AnswerResult | null>(null)
@@ -27,6 +38,51 @@ function PlayPage() {
   const [score, setScore] = useState({ right: 0, total: 0 })
   const [confettiKey, setConfettiKey] = useState(0)
   const [wrongShake, setWrongShake] = useState(0)
+  const [editing, setEditing] = useState<{ bar: BarRow; artists: ArtistRow[] } | null>(null)
+  const [editLoading, setEditLoading] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
+  const artistsCacheRef = useRef<ArtistRow[] | null>(null)
+
+  async function onEditClick() {
+    if (!isAdmin) return
+    setEditLoading(true)
+    setEditError(null)
+    try {
+      const barRes = await fetch(`/api/admin/bars/${round.punchlineId}`, {
+        credentials: "same-origin",
+      })
+      if (!barRes.ok) throw new Error(`bar fetch ${barRes.status}`)
+      const bar = (await barRes.json()) as BarRow
+      let artists = artistsCacheRef.current
+      if (!artists) {
+        const a = await fetchArtists()
+        artists = a.items
+        artistsCacheRef.current = artists
+      }
+      setEditing({ bar, artists })
+    } catch (e) {
+      setEditError(String(e))
+    } finally {
+      setEditLoading(false)
+    }
+  }
+
+  async function onEditSaved() {
+    if (!editing) return
+    setEditing(null)
+    // Re-read the bar so the displayed line reflects the saved value.
+    try {
+      const res = await fetch(`/api/admin/bars/${round.punchlineId}`, {
+        credentials: "same-origin",
+      })
+      if (res.ok) {
+        const bar = (await res.json()) as BarRow
+        setRound((r) => ({ ...r, line: bar.line }))
+      }
+    } catch {
+      // ignore; user can hit "Nächste Bar"
+    }
+  }
 
   // Log round impressions once per round
   const loggedRoundRef = useRef<number | null>(null)
@@ -100,7 +156,31 @@ function PlayPage() {
 
       <main className="relative flex flex-1 flex-col px-5 pt-20 pb-8 md:px-8">
         <div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-between gap-8">
-          <BarDisplay key={round.punchlineId} line={round.line} shakeKey={wrongShake} />
+          <BarDisplay
+            key={round.punchlineId}
+            line={round.line}
+            shakeKey={wrongShake}
+            adminBadge={
+              isAdmin ? (
+                <button
+                  type="button"
+                  onClick={onEditClick}
+                  disabled={editLoading}
+                  className={cn(
+                    "rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-primary",
+                    "hover:bg-primary/20 disabled:opacity-50",
+                  )}
+                >
+                  {editLoading ? "…" : "✎ edit"}
+                </button>
+              ) : null
+            }
+          />
+          {editError && (
+            <p className="-mt-4 text-xs text-destructive" role="alert">
+              {editError}
+            </p>
+          )}
 
           <div className="relative">
             <Confetti trigger={confettiKey} />
@@ -117,6 +197,15 @@ function PlayPage() {
           </div>
         </div>
       </main>
+
+      {editing && (
+        <EditBarDrawer
+          bar={editing.bar}
+          artists={editing.artists}
+          onClose={() => setEditing(null)}
+          onSaved={onEditSaved}
+        />
+      )}
     </div>
   )
 }
@@ -146,16 +235,27 @@ function Header({ score, streak }: { score: { right: number; total: number }; st
   )
 }
 
-function BarDisplay({ line, shakeKey }: { line: string; shakeKey: number }) {
+function BarDisplay({
+  line,
+  shakeKey,
+  adminBadge,
+}: {
+  line: string
+  shakeKey: number
+  adminBadge?: React.ReactNode
+}) {
   return (
     <div
       key={shakeKey}
       className="flex flex-col items-start gap-3"
       style={{ animation: `pq-fade-up 0.5s ${ease} both` }}
     >
-      <span className="text-xs font-semibold tracking-[0.16em] uppercase text-primary/70">
-        / die bar
-      </span>
+      <div className="flex w-full items-center justify-between gap-2">
+        <span className="text-xs font-semibold tracking-[0.16em] uppercase text-primary/70">
+          / die bar
+        </span>
+        {adminBadge}
+      </div>
       <blockquote
         className="font-extrabold leading-[1.18] tracking-tight text-balance"
         style={{

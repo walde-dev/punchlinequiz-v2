@@ -11,8 +11,12 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PlayRouteImport } from './routes/play'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminLoginRouteImport } from './routes/admin/login'
+import { Route as ApiAdminSessionRouteImport } from './routes/api/admin/session'
 import { Route as ApiAdminPingRouteImport } from './routes/api/admin/ping'
 import { Route as ApiAdminBarsRouteImport } from './routes/api/admin/bars'
+import { Route as ApiAdminArtistsRouteImport } from './routes/api/admin/artists'
 import { Route as ApiAdminSongsIdRouteImport } from './routes/api/admin/songs.$id'
 import { Route as ApiAdminBarsIdRouteImport } from './routes/api/admin/bars.$id'
 import { Route as ApiAdminArtistsIdRouteImport } from './routes/api/admin/artists.$id'
@@ -27,6 +31,21 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/admin/login',
+  path: '/admin/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminSessionRoute = ApiAdminSessionRouteImport.update({
+  id: '/api/admin/session',
+  path: '/api/admin/session',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminPingRoute = ApiAdminPingRouteImport.update({
   id: '/api/admin/ping',
   path: '/api/admin/ping',
@@ -35,6 +54,11 @@ const ApiAdminPingRoute = ApiAdminPingRouteImport.update({
 const ApiAdminBarsRoute = ApiAdminBarsRouteImport.update({
   id: '/api/admin/bars',
   path: '/api/admin/bars',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminArtistsRoute = ApiAdminArtistsRouteImport.update({
+  id: '/api/admin/artists',
+  path: '/api/admin/artists',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAdminSongsIdRoute = ApiAdminSongsIdRouteImport.update({
@@ -48,16 +72,20 @@ const ApiAdminBarsIdRoute = ApiAdminBarsIdRouteImport.update({
   getParentRoute: () => ApiAdminBarsRoute,
 } as any)
 const ApiAdminArtistsIdRoute = ApiAdminArtistsIdRouteImport.update({
-  id: '/api/admin/artists/$id',
-  path: '/api/admin/artists/$id',
-  getParentRoute: () => rootRouteImport,
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiAdminArtistsRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/play': typeof PlayRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin/': typeof AdminIndexRoute
+  '/api/admin/artists': typeof ApiAdminArtistsRouteWithChildren
   '/api/admin/bars': typeof ApiAdminBarsRouteWithChildren
   '/api/admin/ping': typeof ApiAdminPingRoute
+  '/api/admin/session': typeof ApiAdminSessionRoute
   '/api/admin/artists/$id': typeof ApiAdminArtistsIdRoute
   '/api/admin/bars/$id': typeof ApiAdminBarsIdRoute
   '/api/admin/songs/$id': typeof ApiAdminSongsIdRoute
@@ -65,8 +93,12 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/play': typeof PlayRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin': typeof AdminIndexRoute
+  '/api/admin/artists': typeof ApiAdminArtistsRouteWithChildren
   '/api/admin/bars': typeof ApiAdminBarsRouteWithChildren
   '/api/admin/ping': typeof ApiAdminPingRoute
+  '/api/admin/session': typeof ApiAdminSessionRoute
   '/api/admin/artists/$id': typeof ApiAdminArtistsIdRoute
   '/api/admin/bars/$id': typeof ApiAdminBarsIdRoute
   '/api/admin/songs/$id': typeof ApiAdminSongsIdRoute
@@ -75,8 +107,12 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/play': typeof PlayRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin/': typeof AdminIndexRoute
+  '/api/admin/artists': typeof ApiAdminArtistsRouteWithChildren
   '/api/admin/bars': typeof ApiAdminBarsRouteWithChildren
   '/api/admin/ping': typeof ApiAdminPingRoute
+  '/api/admin/session': typeof ApiAdminSessionRoute
   '/api/admin/artists/$id': typeof ApiAdminArtistsIdRoute
   '/api/admin/bars/$id': typeof ApiAdminBarsIdRoute
   '/api/admin/songs/$id': typeof ApiAdminSongsIdRoute
@@ -86,8 +122,12 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/play'
+    | '/admin/login'
+    | '/admin/'
+    | '/api/admin/artists'
     | '/api/admin/bars'
     | '/api/admin/ping'
+    | '/api/admin/session'
     | '/api/admin/artists/$id'
     | '/api/admin/bars/$id'
     | '/api/admin/songs/$id'
@@ -95,8 +135,12 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/play'
+    | '/admin/login'
+    | '/admin'
+    | '/api/admin/artists'
     | '/api/admin/bars'
     | '/api/admin/ping'
+    | '/api/admin/session'
     | '/api/admin/artists/$id'
     | '/api/admin/bars/$id'
     | '/api/admin/songs/$id'
@@ -104,8 +148,12 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/play'
+    | '/admin/login'
+    | '/admin/'
+    | '/api/admin/artists'
     | '/api/admin/bars'
     | '/api/admin/ping'
+    | '/api/admin/session'
     | '/api/admin/artists/$id'
     | '/api/admin/bars/$id'
     | '/api/admin/songs/$id'
@@ -114,9 +162,12 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   PlayRoute: typeof PlayRoute
+  AdminLoginRoute: typeof AdminLoginRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+  ApiAdminArtistsRoute: typeof ApiAdminArtistsRouteWithChildren
   ApiAdminBarsRoute: typeof ApiAdminBarsRouteWithChildren
   ApiAdminPingRoute: typeof ApiAdminPingRoute
-  ApiAdminArtistsIdRoute: typeof ApiAdminArtistsIdRoute
+  ApiAdminSessionRoute: typeof ApiAdminSessionRoute
   ApiAdminSongsIdRoute: typeof ApiAdminSongsIdRoute
 }
 
@@ -136,6 +187,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/login': {
+      id: '/admin/login'
+      path: '/admin/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/session': {
+      id: '/api/admin/session'
+      path: '/api/admin/session'
+      fullPath: '/api/admin/session'
+      preLoaderRoute: typeof ApiAdminSessionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/ping': {
       id: '/api/admin/ping'
       path: '/api/admin/ping'
@@ -148,6 +220,13 @@ declare module '@tanstack/react-router' {
       path: '/api/admin/bars'
       fullPath: '/api/admin/bars'
       preLoaderRoute: typeof ApiAdminBarsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/artists': {
+      id: '/api/admin/artists'
+      path: '/api/admin/artists'
+      fullPath: '/api/admin/artists'
+      preLoaderRoute: typeof ApiAdminArtistsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/songs/$id': {
@@ -166,13 +245,25 @@ declare module '@tanstack/react-router' {
     }
     '/api/admin/artists/$id': {
       id: '/api/admin/artists/$id'
-      path: '/api/admin/artists/$id'
+      path: '/$id'
       fullPath: '/api/admin/artists/$id'
       preLoaderRoute: typeof ApiAdminArtistsIdRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof ApiAdminArtistsRoute
     }
   }
 }
+
+interface ApiAdminArtistsRouteChildren {
+  ApiAdminArtistsIdRoute: typeof ApiAdminArtistsIdRoute
+}
+
+const ApiAdminArtistsRouteChildren: ApiAdminArtistsRouteChildren = {
+  ApiAdminArtistsIdRoute: ApiAdminArtistsIdRoute,
+}
+
+const ApiAdminArtistsRouteWithChildren = ApiAdminArtistsRoute._addFileChildren(
+  ApiAdminArtistsRouteChildren,
+)
 
 interface ApiAdminBarsRouteChildren {
   ApiAdminBarsIdRoute: typeof ApiAdminBarsIdRoute
@@ -189,9 +280,12 @@ const ApiAdminBarsRouteWithChildren = ApiAdminBarsRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PlayRoute: PlayRoute,
+  AdminLoginRoute: AdminLoginRoute,
+  AdminIndexRoute: AdminIndexRoute,
+  ApiAdminArtistsRoute: ApiAdminArtistsRouteWithChildren,
   ApiAdminBarsRoute: ApiAdminBarsRouteWithChildren,
   ApiAdminPingRoute: ApiAdminPingRoute,
-  ApiAdminArtistsIdRoute: ApiAdminArtistsIdRoute,
+  ApiAdminSessionRoute: ApiAdminSessionRoute,
   ApiAdminSongsIdRoute: ApiAdminSongsIdRoute,
 }
 export const routeTree = rootRouteImport
