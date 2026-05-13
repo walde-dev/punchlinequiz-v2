@@ -213,6 +213,72 @@ export async function searchTrack(
   }
 }
 
+export type DeezerTrackSearchHit = {
+  trackId: string
+  title: string
+  artistName: string
+  artistId: string
+  albumId: string
+  albumTitle: string
+  albumArtUrl: string | null
+  releaseYear: number | null
+}
+
+/** Live search for the admin combobox — multiple ranked candidates. */
+export async function searchArtistsList(
+  query: string,
+  limit = 8,
+): Promise<DeezerArtistMatch[]> {
+  if (!query.trim()) return []
+  try {
+    const body = (await deezerFetch(
+      `/search/artist?q=${encodeURIComponent(query)}&limit=${limit}`,
+    )) as { data?: Array<Record<string, unknown>> }
+    return (body.data ?? []).map((a) => ({
+      id: String(a.id),
+      name: String(a.name ?? ""),
+      imageUrl: pickArtistImage(a),
+    }))
+  } catch {
+    return []
+  }
+}
+
+export async function searchTracksList(
+  query: string,
+  limit = 8,
+): Promise<DeezerTrackSearchHit[]> {
+  if (!query.trim()) return []
+  try {
+    const body = (await deezerFetch(
+      `/search?q=${encodeURIComponent(query)}&limit=${limit}`,
+    )) as { data?: Array<Record<string, unknown>> }
+    return (body.data ?? []).map((h) => {
+      const album = (h.album as Record<string, unknown> | undefined) ?? {}
+      const artist = (h.artist as Record<string, unknown> | undefined) ?? {}
+      const releaseDate =
+        typeof album.release_date === "string"
+          ? album.release_date
+          : typeof h.release_date === "string"
+            ? (h.release_date as string)
+            : ""
+      const year = releaseDate ? Number(releaseDate.slice(0, 4)) : null
+      return {
+        trackId: String(h.id),
+        title: String(h.title ?? ""),
+        artistName: String(artist.name ?? ""),
+        artistId: String(artist.id ?? ""),
+        albumId: String(album.id ?? ""),
+        albumTitle: String(album.title ?? ""),
+        albumArtUrl: pickAlbumImage(album),
+        releaseYear: year && Number.isFinite(year) ? year : null,
+      }
+    })
+  } catch {
+    return []
+  }
+}
+
 export async function getArtistById(id: string): Promise<DeezerArtistMatch | null> {
   try {
     const body = (await deezerFetch(`/artist/${encodeURIComponent(id)}`)) as Record<string, unknown>

@@ -70,15 +70,14 @@ function PlayPage() {
   async function onEditSaved() {
     if (!editing) return
     setEditing(null)
-    // Re-read the bar so the displayed line reflects the saved value.
+    // Pull a fresh round — artist / song / distractors may have changed,
+    // so the cached choices array could be stale.
     try {
-      const res = await fetch(`/api/admin/bars/${round.punchlineId}`, {
-        credentials: "same-origin",
-      })
-      if (res.ok) {
-        const bar = (await res.json()) as BarRow
-        setRound((r) => ({ ...r, line: bar.line }))
-      }
+      const next = await getRound({ data: {} })
+      setRound(next)
+      setResult(null)
+      setSelectedId(null)
+      setPhase("guessing")
     } catch {
       // ignore; user can hit "Nächste Bar"
     }

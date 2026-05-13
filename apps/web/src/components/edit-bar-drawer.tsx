@@ -3,7 +3,13 @@ import { useEffect, useRef, useState } from "react"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 
-import { patchBar, deleteBar, type ArtistRow, type BarRow } from "../lib/admin-client"
+import {
+  patchBar,
+  patchSong,
+  deleteBar,
+  type ArtistRow,
+  type BarRow,
+} from "../lib/admin-client"
 
 export function EditBarDrawer({
   bar,
@@ -20,6 +26,12 @@ export function EditBarDrawer({
   const [active, setActive] = useState(bar.active)
   const [d1, setD1] = useState(bar.distractor1Id)
   const [d2, setD2] = useState(bar.distractor2Id)
+  const [artistId, setArtistId] = useState(bar.artistId)
+  const [songTitle, setSongTitle] = useState(bar.songTitle)
+  const [album, setAlbum] = useState(bar.songAlbum ?? "")
+  const [releaseYear, setReleaseYear] = useState(
+    bar.releaseYear == null ? "" : String(bar.releaseYear),
+  )
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
@@ -34,9 +46,9 @@ export function EditBarDrawer({
   }, [onClose])
 
   const correctArtistName =
-    artists.find((a) => a.id === bar.artistId)?.name ?? bar.artistName
+    artists.find((a) => a.id === artistId)?.name ?? bar.artistName
 
-  function buildPatch() {
+  function buildBarPatch() {
     const patch: Parameters<typeof patchBar>[1] = {}
     if (line.trim() !== bar.line) patch.line = line.trim()
     if (active !== bar.active) patch.active = active
@@ -45,15 +57,37 @@ export function EditBarDrawer({
     return patch
   }
 
-  const dirty = Object.keys(buildPatch()).length > 0
-  const conflict = d1 === bar.artistId || d2 === bar.artistId || d1 === d2
+  function buildSongPatch() {
+    const patch: Parameters<typeof patchSong>[1] = {}
+    if (artistId !== bar.artistId) patch.artistId = artistId
+    if (songTitle.trim() !== bar.songTitle) patch.title = songTitle.trim()
+    const normAlbum = album.trim()
+    const origAlbum = bar.songAlbum ?? ""
+    if (normAlbum !== origAlbum) patch.album = normAlbum || null
+    const trimmedYear = releaseYear.trim()
+    const yearNum = trimmedYear ? Number(trimmedYear) : null
+    if (yearNum !== (bar.releaseYear ?? null) && yearNum !== null) {
+      patch.releaseYear = yearNum
+    }
+    return patch
+  }
+
+  const barPatch = buildBarPatch()
+  const songPatch = buildSongPatch()
+  const dirty = Object.keys(barPatch).length > 0 || Object.keys(songPatch).length > 0
+  const conflict = d1 === artistId || d2 === artistId || d1 === d2
 
   async function onSave() {
     if (!dirty || conflict) return
     setBusy(true)
     setErr(null)
     try {
-      await patchBar(bar.id, buildPatch())
+      if (Object.keys(songPatch).length > 0) {
+        await patchSong(bar.songId, songPatch)
+      }
+      if (Object.keys(barPatch).length > 0) {
+        await patchBar(bar.id, barPatch)
+      }
       await onSaved()
     } catch (e) {
       setErr(String(e))
@@ -106,7 +140,7 @@ export function EditBarDrawer({
           </button>
         </div>
 
-        <div className="flex flex-col gap-4 px-5 py-4">
+        <div className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto px-5 py-4">
           <Field label="Line">
             <textarea
               value={line}
@@ -116,13 +150,45 @@ export function EditBarDrawer({
             />
           </Field>
 
+          <Field label="Korrekter Artist">
+            <ArtistSelect value={artistId} onChange={setArtistId} artists={artists} />
+          </Field>
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto]">
+            <Field label="Song">
+              <input
+                value={songTitle}
+                onChange={(e) => setSongTitle(e.target.value)}
+                className={textInputCls}
+              />
+            </Field>
+            <Field label="Jahr">
+              <input
+                value={releaseYear}
+                onChange={(e) => setReleaseYear(e.target.value)}
+                inputMode="numeric"
+                pattern="[0-9]*"
+                className={cn(textInputCls, "w-20")}
+              />
+            </Field>
+          </div>
+
+          <Field label="Album">
+            <input
+              value={album}
+              onChange={(e) => setAlbum(e.target.value)}
+              className={textInputCls}
+              placeholder="(leer = nicht gesetzt)"
+            />
+          </Field>
+
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <Field label="Distractor 1">
               <ArtistSelect
                 value={d1}
                 onChange={setD1}
                 artists={artists}
-                excludeId={bar.artistId}
+                excludeId={artistId}
               />
             </Field>
             <Field label="Distractor 2">
@@ -130,7 +196,7 @@ export function EditBarDrawer({
                 value={d2}
                 onChange={setD2}
                 artists={artists}
-                excludeId={bar.artistId}
+                excludeId={artistId}
               />
             </Field>
           </div>
@@ -183,6 +249,9 @@ export function EditBarDrawer({
     </div>
   )
 }
+
+const textInputCls =
+  "w-full rounded-xl border border-border/60 bg-background/60 px-3 py-2 text-sm font-medium text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/60"
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (

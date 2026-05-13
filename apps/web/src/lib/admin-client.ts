@@ -74,6 +74,24 @@ export async function createBar(input: {
   return jsonOrThrow(res)
 }
 
+export async function patchSong(
+  id: number,
+  patch: {
+    title?: string
+    album?: string | null
+    releaseYear?: number
+    artistId?: number
+  },
+): Promise<{ id: number; title: string; album: string | null }> {
+  const res = await fetch(`/api/admin/songs/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+    credentials: "same-origin",
+  })
+  return jsonOrThrow(res)
+}
+
 export async function patchBar(
   id: number,
   patch: {
@@ -90,6 +108,41 @@ export async function patchBar(
     credentials: "same-origin",
   })
   return jsonOrThrow(res)
+}
+
+export type DeezerArtistHit = {
+  id: string
+  name: string
+  imageUrl: string | null
+}
+
+export type DeezerTrackHit = {
+  trackId: string
+  title: string
+  artistName: string
+  artistId: string
+  albumId: string
+  albumTitle: string
+  albumArtUrl: string | null
+  releaseYear: number | null
+}
+
+export async function searchDeezerArtists(q: string): Promise<DeezerArtistHit[]> {
+  if (!q.trim()) return []
+  const url = new URL("/api/admin/search/artists", window.location.origin)
+  url.searchParams.set("q", q.trim())
+  const res = await fetch(url, { credentials: "same-origin" })
+  const body = await jsonOrThrow<{ items: DeezerArtistHit[] }>(res)
+  return body.items
+}
+
+export async function searchDeezerTracks(q: string): Promise<DeezerTrackHit[]> {
+  if (!q.trim()) return []
+  const url = new URL("/api/admin/search/tracks", window.location.origin)
+  url.searchParams.set("q", q.trim())
+  const res = await fetch(url, { credentials: "same-origin" })
+  const body = await jsonOrThrow<{ items: DeezerTrackHit[] }>(res)
+  return body.items
 }
 
 export async function deleteBar(id: number, hard = false): Promise<void> {

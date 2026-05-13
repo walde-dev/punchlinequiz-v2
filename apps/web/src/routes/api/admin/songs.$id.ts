@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { eq } from "drizzle-orm"
-import { songs } from "@workspace/db"
+import { artists, songs } from "@workspace/db"
 
 import { db } from "../../../lib/db"
 import {
@@ -73,6 +73,16 @@ export const Route = createFileRoute("/api/admin/songs/$id")({
             max: 2100,
           })
           if (releaseYear !== undefined) patch.releaseYear = releaseYear
+          const artistId = optionalInt(body.artistId, "artistId", { min: 1 })
+          if (artistId !== undefined) {
+            const artistRow = (
+              await db.select().from(artists).where(eq(artists.id, artistId)).limit(1)
+            )[0]
+            if (!artistRow) {
+              throw new HttpError(400, "invalid_field", "artistId does not exist.")
+            }
+            patch.artistId = artistId
+          }
           if (Object.keys(patch).length === 0)
             throw new HttpError(400, "empty_patch", "Provide at least one field to update.")
 

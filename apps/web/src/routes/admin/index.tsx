@@ -6,7 +6,15 @@ import { cn } from "@workspace/ui/lib/utils"
 
 import { isAdminFn } from "../../lib/session"
 import type { ArtistRow, BarRow } from "../../lib/admin-client"
-import { fetchArtists, fetchBars, createBar, patchBar } from "../../lib/admin-client"
+import {
+  fetchArtists,
+  fetchBars,
+  createBar,
+  patchBar,
+  searchDeezerArtists,
+  searchDeezerTracks,
+} from "../../lib/admin-client"
+import { Combobox, type ComboboxItem } from "../../components/combobox"
 import { EditBarDrawer } from "../../components/edit-bar-drawer"
 
 export const Route = createFileRoute("/admin/")({
@@ -111,7 +119,6 @@ function AdminDashboard() {
 
         {showCreate && (
           <CreateBarForm
-            artists={artists}
             onCreated={async () => {
               setShowCreate(false)
               await refresh()
@@ -200,13 +207,7 @@ function AdminDashboard() {
   )
 }
 
-function CreateBarForm({
-  artists,
-  onCreated,
-}: {
-  artists: ArtistRow[]
-  onCreated: () => Promise<void>
-}) {
+function CreateBarForm({ onCreated }: { onCreated: () => Promise<void> }) {
   const [artist, setArtist] = useState("")
   const [song, setSong] = useState("")
   const [line, setLine] = useState("")
@@ -214,6 +215,7 @@ function CreateBarForm({
   const [d2, setD2] = useState("")
   const [album, setAlbum] = useState("")
   const [year, setYear] = useState("")
+  const [coverUrl, setCoverUrl] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
@@ -238,6 +240,7 @@ function CreateBarForm({
       setD2("")
       setAlbum("")
       setYear("")
+      setCoverUrl(null)
       await onCreated()
     } catch (e2) {
       setErr(String(e2))
@@ -248,7 +251,8 @@ function CreateBarForm({
 
   const inputCls =
     "w-full rounded-xl border border-border/60 bg-background/60 px-3 py-2 text-sm font-medium text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/60"
-  const labelCls = "flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+  const labelCls =
+    "flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
 
   return (
     <form
@@ -258,15 +262,20 @@ function CreateBarForm({
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <label className={labelCls}>
           Artist (korrekt)
-          <ArtistInput value={artist} onChange={setArtist} artists={artists} />
+          <ArtistCombobox value={artist} onChange={setArtist} />
         </label>
         <label className={labelCls}>
           Song
-          <input
+          <TrackCombobox
             value={song}
-            onChange={(e) => setSong(e.target.value)}
-            required
-            className={inputCls}
+            onChange={setSong}
+            onPickTrack={(t) => {
+              setSong(t.title)
+              if (t.albumTitle) setAlbum(t.albumTitle)
+              if (t.releaseYear) setYear(String(t.releaseYear))
+              if (!artist.trim() && t.artistName) setArtist(t.artistName)
+              setCoverUrl(t.albumArtUrl)
+            }}
           />
         </label>
       </div>
@@ -283,14 +292,14 @@ function CreateBarForm({
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <label className={labelCls}>
           Distractor 1
-          <ArtistInput value={d1} onChange={setD1} artists={artists} />
+          <ArtistCombobox value={d1} onChange={setD1} />
         </label>
         <label className={labelCls}>
           Distractor 2
-          <ArtistInput value={d2} onChange={setD2} artists={artists} />
+          <ArtistCombobox value={d2} onChange={setD2} />
         </label>
       </div>
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_auto]">
         <label className={labelCls}>
           Album (optional)
           <input value={album} onChange={(e) => setAlbum(e.target.value)} className={inputCls} />
@@ -305,6 +314,18 @@ function CreateBarForm({
             className={inputCls}
           />
         </label>
+        {coverUrl && (
+          <div className="flex flex-col items-end gap-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Cover
+            </span>
+            <img
+              src={coverUrl}
+              alt=""
+              className="h-[42px] w-[42px] rounded-md border border-border/60 object-cover"
+            />
+          </div>
+        )}
       </div>
       {err && <p className="text-xs text-destructive">{err}</p>}
       <div className="flex justify-end">
@@ -316,31 +337,86 @@ function CreateBarForm({
   )
 }
 
-function ArtistInput({
+function ArtistCombobox({
   value,
   onChange,
-  artists,
 }: {
   value: string
   onChange: (v: string) => void
-  artists: ArtistRow[]
 }) {
-  const listId = `artists-${Math.random().toString(36).slice(2, 8)}`
   return (
-    <>
-      <input
-        list={listId}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        required
-        className="w-full rounded-xl border border-border/60 bg-background/60 px-3 py-2 text-sm font-medium text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/60"
-      />
-      <datalist id={listId}>
-        {artists.map((a) => (
-          <option key={a.id} value={a.name} />
-        ))}
-      </datalist>
-    </>
+    <Combobox
+      value={value}
+      onChange={onChange}
+      onPick={(item) => onChange(item.label)}
+      search={async (q): Promise<ComboboxItem[]> => {
+        const hits = await searchDeezerArtists(q)
+        return hits.map((a) => ({ key: a.id, label: a.name, imageUrl: a.imageUrl }))
+      }}
+      placeholder="Tippen, um zu suchen …"
+      required
+    />
+  )
+}
+
+function TrackCombobox({
+  value,
+  onChange,
+  onPickTrack,
+}: {
+  value: string
+  onChange: (v: string) => void
+  onPickTrack: (t: {
+    trackId: string
+    title: string
+    artistName: string
+    albumTitle: string
+    albumArtUrl: string | null
+    releaseYear: number | null
+  }) => void
+}) {
+  return (
+    <Combobox
+      value={value}
+      onChange={onChange}
+      onPick={(item) => {
+        const meta = (item as ComboboxItem & {
+          meta?: {
+            title: string
+            artistName: string
+            albumTitle: string
+            albumArtUrl: string | null
+            releaseYear: number | null
+          }
+        }).meta
+        if (meta) {
+          onPickTrack({ trackId: item.key, ...meta })
+        } else {
+          onChange(item.label)
+        }
+      }}
+      search={async (q): Promise<ComboboxItem[]> => {
+        const hits = await searchDeezerTracks(q)
+        return hits.map((t) => ({
+          key: t.trackId,
+          label: t.title,
+          sublabel: `${t.artistName}${t.albumTitle ? ` · ${t.albumTitle}` : ""}${
+            t.releaseYear ? ` · ${t.releaseYear}` : ""
+          }`,
+          imageUrl: t.albumArtUrl,
+          // Carry the full hit so onPick can prefill artist/album/year/cover.
+          meta: {
+            title: t.title,
+            artistName: t.artistName,
+            albumTitle: t.albumTitle,
+            albumArtUrl: t.albumArtUrl,
+            releaseYear: t.releaseYear,
+          },
+        }))
+      }}
+      placeholder="Song suchen …"
+      required
+    />
   )
 }
 

@@ -18,6 +18,8 @@ import { Route as ApiAdminPingRouteImport } from './routes/api/admin/ping'
 import { Route as ApiAdminBarsRouteImport } from './routes/api/admin/bars'
 import { Route as ApiAdminArtistsRouteImport } from './routes/api/admin/artists'
 import { Route as ApiAdminSongsIdRouteImport } from './routes/api/admin/songs.$id'
+import { Route as ApiAdminSearchTracksRouteImport } from './routes/api/admin/search.tracks'
+import { Route as ApiAdminSearchArtistsRouteImport } from './routes/api/admin/search.artists'
 import { Route as ApiAdminBarsIdRouteImport } from './routes/api/admin/bars.$id'
 import { Route as ApiAdminArtistsIdRouteImport } from './routes/api/admin/artists.$id'
 
@@ -66,6 +68,16 @@ const ApiAdminSongsIdRoute = ApiAdminSongsIdRouteImport.update({
   path: '/api/admin/songs/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminSearchTracksRoute = ApiAdminSearchTracksRouteImport.update({
+  id: '/api/admin/search/tracks',
+  path: '/api/admin/search/tracks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminSearchArtistsRoute = ApiAdminSearchArtistsRouteImport.update({
+  id: '/api/admin/search/artists',
+  path: '/api/admin/search/artists',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminBarsIdRoute = ApiAdminBarsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -88,6 +100,8 @@ export interface FileRoutesByFullPath {
   '/api/admin/session': typeof ApiAdminSessionRoute
   '/api/admin/artists/$id': typeof ApiAdminArtistsIdRoute
   '/api/admin/bars/$id': typeof ApiAdminBarsIdRoute
+  '/api/admin/search/artists': typeof ApiAdminSearchArtistsRoute
+  '/api/admin/search/tracks': typeof ApiAdminSearchTracksRoute
   '/api/admin/songs/$id': typeof ApiAdminSongsIdRoute
 }
 export interface FileRoutesByTo {
@@ -101,6 +115,8 @@ export interface FileRoutesByTo {
   '/api/admin/session': typeof ApiAdminSessionRoute
   '/api/admin/artists/$id': typeof ApiAdminArtistsIdRoute
   '/api/admin/bars/$id': typeof ApiAdminBarsIdRoute
+  '/api/admin/search/artists': typeof ApiAdminSearchArtistsRoute
+  '/api/admin/search/tracks': typeof ApiAdminSearchTracksRoute
   '/api/admin/songs/$id': typeof ApiAdminSongsIdRoute
 }
 export interface FileRoutesById {
@@ -115,6 +131,8 @@ export interface FileRoutesById {
   '/api/admin/session': typeof ApiAdminSessionRoute
   '/api/admin/artists/$id': typeof ApiAdminArtistsIdRoute
   '/api/admin/bars/$id': typeof ApiAdminBarsIdRoute
+  '/api/admin/search/artists': typeof ApiAdminSearchArtistsRoute
+  '/api/admin/search/tracks': typeof ApiAdminSearchTracksRoute
   '/api/admin/songs/$id': typeof ApiAdminSongsIdRoute
 }
 export interface FileRouteTypes {
@@ -130,6 +148,8 @@ export interface FileRouteTypes {
     | '/api/admin/session'
     | '/api/admin/artists/$id'
     | '/api/admin/bars/$id'
+    | '/api/admin/search/artists'
+    | '/api/admin/search/tracks'
     | '/api/admin/songs/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -143,6 +163,8 @@ export interface FileRouteTypes {
     | '/api/admin/session'
     | '/api/admin/artists/$id'
     | '/api/admin/bars/$id'
+    | '/api/admin/search/artists'
+    | '/api/admin/search/tracks'
     | '/api/admin/songs/$id'
   id:
     | '__root__'
@@ -156,6 +178,8 @@ export interface FileRouteTypes {
     | '/api/admin/session'
     | '/api/admin/artists/$id'
     | '/api/admin/bars/$id'
+    | '/api/admin/search/artists'
+    | '/api/admin/search/tracks'
     | '/api/admin/songs/$id'
   fileRoutesById: FileRoutesById
 }
@@ -168,6 +192,8 @@ export interface RootRouteChildren {
   ApiAdminBarsRoute: typeof ApiAdminBarsRouteWithChildren
   ApiAdminPingRoute: typeof ApiAdminPingRoute
   ApiAdminSessionRoute: typeof ApiAdminSessionRoute
+  ApiAdminSearchArtistsRoute: typeof ApiAdminSearchArtistsRoute
+  ApiAdminSearchTracksRoute: typeof ApiAdminSearchTracksRoute
   ApiAdminSongsIdRoute: typeof ApiAdminSongsIdRoute
 }
 
@@ -236,6 +262,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminSongsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/search/tracks': {
+      id: '/api/admin/search/tracks'
+      path: '/api/admin/search/tracks'
+      fullPath: '/api/admin/search/tracks'
+      preLoaderRoute: typeof ApiAdminSearchTracksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/search/artists': {
+      id: '/api/admin/search/artists'
+      path: '/api/admin/search/artists'
+      fullPath: '/api/admin/search/artists'
+      preLoaderRoute: typeof ApiAdminSearchArtistsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/bars/$id': {
       id: '/api/admin/bars/$id'
       path: '/$id'
@@ -286,6 +326,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminBarsRoute: ApiAdminBarsRouteWithChildren,
   ApiAdminPingRoute: ApiAdminPingRoute,
   ApiAdminSessionRoute: ApiAdminSessionRoute,
+  ApiAdminSearchArtistsRoute: ApiAdminSearchArtistsRoute,
+  ApiAdminSearchTracksRoute: ApiAdminSearchTracksRoute,
   ApiAdminSongsIdRoute: ApiAdminSongsIdRoute,
 }
 export const routeTree = rootRouteImport
