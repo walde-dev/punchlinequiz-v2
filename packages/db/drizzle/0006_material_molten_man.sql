@@ -1,0 +1,1 @@
+ALTER TABLE "punchlines" ADD COLUMN "reviewed" boolean DEFAULT false NOT NULL;

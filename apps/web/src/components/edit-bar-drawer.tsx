@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
@@ -10,6 +10,7 @@ import {
   type ArtistRow,
   type BarRow,
 } from "../lib/admin-client"
+import { ArtistSelect } from "./artist-select"
 
 export function EditBarDrawer({
   bar,
@@ -23,6 +24,11 @@ export function EditBarDrawer({
   onSaved: () => void | Promise<void>
 }) {
   const [line, setLine] = useState(bar.line)
+  const [clozePrompt, setClozePrompt] = useState(bar.clozePrompt ?? "")
+  const [clozeAnswers, setClozeAnswers] = useState(
+    (bar.perfectSolution ?? []).join(", "),
+  )
+  const [clozeEnabled, setClozeEnabled] = useState(bar.clozeEnabled ?? true)
   const [active, setActive] = useState(bar.active)
   const [d1, setD1] = useState(bar.distractor1Id)
   const [d2, setD2] = useState(bar.distractor2Id)
@@ -45,8 +51,11 @@ export function EditBarDrawer({
     return () => window.removeEventListener("keydown", onKey)
   }, [onClose])
 
-  const correctArtistName =
-    artists.find((a) => a.id === artistId)?.name ?? bar.artistName
+  const correctArtist = useMemo(
+    () => artists.find((a) => a.id === artistId) ?? null,
+    [artists, artistId],
+  )
+  const correctArtistName = correctArtist?.name ?? bar.artistName
 
   function buildBarPatch() {
     const patch: Parameters<typeof patchBar>[1] = {}
@@ -54,6 +63,27 @@ export function EditBarDrawer({
     if (active !== bar.active) patch.active = active
     if (d1 !== bar.distractor1Id) patch.distractor1Id = d1
     if (d2 !== bar.distractor2Id) patch.distractor2Id = d2
+
+    const nextCloze = clozePrompt.trim()
+    const origCloze = bar.clozePrompt ?? ""
+    if (nextCloze !== origCloze) {
+      // Explicit empty = clear it (disable cloze mode for this row).
+      patch.clozePrompt = nextCloze.length === 0 ? null : nextCloze
+    }
+    const nextAnswers = clozeAnswers
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+    const origAnswers = bar.perfectSolution ?? []
+    if (
+      nextAnswers.length !== origAnswers.length ||
+      nextAnswers.some((a, i) => a !== origAnswers[i])
+    ) {
+      patch.perfectSolution = nextAnswers
+    }
+    if (clozeEnabled !== (bar.clozeEnabled ?? true)) {
+      patch.clozeEnabled = clozeEnabled
+    }
     return patch
   }
 
@@ -110,6 +140,27 @@ export function EditBarDrawer({
     }
   }
 
+  async function onHardDelete() {
+    if (
+      !confirm(
+        `Bar #${bar.id} ENDGÜLTIG löschen?\n\n„${bar.line.slice(0, 80)}${
+          bar.line.length > 80 ? "…" : ""
+        }“\n\nDas lässt sich nicht rückgängig machen.`,
+      )
+    )
+      return
+    setBusy(true)
+    setErr(null)
+    try {
+      await deleteBar(bar.id, true)
+      await onSaved()
+    } catch (e) {
+      setErr(String(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div
       ref={overlayRef}
@@ -148,7 +199,52 @@ export function EditBarDrawer({
               rows={3}
               className="w-full resize-none rounded-xl border border-border/60 bg-background/60 px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring/60"
             />
+            <a
+              href={`https://genius.com/search?q=${encodeURIComponent(
+                line.replace(/\//g, " ").replace(/\s+/g, " ").trim(),
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 inline-flex w-fit items-center gap-1 self-start rounded-full border border-border/60 bg-background/40 px-3 py-1 text-[11px] font-bold normal-case tracking-normal text-muted-foreground transition hover:border-primary/50 hover:text-foreground"
+            >
+              Auf Genius suchen
+              <span aria-hidden="true">↗</span>
+            </a>
           </Field>
+
+          <Field label="Cloze prompt (Finishing-Lines)">
+            <textarea
+              value={clozePrompt}
+              onChange={(e) => setClozePrompt(e.target.value)}
+              rows={2}
+              placeholder="z.B. „Ich chille in meinem Haus / und sehe eine ___“ — leer = im Artist-Modus ausgeblendet"
+              className="w-full resize-none rounded-xl border border-border/60 bg-background/60 px-3 py-2 text-sm font-medium placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-ring/60"
+            />
+          </Field>
+
+          <Field label="Akzeptierte Antworten (Komma-getrennt)">
+            <input
+              value={clozeAnswers}
+              onChange={(e) => setClozeAnswers(e.target.value)}
+              placeholder="z.B. Maus, die Maus"
+              className={textInputCls}
+            />
+          </Field>
+
+          <label className="flex items-center gap-2 text-sm font-medium">
+            <input
+              type="checkbox"
+              checked={clozeEnabled}
+              onChange={(e) => setClozeEnabled(e.target.checked)}
+              className="accent-primary"
+            />
+            <span>
+              im Cloze-Modus spielen
+              <span className="ml-1 text-xs text-muted-foreground">
+                (Artist-Modus zeigt diese Bar)
+              </span>
+            </span>
+          </label>
 
           <Field label="Korrekter Artist">
             <ArtistSelect value={artistId} onChange={setArtistId} artists={artists} />
@@ -189,6 +285,7 @@ export function EditBarDrawer({
                 onChange={setD1}
                 artists={artists}
                 excludeId={artistId}
+                sortByOverlapWith={correctArtist}
               />
             </Field>
             <Field label="Distractor 2">
@@ -197,6 +294,7 @@ export function EditBarDrawer({
                 onChange={setD2}
                 artists={artists}
                 excludeId={artistId}
+                sortByOverlapWith={correctArtist}
               />
             </Field>
           </div>
@@ -221,16 +319,30 @@ export function EditBarDrawer({
         </div>
 
         <div className="flex items-center justify-between gap-2 border-t border-border/40 bg-background/30 px-5 py-3">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={onDelete}
-            disabled={busy}
-            className="text-xs font-semibold text-destructive hover:bg-destructive/10"
-          >
-            Deaktivieren
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onDelete}
+              disabled={busy}
+              className="text-xs font-semibold text-destructive hover:bg-destructive/10"
+            >
+              Deaktivieren
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onHardDelete}
+              disabled={busy}
+              aria-label="Bar endgültig löschen"
+              title="Endgültig löschen (nicht umkehrbar)"
+              className="text-xs font-semibold text-destructive/70 hover:bg-destructive/15 hover:text-destructive"
+            >
+              Löschen ✕
+            </Button>
+          </div>
           <div className="flex gap-2">
             <Button type="button" variant="ghost" size="sm" onClick={onClose} disabled={busy}>
               Abbrechen
@@ -262,34 +374,3 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   )
 }
 
-function ArtistSelect({
-  value,
-  onChange,
-  artists,
-  excludeId,
-}: {
-  value: number
-  onChange: (id: number) => void
-  artists: ArtistRow[]
-  excludeId?: number
-}) {
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(Number(e.target.value))}
-      className={cn(
-        "w-full rounded-xl border border-border/60 bg-background/60 px-3 py-2 text-sm font-medium",
-        "focus:outline-none focus:ring-2 focus:ring-ring/60",
-      )}
-    >
-      {artists
-        .filter((a) => a.id !== excludeId || a.id === value)
-        .map((a) => (
-          <option key={a.id} value={a.id}>
-            {a.name}
-            {!a.active ? " (inaktiv)" : ""}
-          </option>
-        ))}
-    </select>
-  )
-}

@@ -10,9 +10,12 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PlayRouteImport } from './routes/play'
+import { Route as FinishingRouteImport } from './routes/finishing'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminReviewRouteImport } from './routes/admin/review'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
+import { Route as ApiAdminTagsRouteImport } from './routes/api/admin/tags'
 import { Route as ApiAdminSessionRouteImport } from './routes/api/admin/session'
 import { Route as ApiAdminPingRouteImport } from './routes/api/admin/ping'
 import { Route as ApiAdminBarsRouteImport } from './routes/api/admin/bars'
@@ -23,10 +26,16 @@ import { Route as ApiAdminSearchArtistsRouteImport } from './routes/api/admin/se
 import { Route as ApiAdminBarsIdRouteImport } from './routes/api/admin/bars.$id'
 import { Route as ApiAdminArtistsIdRouteImport } from './routes/api/admin/artists.$id'
 import { Route as ApiAdminSearchTrackIdRouteImport } from './routes/api/admin/search.track.$id'
+import { Route as ApiAdminArtistsIdTagsRouteImport } from './routes/api/admin/artists.$id.tags'
 
 const PlayRoute = PlayRouteImport.update({
   id: '/play',
   path: '/play',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FinishingRoute = FinishingRouteImport.update({
+  id: '/finishing',
+  path: '/finishing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -39,9 +48,19 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminReviewRoute = AdminReviewRouteImport.update({
+  id: '/admin/review',
+  path: '/admin/review',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
   id: '/admin/login',
   path: '/admin/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminTagsRoute = ApiAdminTagsRouteImport.update({
+  id: '/api/admin/tags',
+  path: '/api/admin/tags',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAdminSessionRoute = ApiAdminSessionRouteImport.update({
@@ -94,116 +113,148 @@ const ApiAdminSearchTrackIdRoute = ApiAdminSearchTrackIdRouteImport.update({
   path: '/api/admin/search/track/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminArtistsIdTagsRoute = ApiAdminArtistsIdTagsRouteImport.update({
+  id: '/tags',
+  path: '/tags',
+  getParentRoute: () => ApiAdminArtistsIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/finishing': typeof FinishingRoute
   '/play': typeof PlayRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/review': typeof AdminReviewRoute
   '/admin/': typeof AdminIndexRoute
   '/api/admin/artists': typeof ApiAdminArtistsRouteWithChildren
   '/api/admin/bars': typeof ApiAdminBarsRouteWithChildren
   '/api/admin/ping': typeof ApiAdminPingRoute
   '/api/admin/session': typeof ApiAdminSessionRoute
-  '/api/admin/artists/$id': typeof ApiAdminArtistsIdRoute
+  '/api/admin/tags': typeof ApiAdminTagsRoute
+  '/api/admin/artists/$id': typeof ApiAdminArtistsIdRouteWithChildren
   '/api/admin/bars/$id': typeof ApiAdminBarsIdRoute
   '/api/admin/search/artists': typeof ApiAdminSearchArtistsRoute
   '/api/admin/search/tracks': typeof ApiAdminSearchTracksRoute
   '/api/admin/songs/$id': typeof ApiAdminSongsIdRoute
+  '/api/admin/artists/$id/tags': typeof ApiAdminArtistsIdTagsRoute
   '/api/admin/search/track/$id': typeof ApiAdminSearchTrackIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/finishing': typeof FinishingRoute
   '/play': typeof PlayRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/review': typeof AdminReviewRoute
   '/admin': typeof AdminIndexRoute
   '/api/admin/artists': typeof ApiAdminArtistsRouteWithChildren
   '/api/admin/bars': typeof ApiAdminBarsRouteWithChildren
   '/api/admin/ping': typeof ApiAdminPingRoute
   '/api/admin/session': typeof ApiAdminSessionRoute
-  '/api/admin/artists/$id': typeof ApiAdminArtistsIdRoute
+  '/api/admin/tags': typeof ApiAdminTagsRoute
+  '/api/admin/artists/$id': typeof ApiAdminArtistsIdRouteWithChildren
   '/api/admin/bars/$id': typeof ApiAdminBarsIdRoute
   '/api/admin/search/artists': typeof ApiAdminSearchArtistsRoute
   '/api/admin/search/tracks': typeof ApiAdminSearchTracksRoute
   '/api/admin/songs/$id': typeof ApiAdminSongsIdRoute
+  '/api/admin/artists/$id/tags': typeof ApiAdminArtistsIdTagsRoute
   '/api/admin/search/track/$id': typeof ApiAdminSearchTrackIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/finishing': typeof FinishingRoute
   '/play': typeof PlayRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/review': typeof AdminReviewRoute
   '/admin/': typeof AdminIndexRoute
   '/api/admin/artists': typeof ApiAdminArtistsRouteWithChildren
   '/api/admin/bars': typeof ApiAdminBarsRouteWithChildren
   '/api/admin/ping': typeof ApiAdminPingRoute
   '/api/admin/session': typeof ApiAdminSessionRoute
-  '/api/admin/artists/$id': typeof ApiAdminArtistsIdRoute
+  '/api/admin/tags': typeof ApiAdminTagsRoute
+  '/api/admin/artists/$id': typeof ApiAdminArtistsIdRouteWithChildren
   '/api/admin/bars/$id': typeof ApiAdminBarsIdRoute
   '/api/admin/search/artists': typeof ApiAdminSearchArtistsRoute
   '/api/admin/search/tracks': typeof ApiAdminSearchTracksRoute
   '/api/admin/songs/$id': typeof ApiAdminSongsIdRoute
+  '/api/admin/artists/$id/tags': typeof ApiAdminArtistsIdTagsRoute
   '/api/admin/search/track/$id': typeof ApiAdminSearchTrackIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/finishing'
     | '/play'
     | '/admin/login'
+    | '/admin/review'
     | '/admin/'
     | '/api/admin/artists'
     | '/api/admin/bars'
     | '/api/admin/ping'
     | '/api/admin/session'
+    | '/api/admin/tags'
     | '/api/admin/artists/$id'
     | '/api/admin/bars/$id'
     | '/api/admin/search/artists'
     | '/api/admin/search/tracks'
     | '/api/admin/songs/$id'
+    | '/api/admin/artists/$id/tags'
     | '/api/admin/search/track/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/finishing'
     | '/play'
     | '/admin/login'
+    | '/admin/review'
     | '/admin'
     | '/api/admin/artists'
     | '/api/admin/bars'
     | '/api/admin/ping'
     | '/api/admin/session'
+    | '/api/admin/tags'
     | '/api/admin/artists/$id'
     | '/api/admin/bars/$id'
     | '/api/admin/search/artists'
     | '/api/admin/search/tracks'
     | '/api/admin/songs/$id'
+    | '/api/admin/artists/$id/tags'
     | '/api/admin/search/track/$id'
   id:
     | '__root__'
     | '/'
+    | '/finishing'
     | '/play'
     | '/admin/login'
+    | '/admin/review'
     | '/admin/'
     | '/api/admin/artists'
     | '/api/admin/bars'
     | '/api/admin/ping'
     | '/api/admin/session'
+    | '/api/admin/tags'
     | '/api/admin/artists/$id'
     | '/api/admin/bars/$id'
     | '/api/admin/search/artists'
     | '/api/admin/search/tracks'
     | '/api/admin/songs/$id'
+    | '/api/admin/artists/$id/tags'
     | '/api/admin/search/track/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  FinishingRoute: typeof FinishingRoute
   PlayRoute: typeof PlayRoute
   AdminLoginRoute: typeof AdminLoginRoute
+  AdminReviewRoute: typeof AdminReviewRoute
   AdminIndexRoute: typeof AdminIndexRoute
   ApiAdminArtistsRoute: typeof ApiAdminArtistsRouteWithChildren
   ApiAdminBarsRoute: typeof ApiAdminBarsRouteWithChildren
   ApiAdminPingRoute: typeof ApiAdminPingRoute
   ApiAdminSessionRoute: typeof ApiAdminSessionRoute
+  ApiAdminTagsRoute: typeof ApiAdminTagsRoute
   ApiAdminSearchArtistsRoute: typeof ApiAdminSearchArtistsRoute
   ApiAdminSearchTracksRoute: typeof ApiAdminSearchTracksRoute
   ApiAdminSongsIdRoute: typeof ApiAdminSongsIdRoute
@@ -217,6 +268,13 @@ declare module '@tanstack/react-router' {
       path: '/play'
       fullPath: '/play'
       preLoaderRoute: typeof PlayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/finishing': {
+      id: '/finishing'
+      path: '/finishing'
+      fullPath: '/finishing'
+      preLoaderRoute: typeof FinishingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -233,11 +291,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/review': {
+      id: '/admin/review'
+      path: '/admin/review'
+      fullPath: '/admin/review'
+      preLoaderRoute: typeof AdminReviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/login': {
       id: '/admin/login'
       path: '/admin/login'
       fullPath: '/admin/login'
       preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/tags': {
+      id: '/api/admin/tags'
+      path: '/api/admin/tags'
+      fullPath: '/api/admin/tags'
+      preLoaderRoute: typeof ApiAdminTagsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/session': {
@@ -310,15 +382,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminSearchTrackIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/artists/$id/tags': {
+      id: '/api/admin/artists/$id/tags'
+      path: '/tags'
+      fullPath: '/api/admin/artists/$id/tags'
+      preLoaderRoute: typeof ApiAdminArtistsIdTagsRouteImport
+      parentRoute: typeof ApiAdminArtistsIdRoute
+    }
   }
 }
 
+interface ApiAdminArtistsIdRouteChildren {
+  ApiAdminArtistsIdTagsRoute: typeof ApiAdminArtistsIdTagsRoute
+}
+
+const ApiAdminArtistsIdRouteChildren: ApiAdminArtistsIdRouteChildren = {
+  ApiAdminArtistsIdTagsRoute: ApiAdminArtistsIdTagsRoute,
+}
+
+const ApiAdminArtistsIdRouteWithChildren =
+  ApiAdminArtistsIdRoute._addFileChildren(ApiAdminArtistsIdRouteChildren)
+
 interface ApiAdminArtistsRouteChildren {
-  ApiAdminArtistsIdRoute: typeof ApiAdminArtistsIdRoute
+  ApiAdminArtistsIdRoute: typeof ApiAdminArtistsIdRouteWithChildren
 }
 
 const ApiAdminArtistsRouteChildren: ApiAdminArtistsRouteChildren = {
-  ApiAdminArtistsIdRoute: ApiAdminArtistsIdRoute,
+  ApiAdminArtistsIdRoute: ApiAdminArtistsIdRouteWithChildren,
 }
 
 const ApiAdminArtistsRouteWithChildren = ApiAdminArtistsRoute._addFileChildren(
@@ -339,13 +429,16 @@ const ApiAdminBarsRouteWithChildren = ApiAdminBarsRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  FinishingRoute: FinishingRoute,
   PlayRoute: PlayRoute,
   AdminLoginRoute: AdminLoginRoute,
+  AdminReviewRoute: AdminReviewRoute,
   AdminIndexRoute: AdminIndexRoute,
   ApiAdminArtistsRoute: ApiAdminArtistsRouteWithChildren,
   ApiAdminBarsRoute: ApiAdminBarsRouteWithChildren,
   ApiAdminPingRoute: ApiAdminPingRoute,
   ApiAdminSessionRoute: ApiAdminSessionRoute,
+  ApiAdminTagsRoute: ApiAdminTagsRoute,
   ApiAdminSearchArtistsRoute: ApiAdminSearchArtistsRoute,
   ApiAdminSearchTracksRoute: ApiAdminSearchTracksRoute,
   ApiAdminSongsIdRoute: ApiAdminSongsIdRoute,

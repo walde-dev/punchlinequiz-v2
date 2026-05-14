@@ -5,18 +5,22 @@ import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { isAdminFn } from "../../lib/session"
-import type { ArtistRow, BarRow } from "../../lib/admin-client"
+import type { ArtistRow, ArtistTagRow, BarRow } from "../../lib/admin-client"
 import {
   fetchArtists,
+  fetchArtistTags,
   fetchBars,
+  createArtist,
   createBar,
   getDeezerTrack,
   patchBar,
   searchDeezerArtists,
   searchDeezerTracks,
+  setArtistTags,
 } from "../../lib/admin-client"
 import { Combobox, type ComboboxItem } from "../../components/combobox"
 import { EditBarDrawer } from "../../components/edit-bar-drawer"
+import { TagEditor, type SelectedTag } from "../../components/tag-editor"
 
 export const Route = createFileRoute("/admin/")({
   component: AdminDashboard,
@@ -37,6 +41,7 @@ function AdminDashboard() {
   const [includeInactive, setIncludeInactive] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [showCreate, setShowCreate] = useState(false)
+  const [showCreateArtist, setShowCreateArtist] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
   async function refresh() {
@@ -67,6 +72,7 @@ function AdminDashboard() {
   }
 
   const editingBar = editingId != null ? bars.find((b) => b.id === editingId) ?? null : null
+  const artistName = (id: number) => artists.find((a) => a.id === id)?.name ?? `#${id}`
 
   return (
     <div className="relative min-h-svh">
@@ -83,6 +89,12 @@ function AdminDashboard() {
           </span>
         </div>
         <div className="flex items-center gap-2">
+          <Link
+            to="/admin/review"
+            className="rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-primary hover:bg-primary/20"
+          >
+            ✓ Review-Stack
+          </Link>
           <Link
             to="/play"
             className="text-xs font-semibold text-muted-foreground hover:text-foreground"
@@ -109,14 +121,41 @@ function AdminDashboard() {
               {loading ? "Lädt…" : `${bars.length} Treffer`}
             </p>
           </div>
-          <Button
-            type="button"
-            onClick={() => setShowCreate((s) => !s)}
-            className="font-bold"
-          >
-            {showCreate ? "Abbrechen" : "+ Neue Bar"}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setShowCreateArtist((s) => !s)
+                if (!showCreateArtist) setShowCreate(false)
+              }}
+              className="text-xs font-semibold"
+            >
+              {showCreateArtist ? "Abbrechen" : "+ Neuer Artist"}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                setShowCreate((s) => !s)
+                if (!showCreate) setShowCreateArtist(false)
+              }}
+              className="font-bold"
+            >
+              {showCreate ? "Abbrechen" : "+ Neue Bar"}
+            </Button>
+          </div>
         </div>
+
+        {showCreateArtist && (
+          <CreateArtistForm
+            onCreated={async () => {
+              setShowCreateArtist(false)
+              await refresh()
+            }}
+          />
+        )}
+
+        <ArtistTagsPanel artists={artists} />
 
         {showCreate && (
           <CreateBarForm
@@ -164,14 +203,23 @@ function AdminDashboard() {
               )}
             >
               <div className="flex items-start justify-between gap-3">
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1.5">
                   <p className="text-sm font-semibold leading-snug text-foreground">{b.line}</p>
                   <p className="text-xs text-muted-foreground">
-                    <span className="text-foreground/80">{b.artistName}</span>
+                    <span className="font-semibold text-primary">{b.artistName}</span>
                     <span className="opacity-60"> · {b.songTitle}</span>
                     {b.releaseYear && <span className="opacity-50"> · {b.releaseYear}</span>}
                     <span className="opacity-40"> · #{b.id}</span>
                   </p>
+                  <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide">
+                    <span className="text-muted-foreground/60">vs</span>
+                    <span className="rounded-full border border-border/50 bg-background/40 px-2 py-0.5 text-muted-foreground">
+                      {artistName(b.distractor1Id)}
+                    </span>
+                    <span className="rounded-full border border-border/50 bg-background/40 px-2 py-0.5 text-muted-foreground">
+                      {artistName(b.distractor2Id)}
+                    </span>
+                  </div>
                 </div>
                 <Button
                   type="button"
@@ -340,6 +388,351 @@ function CreateBarForm({ onCreated }: { onCreated: () => Promise<void> }) {
         </Button>
       </div>
     </form>
+  )
+}
+
+function CreateArtistForm({ onCreated }: { onCreated: () => Promise<void> }) {
+  const [name, setName] = useState("")
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [selectedTags, setSelectedTags] = useState<SelectedTag[]>([])
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+  const [info, setInfo] = useState<string | null>(null)
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!name.trim()) return
+    setBusy(true)
+    setErr(null)
+    setInfo(null)
+    try {
+      const result = await createArtist(
+        name.trim(),
+        selectedTags.map((t) => ({ slug: t.slug, weight: t.weight })),
+      )
+      const tagPart =
+        selectedTags.length > 0 ? ` · ${result.tagCount ?? selectedTags.length} Tags` : ""
+      setInfo(
+        result.created
+          ? `✓ "${result.name}" angelegt (#${result.id})${tagPart}`
+          : `≡ "${result.name}" existiert schon (#${result.id})${tagPart}`,
+      )
+      setName("")
+      setPreviewUrl(null)
+      setSelectedTags([])
+      await onCreated()
+    } catch (e2) {
+      setErr(String(e2))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const labelCls =
+    "flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+
+  return (
+    <form
+      onSubmit={onSubmit}
+      className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card/60 p-4"
+    >
+      <label className={labelCls}>
+        Artist (Deezer-Suche)
+        <Combobox
+          value={name}
+          onChange={(v) => {
+            setName(v)
+            setPreviewUrl(null)
+          }}
+          onPick={(item) => {
+            setName(item.label)
+            setPreviewUrl(item.imageUrl ?? null)
+          }}
+          search={async (q): Promise<ComboboxItem[]> => {
+            const hits = await searchDeezerArtists(q)
+            return hits.map((a) => ({ key: a.id, label: a.name, imageUrl: a.imageUrl }))
+          }}
+          placeholder="Tippen, um zu suchen …"
+          required
+        />
+      </label>
+
+      <div className={labelCls}>
+        Tags (optional — im Zweifel weglassen)
+        <TagEditor
+          value={selectedTags}
+          onChange={setSelectedTags}
+          hint="Wähle vorhandene Tags und Gewichte (0..1) oder lege neue an. Falsche Tags sind schlimmer als keine."
+        />
+      </div>
+
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          {previewUrl ? (
+            <img
+              src={previewUrl}
+              alt=""
+              className="h-12 w-12 rounded-md border border-border/60 object-cover"
+            />
+          ) : (
+            <span className="flex h-12 w-12 items-center justify-center rounded-md border border-dashed border-border/40 text-[10px] text-muted-foreground/60">
+              kein Bild
+            </span>
+          )}
+          <div className="flex flex-col">
+            {err && <p className="text-xs text-destructive">{err}</p>}
+            {info && <p className="text-xs text-primary">{info}</p>}
+            {!err && !info && (
+              <p className="text-xs text-muted-foreground/70">
+                Deezer-Cover wird automatisch übernommen.
+              </p>
+            )}
+          </div>
+        </div>
+        <Button type="submit" disabled={busy || !name.trim()} className="font-bold">
+          {busy ? "…" : "Artist anlegen"}
+        </Button>
+      </div>
+    </form>
+  )
+}
+
+function ArtistTagsPanel({ artists }: { artists: ArtistRow[] }) {
+  const [open, setOpen] = useState(false)
+  const [tagsByArtist, setTagsByArtist] = useState<Record<number, ArtistTagRow[]>>({})
+  const [loading, setLoading] = useState(false)
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [filter, setFilter] = useState("")
+  const [showUntaggedOnly, setShowUntaggedOnly] = useState(false)
+
+  async function loadAll() {
+    setLoading(true)
+    try {
+      const entries = await Promise.all(
+        artists.map(async (a) => {
+          const r = await fetchArtistTags(a.id)
+          return [a.id, r.items] as const
+        }),
+      )
+      const map: Record<number, ArtistTagRow[]> = {}
+      for (const [id, items] of entries) map[id] = items
+      setTagsByArtist(map)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (open && artists.length > 0 && Object.keys(tagsByArtist).length === 0) {
+      loadAll()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, artists.length])
+
+  const editingArtist = editingId != null ? artists.find((a) => a.id === editingId) ?? null : null
+
+  const visible = artists.filter((a) => {
+    if (filter && !a.name.toLowerCase().includes(filter.toLowerCase())) return false
+    if (showUntaggedOnly && (tagsByArtist[a.id]?.length ?? 0) > 0) return false
+    return true
+  })
+
+  return (
+    <section className="flex flex-col gap-3 rounded-2xl border border-border/40 bg-card/40 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-foreground">Artist-Tags</h2>
+          <p className="text-[11px] text-muted-foreground">
+            Scene-Tags & Gewichte steuern, welche Distractors gepickt werden.
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => setOpen((o) => !o)}
+          className="text-xs font-semibold"
+        >
+          {open ? "Schließen" : "Tags verwalten"}
+        </Button>
+      </div>
+
+      {open && (
+        <>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="text"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              placeholder="Artist filtern …"
+              className="flex-1 min-w-[180px] rounded-full border border-border/60 bg-background/60 px-3 py-1.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-ring/60"
+            />
+            <label className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={showUntaggedOnly}
+                onChange={(e) => setShowUntaggedOnly(e.target.checked)}
+                className="accent-primary"
+              />
+              nur ohne Tags
+            </label>
+            <Button type="button" size="sm" variant="ghost" onClick={loadAll} disabled={loading}>
+              {loading ? "…" : "Refresh"}
+            </Button>
+          </div>
+
+          <ul className="flex max-h-[400px] flex-col divide-y divide-border/40 overflow-y-auto rounded-xl border border-border/40 bg-background/30">
+            {visible.map((a) => {
+              const tagList = tagsByArtist[a.id] ?? []
+              return (
+                <li key={a.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <span className="text-sm font-semibold text-foreground">{a.name}</span>
+                    <div className="flex flex-wrap gap-1">
+                      {tagList.length === 0 ? (
+                        <span className="text-[10px] uppercase tracking-wide text-muted-foreground/60">
+                          keine Tags
+                        </span>
+                      ) : (
+                        tagList.map((t) => (
+                          <span
+                            key={t.slug}
+                            className="rounded-full border border-border/40 bg-background/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
+                          >
+                            {t.label}
+                            <span className="ml-1 font-mono text-[9px] text-primary/80">
+                              {t.weight.toFixed(2)}
+                            </span>
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0 text-xs font-semibold"
+                    onClick={() => setEditingId(a.id)}
+                  >
+                    Bearbeiten
+                  </Button>
+                </li>
+              )
+            })}
+            {!loading && visible.length === 0 && (
+              <li className="px-3 py-6 text-center text-xs text-muted-foreground">
+                Keine Artists.
+              </li>
+            )}
+          </ul>
+        </>
+      )}
+
+      {editingArtist && (
+        <ArtistTagsDrawer
+          artist={editingArtist}
+          initial={tagsByArtist[editingArtist.id] ?? null}
+          onClose={() => setEditingId(null)}
+          onSaved={(items) => {
+            setTagsByArtist((m) => ({ ...m, [editingArtist.id]: items }))
+            setEditingId(null)
+          }}
+        />
+      )}
+    </section>
+  )
+}
+
+function ArtistTagsDrawer({
+  artist,
+  initial,
+  onClose,
+  onSaved,
+}: {
+  artist: ArtistRow
+  initial: ArtistTagRow[] | null
+  onClose: () => void
+  onSaved: (items: ArtistTagRow[]) => void
+}) {
+  const [selected, setSelected] = useState<SelectedTag[]>([])
+  const [loaded, setLoaded] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    async function go() {
+      const items = initial ?? (await fetchArtistTags(artist.id)).items
+      if (cancelled) return
+      setSelected(items.map((t) => ({ slug: t.slug, label: t.label, weight: t.weight })))
+      setLoaded(true)
+    }
+    go()
+    return () => {
+      cancelled = true
+    }
+  }, [artist.id, initial])
+
+  async function onSave() {
+    setSaving(true)
+    setErr(null)
+    try {
+      const r = await setArtistTags(
+        artist.id,
+        selected.map((t) => ({ slug: t.slug, weight: t.weight })),
+      )
+      onSaved(r.items)
+    } catch (e) {
+      setErr(String(e))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-background/80 backdrop-blur-sm md:items-center"
+      onClick={onClose}
+    >
+      <div
+        className="flex max-h-[85vh] w-full max-w-2xl flex-col gap-4 overflow-y-auto rounded-t-2xl border border-border/60 bg-card p-5 md:rounded-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Tags für
+            </p>
+            <h3 className="text-lg font-extrabold tracking-tight">{artist.name}</h3>
+          </div>
+          <Button type="button" variant="ghost" size="sm" onClick={onClose}>
+            Schließen
+          </Button>
+        </header>
+
+        {!loaded ? (
+          <p className="text-sm text-muted-foreground">Lädt …</p>
+        ) : (
+          <TagEditor
+            value={selected}
+            onChange={setSelected}
+            hint="Im Zweifel Tag weglassen. Falsche Tags verschlechtern die Distractor-Auswahl."
+          />
+        )}
+
+        {err && <p className="text-xs text-destructive">{err}</p>}
+
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>
+            Abbrechen
+          </Button>
+          <Button type="button" onClick={onSave} disabled={saving || !loaded} className="font-bold">
+            {saving ? "…" : "Speichern"}
+          </Button>
+        </div>
+      </div>
+    </div>
   )
 }
 

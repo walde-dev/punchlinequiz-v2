@@ -68,17 +68,35 @@ export const Route = createFileRoute("/api/admin/bars")({
           )
           const offset = Math.max(Number(url.searchParams.get("offset") ?? "0") || 0, 0)
           const includeInactive = url.searchParams.get("includeInactive") === "true"
+          const reviewedParam = url.searchParams.get("reviewed")
+          const excludeIdsParam = url.searchParams.get("excludeIds")
+          const random = url.searchParams.get("random") === "true"
 
           const conds = []
           if (!includeInactive) conds.push(eq(punchlines.active, true))
           if (artistQ) conds.push(ilike(artists.name, `%${artistQ}%`))
           if (songQ) conds.push(ilike(songs.title, `%${songQ}%`))
           if (searchQ) conds.push(ilike(punchlines.line, `%${searchQ}%`))
+          if (reviewedParam === "true") conds.push(eq(punchlines.reviewed, true))
+          if (reviewedParam === "false") conds.push(eq(punchlines.reviewed, false))
+          if (excludeIdsParam) {
+            const ids = excludeIdsParam
+              .split(",")
+              .map((s) => Number(s.trim()))
+              .filter((n) => Number.isInteger(n) && n > 0)
+            if (ids.length > 0) {
+              conds.push(sql`${punchlines.id} not in (${sql.join(ids.map((id) => sql`${id}`), sql`, `)})`)
+            }
+          }
 
           const rows = await db
             .select({
               id: punchlines.id,
               line: punchlines.line,
+              clozePrompt: punchlines.clozePrompt,
+              clozeEnabled: punchlines.clozeEnabled,
+              perfectSolution: punchlines.perfectSolution,
+              reviewed: punchlines.reviewed,
               active: punchlines.active,
               createdAt: punchlines.createdAt,
               songId: songs.id,
@@ -95,7 +113,7 @@ export const Route = createFileRoute("/api/admin/bars")({
             .innerJoin(songs, eq(songs.id, punchlines.songId))
             .innerJoin(artists, eq(artists.id, songs.artistId))
             .where(conds.length ? and(...conds) : undefined)
-            .orderBy(desc(punchlines.createdAt))
+            .orderBy(random ? sql`random()` : desc(punchlines.createdAt))
             .limit(limit)
             .offset(offset)
 

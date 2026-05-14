@@ -38,7 +38,7 @@ export type UpsertResult = {
 type ArtistRow = typeof artists.$inferSelect
 
 /** Resolve an artist by name (case-insensitive) or slug; auto-create if missing. */
-async function resolveOrCreateArtist(
+export async function resolveOrCreateArtist(
   name: string,
 ): Promise<{ row: ArtistRow; created: boolean }> {
   const slug = slugify(name)

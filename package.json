@@ -11,6 +11,7 @@
     "lyrics:fetch": "tsx scripts/lyrics/fetch.ts",
     "lyrics:extract": "tsx scripts/lyrics/extract.ts",
     "lyrics:curate": "tsx scripts/lyrics/curate.ts",
+    "lyrics:auto-curate": "tsx scripts/lyrics/auto-curate.ts",
     "lyrics:insert": "tsx scripts/lyrics/insert.ts"
   },
   "devDependencies": {

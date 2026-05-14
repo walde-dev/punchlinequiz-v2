@@ -8,6 +8,8 @@ const __dirname = path.dirname(__filename)
 export const ROOT = path.resolve(__dirname, "../..")
 export const DATA_DIR = path.join(__dirname, "data")
 
+// apps/web/.env first (matches dev server); root .env fills any gaps.
+loadDotenv(path.join(ROOT, "apps/web/.env"))
 loadDotenv(path.join(ROOT, ".env"))
 
 function loadDotenv(filePath: string) {
@@ -85,42 +87,19 @@ export function ensureDir(p: string) {
   fs.mkdirSync(p, { recursive: true })
 }
 
+export { pickDistractorsSmart, analyzePunchline, tagOverlap, allArtists } from "./tags.ts"
+
+import { pickDistractorsSmart, type PickOptions } from "./tags.ts"
+
 /**
- * Same-scene pairings used to pick sensible distractors. Order does not matter.
- * Falls back to a global pool if an artist is not in any scene.
+ * Backwards-compatible shim. Prefer `pickDistractorsSmart` directly so callers
+ * can pass punchline text + used-pair tracking.
  */
-export const SCENES: Record<string, string[]> = {
-  "rap-hard": ["Kollegah", "Farid Bang", "SSIO", "Bonez MC", "Gzuz"],
-  "street-frankfurt": ["Haftbefehl", "Celo & Abdi", "Olexesh", "SSIO"],
-  "berlin-classic": ["Sido", "Bushido", "Fler", "Massiv"],
-  trap: ["RAF Camora", "Bonez MC", "Capital Bra", "Luciano", "Apache 207"],
-  "art-rap": ["OG Keemo", "Edgar Wasser", "Megaloh", "Marteria"],
-}
-
-export const FALLBACK_POOL = [
-  "Kollegah",
-  "Haftbefehl",
-  "Bushido",
-  "Sido",
-  "RAF Camora",
-  "Apache 207",
-  "Bonez MC",
-  "SSIO",
-  "Capital Bra",
-  "Luciano",
-]
-
-export function pickDistractors(artist: string): [string, string] {
-  let pool: string[] | undefined
-  for (const peers of Object.values(SCENES)) {
-    if (peers.some((p) => p.toLowerCase() === artist.toLowerCase())) {
-      pool = peers.filter((p) => p.toLowerCase() !== artist.toLowerCase())
-      break
-    }
-  }
-  if (!pool || pool.length < 2) {
-    pool = FALLBACK_POOL.filter((p) => p.toLowerCase() !== artist.toLowerCase())
-  }
-  const shuffled = [...pool].sort(() => Math.random() - 0.5)
-  return [shuffled[0]!, shuffled[1]!]
+export function pickDistractors(
+  artist: string,
+  punchline = "",
+  song?: string,
+  opts: PickOptions = {},
+): [string, string] {
+  return pickDistractorsSmart(artist, punchline, song, opts)
 }

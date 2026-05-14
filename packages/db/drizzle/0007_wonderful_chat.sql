@@ -1,0 +1,1 @@
+ALTER TABLE "punchlines" ADD COLUMN "cloze_enabled" boolean DEFAULT true NOT NULL;

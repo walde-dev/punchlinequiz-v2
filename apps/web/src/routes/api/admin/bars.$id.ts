@@ -20,6 +20,9 @@ async function loadBar(id: number) {
     .select({
       id: punchlines.id,
       line: punchlines.line,
+      clozePrompt: punchlines.clozePrompt,
+      clozeEnabled: punchlines.clozeEnabled,
+      reviewed: punchlines.reviewed,
       active: punchlines.active,
       perfectSolution: punchlines.perfectSolution,
       acceptableSolutions: punchlines.acceptableSolutions,
@@ -77,10 +80,28 @@ export const Route = createFileRoute("/api/admin/bars/$id")({
           const patch: Record<string, unknown> = {}
           const line = optionalString(body.line, "line", { max: 1000 })
           if (line !== undefined) patch.line = line
+          // clozePrompt: explicit null clears it (disables finishing-lines for
+          // this row). Empty/undefined string = no change.
+          if (body.clozePrompt === null) {
+            patch.clozePrompt = null
+          } else {
+            const cloze = optionalString(body.clozePrompt, "clozePrompt", { max: 1000 })
+            if (cloze !== undefined) patch.clozePrompt = cloze
+          }
           if (body.active !== undefined) {
             if (typeof body.active !== "boolean")
               throw new HttpError(400, "invalid_field", "active must be boolean.")
             patch.active = body.active
+          }
+          if (body.reviewed !== undefined) {
+            if (typeof body.reviewed !== "boolean")
+              throw new HttpError(400, "invalid_field", "reviewed must be boolean.")
+            patch.reviewed = body.reviewed
+          }
+          if (body.clozeEnabled !== undefined) {
+            if (typeof body.clozeEnabled !== "boolean")
+              throw new HttpError(400, "invalid_field", "clozeEnabled must be boolean.")
+            patch.clozeEnabled = body.clozeEnabled
           }
           const perfect = optionalStringArray(body.perfectSolution, "perfectSolution")
           if (perfect !== undefined) patch.perfectSolution = perfect

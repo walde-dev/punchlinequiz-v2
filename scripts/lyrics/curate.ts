@@ -4,6 +4,7 @@ import readline from "node:readline/promises"
 import { stdin as input, stdout as output } from "node:process"
 
 import { artistDir } from "./config.ts"
+import { loadTagsFromAdmin, pickDistractorsSmart, recordUsed } from "./tags.ts"
 
 interface Args {
   artist: string
@@ -40,10 +41,13 @@ interface Candidate {
   context: string
   score: number
   selected: boolean
+  distractor1?: string
+  distractor2?: string
 }
 
 async function main() {
   const args = parseArgs(process.argv.slice(2))
+  await loadTagsFromAdmin()
   const dir = artistDir(args.artist)
   const candPath = path.join(dir, "candidates.json")
   if (!fs.existsSync(candPath)) {
@@ -72,6 +76,13 @@ async function main() {
   console.log(`\nCurating ${args.artist} — ${candidates.length} candidates across ${groups.size} songs.`)
   console.log("Commands: <numbers> select, 'a' all, 'n' next song, 's' save+stop, 'q' stop w/o save\n")
 
+  const usedPairs = new Set<string>()
+  for (const c of curated) {
+    if (c.distractor1 && c.distractor2) {
+      recordUsed(usedPairs, args.artist, c.distractor1, c.distractor2)
+    }
+  }
+
   outer: for (const [songId, list] of groups) {
     const head = list[0]!
     console.log(`\n── ${head.song} ${head.album ? `(${head.album}${head.year ? `, ${head.year}` : ""})` : ""}`)
@@ -94,8 +105,20 @@ async function main() {
       const c = list[i - 1]!
       const k = `${c.songId}|${c.lines}`
       if (pickedKey.has(k)) continue
+      const [d1, d2] = pickDistractorsSmart(args.artist, c.lines, c.song, { usedPairs })
+      console.log(`     ${i}. distractors → ${d1} / ${d2}`)
+      const ov = (await ask(`        keep [enter] or override (e.g. 'd1=Sido d2=Fler'): `)).trim()
+      let finalD1 = d1
+      let finalD2 = d2
+      if (ov) {
+        const m1 = ov.match(/d1\s*=\s*([^\s,]+(?:\s+[^\s,]+)?)/i)
+        const m2 = ov.match(/d2\s*=\s*([^\s,]+(?:\s+[^\s,]+)?)/i)
+        if (m1) finalD1 = m1[1]!.trim()
+        if (m2) finalD2 = m2[1]!.trim()
+      }
+      recordUsed(usedPairs, args.artist, finalD1, finalD2)
       pickedKey.add(k)
-      curated.push({ ...c, selected: true })
+      curated.push({ ...c, selected: true, distractor1: finalD1, distractor2: finalD2 })
     }
     console.log(`  ✓ ${picks.length} added (total ${curated.length})`)
   }

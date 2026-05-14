@@ -6,6 +6,14 @@
 export type BarRow = {
   id: number
   line: string
+  /** Finishing-lines prompt with `___` at the blank; null = not authored. */
+  clozePrompt?: string | null
+  /** Soft toggle: false → excluded from cloze (artist-filtered) mode. */
+  clozeEnabled?: boolean
+  /** Accepted cloze answers (first entry is canonical). */
+  perfectSolution?: string[]
+  /** Whether an admin has manually verified this row. */
+  reviewed?: boolean
   active: boolean
   createdAt: string
   songId: number
@@ -25,6 +33,8 @@ export type ArtistRow = {
   slug: string
   imageUrl: string | null
   active: boolean
+  /** Tag slugs (scene/era/region). Used to score distractor overlap. */
+  tags?: string[]
 }
 
 async function jsonOrThrow<T>(res: Response): Promise<T> {
@@ -40,17 +50,95 @@ export async function fetchBars(opts: {
   search?: string
   includeInactive?: boolean
   limit?: number
+  reviewed?: boolean
 }): Promise<{ items: BarRow[]; total: number }> {
   const url = new URL("/api/admin/bars", window.location.origin)
   if (opts.search?.trim()) url.searchParams.set("search", opts.search.trim())
   if (opts.includeInactive) url.searchParams.set("includeInactive", "true")
+  if (opts.reviewed !== undefined) url.searchParams.set("reviewed", String(opts.reviewed))
   url.searchParams.set("limit", String(opts.limit ?? 100))
   const res = await fetch(url, { credentials: "same-origin" })
   return jsonOrThrow(res)
 }
 
+/**
+ * Fetch the next un-reviewed bar (single, random pick) excluding any
+ * client-side session-skipped IDs. Returns null when the queue is empty.
+ */
+export async function fetchNextReviewBar(
+  excludeIds: number[],
+): Promise<{ bar: BarRow | null; remaining: number }> {
+  const url = new URL("/api/admin/bars", window.location.origin)
+  url.searchParams.set("reviewed", "false")
+  url.searchParams.set("random", "true")
+  url.searchParams.set("limit", "1")
+  if (excludeIds.length > 0) {
+    url.searchParams.set("excludeIds", excludeIds.join(","))
+  }
+  const res = await fetch(url, { credentials: "same-origin" })
+  const body = await jsonOrThrow<{ items: BarRow[]; total: number }>(res)
+  return { bar: body.items[0] ?? null, remaining: body.total }
+}
+
 export async function fetchArtists(): Promise<{ items: ArtistRow[] }> {
   const res = await fetch("/api/admin/artists?includeInactive=true", {
+    credentials: "same-origin",
+  })
+  return jsonOrThrow(res)
+}
+
+export async function createArtist(
+  name: string,
+  tags: { slug: string; weight: number }[] = [],
+): Promise<{
+  id: number
+  name: string
+  slug: string
+  imageUrl: string | null
+  active: boolean
+  created: boolean
+  tagCount?: number
+}> {
+  const res = await fetch("/api/admin/artists", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(tags.length > 0 ? { name, tags } : { name }),
+    credentials: "same-origin",
+  })
+  return jsonOrThrow(res)
+}
+
+export type TagRow = { id: number; slug: string; label: string; artistCount: number }
+export type ArtistTagRow = { tagId: number; slug: string; label: string; weight: number }
+
+export async function fetchTags(): Promise<{ items: TagRow[] }> {
+  const res = await fetch("/api/admin/tags", { credentials: "same-origin" })
+  return jsonOrThrow(res)
+}
+
+export async function createTag(label: string): Promise<TagRow & { created: boolean }> {
+  const res = await fetch("/api/admin/tags", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ label }),
+    credentials: "same-origin",
+  })
+  return jsonOrThrow(res)
+}
+
+export async function fetchArtistTags(artistId: number): Promise<{ items: ArtistTagRow[] }> {
+  const res = await fetch(`/api/admin/artists/${artistId}/tags`, { credentials: "same-origin" })
+  return jsonOrThrow(res)
+}
+
+export async function setArtistTags(
+  artistId: number,
+  tags: { slug: string; weight: number }[],
+): Promise<{ items: ArtistTagRow[] }> {
+  const res = await fetch(`/api/admin/artists/${artistId}/tags`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tags }),
     credentials: "same-origin",
   })
   return jsonOrThrow(res)
@@ -96,7 +184,11 @@ export async function patchBar(
   id: number,
   patch: {
     line?: string
+    clozePrompt?: string | null
+    clozeEnabled?: boolean
+    perfectSolution?: string[]
     active?: boolean
+    reviewed?: boolean
     distractor1Id?: number
     distractor2Id?: number
   },

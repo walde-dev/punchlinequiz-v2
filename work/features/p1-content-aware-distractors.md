@@ -1,9 +1,9 @@
 ---
 title: "Content-aware distractor matching"
-status: scoped
+status: built
 priority: p1
 created: 2026-05-14
-updated: 2026-05-14
+updated: 2026-05-13
 tags: [gameplay, data, quality]
 depends: []
 blocks: []

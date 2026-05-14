@@ -1,7 +1,8 @@
 import fs from "node:fs"
 import path from "node:path"
 
-import { adminConfig, artistDir, pickDistractors } from "./config.ts"
+import { adminConfig, artistDir } from "./config.ts"
+import { loadTagsFromAdmin, pickDistractorsSmart, recordUsed } from "./tags.ts"
 
 interface Args {
   artist: string
@@ -33,11 +34,16 @@ function parseArgs(argv: string[]): Args {
 }
 
 interface Curated {
-  songId: number
+  songId?: number
   song: string
   album: string | null
   year: number | null
   lines: string
+  /** Optional per-entry artist override (e.g. for featured verses). */
+  artist?: string
+  /** Optional distractor overrides set during curate (curate-time pinning). */
+  distractor1?: string
+  distractor2?: string
 }
 
 function normalizeLine(s: string): string {
@@ -53,8 +59,14 @@ async function postBar(
   token: string,
   artist: string,
   c: Curated,
+  usedPairs: Set<string>,
 ): Promise<{ status: number; body: any }> {
-  const [d1, d2] = pickDistractors(artist)
+  let d1 = c.distractor1
+  let d2 = c.distractor2
+  if (!d1 || !d2) {
+    ;[d1, d2] = pickDistractorsSmart(artist, c.lines, c.song, { usedPairs })
+  }
+  recordUsed(usedPairs, artist, d1, d2)
   const payload: Record<string, unknown> = {
     artist,
     song: c.song,
@@ -84,6 +96,7 @@ async function postBar(
 async function main() {
   const args = parseArgs(process.argv.slice(2))
   const { baseUrl, token } = adminConfig()
+  await loadTagsFromAdmin()
   const dir = artistDir(args.artist)
   const curatedPath = path.join(dir, "curated.json")
   if (!fs.existsSync(curatedPath)) {
@@ -97,15 +110,22 @@ async function main() {
   console.log(`  target: ${baseUrl}`)
 
   const stats = { ok: 0, dup: 0, err: 0 }
+  const usedPairs = new Set<string>()
   for (let i = 0; i < curated.length; i++) {
     const c = curated[i]!
     const label = `[${i + 1}/${curated.length}] ${c.song.slice(0, 30)}`
     const line = normalizeLine(c.lines)
     if (args.dryRun) {
+      const correct = c.artist ?? args.artist
+      const d1 = c.distractor1
+      const d2 = c.distractor2
+      const [pd1, pd2] = d1 && d2 ? [d1, d2] : pickDistractorsSmart(correct, c.lines, c.song, { usedPairs })
+      recordUsed(usedPairs, correct, pd1, pd2)
       console.log(`  · ${label}: ${line}`)
+      console.log(`     → ${pd1} / ${pd2}${d1 && d2 ? " (pinned)" : ""}`)
       continue
     }
-    const r = await postBar(baseUrl, token, args.artist, c)
+    const r = await postBar(baseUrl, token, c.artist ?? args.artist, c, usedPairs)
     if (r.status === 201) {
       console.log(`  ✓ ${label} → ${r.body?.punchlineId ?? "?"}`)
       stats.ok++
