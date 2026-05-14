@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
@@ -25,6 +26,7 @@ export function TagEditor({
   onChange: (next: SelectedTag[]) => void
   hint?: string
 }) {
+  const { t } = useTranslation()
   const [all, setAll] = useState<TagRow[]>([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState<string | null>(null)
@@ -93,7 +95,7 @@ export function TagEditor({
 
       {/* picker */}
       <div className="flex flex-wrap gap-1.5">
-        {loading && <span className="text-xs text-muted-foreground">Lädt …</span>}
+        {loading && <span className="text-xs text-muted-foreground">{t("admin.tags.editorLoading")}</span>}
         {!loading &&
           all.map((tag) => {
             const isOn = selectedSlugs.has(tag.slug)
@@ -153,7 +155,7 @@ export function TagEditor({
               onCreate()
             }
           }}
-          placeholder="Neuer Tag (Label) …"
+          placeholder={t("admin.tags.newTagPlaceholder")}
           className="flex-1 rounded-full border border-border/40 bg-background/40 px-3 py-1.5 text-xs font-medium placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/60"
         />
         <Button
@@ -164,7 +166,7 @@ export function TagEditor({
           disabled={creating || !newLabel.trim()}
           className="text-xs font-semibold"
         >
-          + Tag
+          {t("admin.tags.addTag")}
         </Button>
       </div>
       {err && <p className="text-xs text-destructive">{err}</p>}

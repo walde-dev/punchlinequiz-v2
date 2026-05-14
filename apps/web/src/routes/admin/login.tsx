@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
@@ -15,6 +16,7 @@ export const Route = createFileRoute("/admin/login")({
 })
 
 function AdminLoginPage() {
+  const { t } = useTranslation()
   const { admin } = Route.useLoaderData()
   const navigate = useNavigate()
   const [token, setToken] = useState("")
@@ -37,7 +39,7 @@ function AdminLoginPage() {
         return
       }
       const body = (await res.json().catch(() => ({}))) as { message?: string }
-      setError(body.message ?? `Login fehlgeschlagen (${res.status})`)
+      setError(body.message ?? t("admin.login.failed", { status: res.status }))
     } catch (err) {
       setError(String(err))
     } finally {
@@ -51,30 +53,30 @@ function AdminLoginPage() {
       <div className="relative w-full max-w-sm rounded-3xl border border-border/60 bg-card/60 p-6 backdrop-blur-[2px]">
         <div className="mb-6 flex flex-col gap-1">
           <span className="text-xs font-bold tracking-[0.18em] uppercase text-primary/80">
-            / admin
+            {t("admin.eyebrow")}
           </span>
-          <h1 className="text-2xl font-extrabold tracking-tight">Login</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight">{t("admin.login.title")}</h1>
           {admin ? (
             <p className="text-sm text-muted-foreground">
-              Du bist schon eingeloggt.{" "}
+              {t("admin.login.alreadyIn")}{" "}
               <button
                 type="button"
                 className="font-semibold text-primary underline-offset-2 hover:underline"
                 onClick={() => navigate({ to: "/admin" })}
               >
-                Zum Dashboard
+                {t("admin.login.toDashboard")}
               </button>
             </p>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Gib das Admin-Token ein, um Bars zu bearbeiten.
+              {t("admin.login.prompt")}
             </p>
           )}
         </div>
 
         <form onSubmit={onSubmit} className="flex flex-col gap-3">
           <label className="flex flex-col gap-1.5 text-xs font-medium tracking-wide uppercase text-muted-foreground">
-            Token
+            {t("admin.login.tokenLabel")}
             <input
               type="password"
               value={token}
@@ -98,7 +100,7 @@ function AdminLoginPage() {
             disabled={submitting || token.trim().length === 0}
             className="mt-1 min-h-11 font-bold"
           >
-            {submitting ? "…" : "Einloggen"}
+            {submitting ? "…" : t("admin.login.submit")}
           </Button>
         </form>
       </div>

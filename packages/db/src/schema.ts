@@ -1,5 +1,6 @@
 import {
   boolean,
+  date,
   doublePrecision,
   integer,
   json,
@@ -111,6 +112,16 @@ export const artistTags = pgTable(
   }),
 )
 
+export const dailyChallenges = pgTable("daily_challenges", {
+  id: serial("id").primaryKey(),
+  /** ISO date (YYYY-MM-DD) the bar is featured on. Unique — one bar per day. */
+  date: date("date").notNull().unique(),
+  punchlineId: integer("punchline_id")
+    .notNull()
+    .references(() => punchlines.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+})
+
 export type Artist = typeof artists.$inferSelect
 export type NewArtist = typeof artists.$inferInsert
 export type Song = typeof songs.$inferSelect
@@ -123,3 +134,5 @@ export type Tag = typeof tags.$inferSelect
 export type NewTag = typeof tags.$inferInsert
 export type ArtistTag = typeof artistTags.$inferSelect
 export type NewArtistTag = typeof artistTags.$inferInsert
+export type DailyChallenge = typeof dailyChallenges.$inferSelect
+export type NewDailyChallenge = typeof dailyChallenges.$inferInsert

@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router"
+import { useTranslation } from "react-i18next"
 
 import { cn } from "@workspace/ui/lib/utils"
 
@@ -45,6 +46,7 @@ function searchFor(
 }
 
 function AlleCard({ total, mode }: { total: number; mode: "artist" | "cloze" }) {
+  const { t } = useTranslation()
   return (
     <Link
       to="/play"
@@ -60,10 +62,10 @@ function AlleCard({ total, mode }: { total: number; mode: "artist" | "cloze" }) 
       }}
     >
       <span className="text-[10px] font-bold tracking-[0.18em] uppercase text-primary/80">
-        / alle artists
+        {t("artistGrid.allEyebrow")}
       </span>
-      <span className="text-2xl font-extrabold tracking-tight">Random</span>
-      <span className="text-xs text-muted-foreground tabular-nums">{total} Bars</span>
+      <span className="text-2xl font-extrabold tracking-tight">{t("artistGrid.all")}</span>
+      <span className="text-xs text-muted-foreground tabular-nums">{t("artistGrid.bars", { count: total })}</span>
     </Link>
   )
 }
@@ -77,6 +79,7 @@ function ArtistCard({
   index: number
   mode: "artist" | "cloze"
 }) {
+  const { t } = useTranslation()
   return (
     <Link
       to="/play"
@@ -110,7 +113,7 @@ function ArtistCard({
           {artist.name}
         </span>
         <span className="text-[11px] font-medium text-white/70 tabular-nums">
-          {artist.punchlineCount} Bars
+          {t("artistGrid.bars", { count: artist.punchlineCount })}
         </span>
       </div>
     </Link>

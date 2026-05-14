@@ -1,5 +1,6 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
@@ -28,6 +29,7 @@ export const Route = createFileRoute("/admin/review")({
 const ease = "cubic-bezier(0.16, 1, 0.3, 1)"
 
 function ReviewPage() {
+  const { t } = useTranslation()
   const [artists, setArtists] = useState<ArtistRow[]>([])
   const [bar, setBar] = useState<BarRow | null>(null)
   const [remaining, setRemaining] = useState(0)
@@ -85,8 +87,8 @@ function ReviewPage() {
     if (!bar) return
     const preview = bar.line.slice(0, 80) + (bar.line.length > 80 ? "…" : "")
     const msg = hard
-      ? `Bar #${bar.id} ENDGÜLTIG löschen?\n\n„${preview}“\n\nNicht umkehrbar.`
-      : `Bar #${bar.id} deaktivieren?\n\n„${preview}“`
+      ? t("admin.review.hardDeleteConfirm", { id: bar.id, preview })
+      : t("admin.review.deactivateConfirm", { id: bar.id, preview })
     if (!confirm(msg)) return
     setLoading(true)
     setErr(null)
@@ -150,19 +152,19 @@ function ReviewPage() {
             <span className="text-primary">/quiz</span>
           </Link>
           <span className="rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-primary">
-            review
+            {t("admin.review.badge")}
           </span>
         </div>
         <div className="flex items-center gap-3 text-xs font-bold tabular-nums">
-          <span className="text-primary" title="Reviewed in dieser Session">
+          <span className="text-primary" title={t("admin.review.reviewedTitle")}>
             ✓ {reviewedCount}
           </span>
-          <span className="text-muted-foreground" title="Skipped (kommen wieder)">
+          <span className="text-muted-foreground" title={t("admin.review.skippedTitle")}>
             ↪ {skipCount}
           </span>
           <span className="text-muted-foreground">
             <span className="text-foreground">{remaining}</span>
-            <span className="opacity-50"> übrig</span>
+            <span className="opacity-50"> {t("admin.review.remaining")}</span>
           </span>
         </div>
       </header>
@@ -208,22 +210,23 @@ function SkeletonCard() {
 }
 
 function EmptyQueue({ onReset, skipped }: { onReset: () => void; skipped: number }) {
+  const { t } = useTranslation()
   return (
     <div className="relative flex min-h-[60vh] flex-col items-center justify-center gap-5 text-center">
       <span className="text-xs font-bold tracking-[0.18em] uppercase text-primary/80">
-        / inbox zero
+        {t("admin.review.emptyEyebrow")}
       </span>
-      <h1 className="text-3xl font-extrabold tracking-tight">Stack ist leer.</h1>
+      <h1 className="text-3xl font-extrabold tracking-tight">{t("admin.review.emptyTitle")}</h1>
       <p className="max-w-xs text-sm text-muted-foreground text-balance">
-        Alle Bars reviewed (oder geskippt). Ehre.
+        {t("admin.review.emptyText")}
       </p>
       {skipped > 0 && (
         <Button type="button" onClick={onReset} className="cta-glow font-bold">
-          {skipped} geskippte zurückholen
+          {t("admin.review.restoreSkipped", { count: skipped })}
         </Button>
       )}
       <Link to="/admin" className="text-xs text-muted-foreground hover:text-foreground">
-        ← Zurück zum Dashboard
+        {t("admin.common.backToDashboard")}
       </Link>
     </div>
   )
@@ -251,6 +254,7 @@ function ReviewCard({
   exitDir: "left" | "right" | null
   disabled: boolean
 }) {
+  const { t } = useTranslation()
   const [line, setLine] = useState(bar.line)
   const [clozePrompt, setClozePrompt] = useState(bar.clozePrompt ?? "")
   const [clozeAnswers, setClozeAnswers] = useState(
@@ -329,7 +333,7 @@ function ReviewCard({
       <div className="flex items-start justify-between gap-2">
         <div className="flex flex-col">
           <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary/80">
-            / bar #{bar.id}
+            / {t("admin.edit.title", { id: bar.id })}
           </span>
           <span className="text-sm font-semibold">
             {bar.artistName} <span className="opacity-50">·</span> {bar.songTitle}
@@ -342,13 +346,13 @@ function ReviewCard({
           target="_blank"
           rel="noopener noreferrer"
           className="rounded-full border border-border/60 bg-background/40 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground hover:border-primary/50 hover:text-foreground"
-          aria-label="Auf Genius suchen"
+          aria-label={t("admin.review.geniusAria")}
         >
           Genius ↗
         </a>
       </div>
 
-      <Field label="Line">
+      <Field label={t("admin.edit.line")}>
         <textarea
           value={line}
           onChange={(e) => setLine(e.target.value)}
@@ -357,21 +361,21 @@ function ReviewCard({
         />
       </Field>
 
-      <Field label="Cloze prompt">
+      <Field label={t("admin.review.clozePrompt")}>
         <textarea
           value={clozePrompt}
           onChange={(e) => setClozePrompt(e.target.value)}
           rows={2}
-          placeholder="„… und sehe eine ___“ — leer = im Artist-Modus deaktiviert"
+          placeholder={t("admin.review.clozePromptPlaceholder")}
           className={textareaCls}
         />
       </Field>
 
-      <Field label="Akzeptierte Antworten (Komma-getrennt)">
+      <Field label={t("admin.review.clozeAnswers")}>
         <input
           value={clozeAnswers}
           onChange={(e) => setClozeAnswers(e.target.value)}
-          placeholder="Maus, die Maus"
+          placeholder={t("admin.review.clozeAnswersPlaceholder")}
           className={inputCls}
         />
       </Field>
@@ -391,18 +395,18 @@ function ReviewCard({
           className="accent-primary"
         />
         <span className="flex flex-col">
-          <span>Im Cloze-Modus spielen</span>
+          <span>{t("admin.review.playClozeTitle")}</span>
           <span className="text-[11px] font-normal text-muted-foreground">
-            Aus = Bar nur im Klassik-Modus, nicht beim Artist-Quiz.
+            {t("admin.review.playClozeHint")}
           </span>
         </span>
       </label>
 
-      <Field label="Korrekter Artist">
+      <Field label={t("admin.edit.correctArtist")}>
         <ArtistSelect value={artistId} onChange={setArtistId} artists={artists} />
       </Field>
 
-      <Field label="Song">
+      <Field label={t("admin.edit.song")}>
         <input
           value={songTitle}
           onChange={(e) => setSongTitle(e.target.value)}
@@ -411,7 +415,7 @@ function ReviewCard({
       </Field>
 
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Distractor 1">
+        <Field label={t("admin.edit.distractor1")}>
           <ArtistSelect
             value={d1}
             onChange={setD1}
@@ -420,7 +424,7 @@ function ReviewCard({
             sortByOverlapWith={correctArtist}
           />
         </Field>
-        <Field label="Distractor 2">
+        <Field label={t("admin.edit.distractor2")}>
           <ArtistSelect
             value={d2}
             onChange={setD2}
@@ -433,7 +437,7 @@ function ReviewCard({
 
       {conflict && (
         <p className="text-xs text-destructive">
-          Distractors müssen sich vom Artist und voneinander unterscheiden.
+          {t("admin.review.conflict")}
         </p>
       )}
 
@@ -446,7 +450,7 @@ function ReviewCard({
             disabled={disabled}
             className="font-bold text-muted-foreground hover:text-foreground"
           >
-            ↪ Skip
+            {t("admin.review.skip")}
           </Button>
           <Button
             type="button"
@@ -454,10 +458,10 @@ function ReviewCard({
             size="sm"
             onClick={() => onDelete(false)}
             disabled={disabled}
-            title="Deaktivieren — bleibt in der DB, aber inaktiv"
+            title={t("admin.review.deactivateTitle")}
             className="text-xs font-semibold text-destructive/80 hover:bg-destructive/10 hover:text-destructive"
           >
-            Deaktivieren
+            {t("admin.common.deactivate")}
           </Button>
           <Button
             type="button"
@@ -465,11 +469,11 @@ function ReviewCard({
             size="sm"
             onClick={() => onDelete(true)}
             disabled={disabled}
-            title="Endgültig löschen — nicht umkehrbar"
-            aria-label="Bar endgültig löschen"
+            title={t("admin.review.deleteHardTitle")}
+            aria-label={t("admin.review.deleteHardAria")}
             className="text-xs font-semibold text-destructive/70 hover:bg-destructive/15 hover:text-destructive"
           >
-            Löschen ✕
+            {t("admin.edit.deleteHard")}
           </Button>
         </div>
         <Button
@@ -479,7 +483,7 @@ function ReviewCard({
           size="lg"
           className="cta-glow font-bold"
         >
-          ✓ Reviewed
+          {t("admin.review.approve")}
         </Button>
       </div>
     </div>

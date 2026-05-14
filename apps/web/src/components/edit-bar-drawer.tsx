@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
@@ -23,6 +24,7 @@ export function EditBarDrawer({
   onClose: () => void
   onSaved: () => void | Promise<void>
 }) {
+  const { t } = useTranslation()
   const [line, setLine] = useState(bar.line)
   const [clozePrompt, setClozePrompt] = useState(bar.clozePrompt ?? "")
   const [clozeAnswers, setClozeAnswers] = useState(
@@ -127,7 +129,7 @@ export function EditBarDrawer({
   }
 
   async function onDelete() {
-    if (!confirm("Bar wirklich deaktivieren?")) return
+    if (!confirm(t("admin.edit.deactivateConfirm"))) return
     setBusy(true)
     setErr(null)
     try {
@@ -141,14 +143,8 @@ export function EditBarDrawer({
   }
 
   async function onHardDelete() {
-    if (
-      !confirm(
-        `Bar #${bar.id} ENDGÜLTIG löschen?\n\n„${bar.line.slice(0, 80)}${
-          bar.line.length > 80 ? "…" : ""
-        }“\n\nDas lässt sich nicht rückgängig machen.`,
-      )
-    )
-      return
+    const preview = bar.line.slice(0, 80) + (bar.line.length > 80 ? "…" : "")
+    if (!confirm(t("admin.edit.hardDeleteConfirm", { id: bar.id, preview }))) return
     setBusy(true)
     setErr(null)
     try {
@@ -175,7 +171,7 @@ export function EditBarDrawer({
         <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
           <div className="flex flex-col">
             <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary/80">
-              / bar #{bar.id}
+              / {t("admin.edit.title", { id: bar.id })}
             </span>
             <span className="text-sm font-semibold">
               {correctArtistName} <span className="opacity-50">·</span> {bar.songTitle}
@@ -184,7 +180,7 @@ export function EditBarDrawer({
           <button
             type="button"
             onClick={onClose}
-            aria-label="Schließen"
+            aria-label={t("admin.common.close")}
             className="rounded-full p-1.5 text-muted-foreground hover:bg-muted/40 hover:text-foreground"
           >
             ✕
@@ -192,7 +188,7 @@ export function EditBarDrawer({
         </div>
 
         <div className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto px-5 py-4">
-          <Field label="Line">
+          <Field label={t("admin.edit.line")}>
             <textarea
               value={line}
               onChange={(e) => setLine(e.target.value)}
@@ -207,26 +203,26 @@ export function EditBarDrawer({
               rel="noopener noreferrer"
               className="mt-1 inline-flex w-fit items-center gap-1 self-start rounded-full border border-border/60 bg-background/40 px-3 py-1 text-[11px] font-bold normal-case tracking-normal text-muted-foreground transition hover:border-primary/50 hover:text-foreground"
             >
-              Auf Genius suchen
+              {t("admin.edit.geniusSearch")}
               <span aria-hidden="true">↗</span>
             </a>
           </Field>
 
-          <Field label="Cloze prompt (Finishing-Lines)">
+          <Field label={t("admin.edit.clozePrompt")}>
             <textarea
               value={clozePrompt}
               onChange={(e) => setClozePrompt(e.target.value)}
               rows={2}
-              placeholder="z.B. „Ich chille in meinem Haus / und sehe eine ___“ — leer = im Artist-Modus ausgeblendet"
+              placeholder={t("admin.edit.clozePromptPlaceholder")}
               className="w-full resize-none rounded-xl border border-border/60 bg-background/60 px-3 py-2 text-sm font-medium placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-ring/60"
             />
           </Field>
 
-          <Field label="Akzeptierte Antworten (Komma-getrennt)">
+          <Field label={t("admin.edit.clozeAnswers")}>
             <input
               value={clozeAnswers}
               onChange={(e) => setClozeAnswers(e.target.value)}
-              placeholder="z.B. Maus, die Maus"
+              placeholder={t("admin.edit.clozeAnswersPlaceholder")}
               className={textInputCls}
             />
           </Field>
@@ -239,26 +235,26 @@ export function EditBarDrawer({
               className="accent-primary"
             />
             <span>
-              im Cloze-Modus spielen
+              {t("admin.edit.playCloze")}
               <span className="ml-1 text-xs text-muted-foreground">
-                (Artist-Modus zeigt diese Bar)
+                {t("admin.edit.playClozeHint")}
               </span>
             </span>
           </label>
 
-          <Field label="Korrekter Artist">
+          <Field label={t("admin.edit.correctArtist")}>
             <ArtistSelect value={artistId} onChange={setArtistId} artists={artists} />
           </Field>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto]">
-            <Field label="Song">
+            <Field label={t("admin.edit.song")}>
               <input
                 value={songTitle}
                 onChange={(e) => setSongTitle(e.target.value)}
                 className={textInputCls}
               />
             </Field>
-            <Field label="Jahr">
+            <Field label={t("admin.edit.year")}>
               <input
                 value={releaseYear}
                 onChange={(e) => setReleaseYear(e.target.value)}
@@ -269,17 +265,17 @@ export function EditBarDrawer({
             </Field>
           </div>
 
-          <Field label="Album">
+          <Field label={t("admin.edit.album")}>
             <input
               value={album}
               onChange={(e) => setAlbum(e.target.value)}
               className={textInputCls}
-              placeholder="(leer = nicht gesetzt)"
+              placeholder={t("admin.edit.albumEmptyHint")}
             />
           </Field>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <Field label="Distractor 1">
+            <Field label={t("admin.edit.distractor1")}>
               <ArtistSelect
                 value={d1}
                 onChange={setD1}
@@ -288,7 +284,7 @@ export function EditBarDrawer({
                 sortByOverlapWith={correctArtist}
               />
             </Field>
-            <Field label="Distractor 2">
+            <Field label={t("admin.edit.distractor2")}>
               <ArtistSelect
                 value={d2}
                 onChange={setD2}
@@ -301,7 +297,7 @@ export function EditBarDrawer({
 
           {conflict && (
             <p className="text-xs text-destructive">
-              Distractors müssen sich vom korrekten Artist und voneinander unterscheiden.
+              {t("admin.edit.conflict")}
             </p>
           )}
 
@@ -312,7 +308,7 @@ export function EditBarDrawer({
               onChange={(e) => setActive(e.target.checked)}
               className="accent-primary"
             />
-            aktiv (im Spiel sichtbar)
+            {t("admin.edit.activeLabel")}
           </label>
 
           {err && <p className="text-xs text-destructive">{err}</p>}
@@ -328,7 +324,7 @@ export function EditBarDrawer({
               disabled={busy}
               className="text-xs font-semibold text-destructive hover:bg-destructive/10"
             >
-              Deaktivieren
+              {t("admin.common.deactivate")}
             </Button>
             <Button
               type="button"
@@ -336,16 +332,16 @@ export function EditBarDrawer({
               size="sm"
               onClick={onHardDelete}
               disabled={busy}
-              aria-label="Bar endgültig löschen"
-              title="Endgültig löschen (nicht umkehrbar)"
+              aria-label={t("admin.edit.deleteHardAria")}
+              title={t("admin.edit.deleteHardTitle")}
               className="text-xs font-semibold text-destructive/70 hover:bg-destructive/15 hover:text-destructive"
             >
-              Löschen ✕
+              {t("admin.edit.deleteHard")}
             </Button>
           </div>
           <div className="flex gap-2">
             <Button type="button" variant="ghost" size="sm" onClick={onClose} disabled={busy}>
-              Abbrechen
+              {t("admin.common.cancel")}
             </Button>
             <Button
               type="button"
@@ -353,7 +349,7 @@ export function EditBarDrawer({
               disabled={busy || !dirty || conflict}
               className="font-bold"
             >
-              {busy ? "…" : "Speichern"}
+              {busy ? "…" : t("admin.common.save")}
             </Button>
           </div>
         </div>

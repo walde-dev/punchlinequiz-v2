@@ -263,6 +263,50 @@ export async function searchDeezerTracks(q: string): Promise<DeezerTrackHit[]> {
   return body.items
 }
 
+export type DailyRow = {
+  id: number
+  date: string
+  createdAt: string
+  punchlineId: number
+  line: string
+  songId: number
+  songTitle: string
+  releaseYear: number | null
+  artistId: number
+  artistName: string
+  artistSlug: string
+}
+
+export async function fetchDailyChallenges(opts: { all?: boolean } = {}): Promise<{
+  items: DailyRow[]
+}> {
+  const url = new URL("/api/admin/daily", window.location.origin)
+  if (opts.all) url.searchParams.set("all", "true")
+  const res = await fetch(url, { credentials: "same-origin" })
+  return jsonOrThrow(res)
+}
+
+export async function scheduleDailyChallenge(input: {
+  date: string
+  punchlineId: number
+}): Promise<{ id: number; date: string; punchlineId: number }> {
+  const res = await fetch("/api/admin/daily", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+    credentials: "same-origin",
+  })
+  return jsonOrThrow(res)
+}
+
+export async function deleteDailyChallenge(id: number): Promise<void> {
+  const res = await fetch(`/api/admin/daily/${id}`, {
+    method: "DELETE",
+    credentials: "same-origin",
+  })
+  await jsonOrThrow(res)
+}
+
 export async function deleteBar(id: number, hard = false): Promise<void> {
   const url = new URL(`/api/admin/bars/${id}`, window.location.origin)
   if (hard) url.searchParams.set("hard", "true")

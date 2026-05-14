@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 
 import { cn } from "@workspace/ui/lib/utils"
 
@@ -36,6 +37,7 @@ export function Combobox({
   disabled,
   minChars = 2,
 }: Props) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [hits, setHits] = useState<ComboboxItem[]>([])
   const [loading, setLoading] = useState(false)
@@ -133,11 +135,11 @@ export function Combobox({
           )}
         >
           {loading && hits.length === 0 && (
-            <li className="px-3 py-2 text-xs text-muted-foreground">Suche …</li>
+            <li className="px-3 py-2 text-xs text-muted-foreground">{t("combobox.searching")}</li>
           )}
           {!loading && hits.length === 0 && value.trim().length >= minChars && (
             <li className="px-3 py-2 text-xs text-muted-foreground">
-              Keine Treffer. Eingabe wird als neuer Eintrag angelegt.
+              {t("combobox.noHits")}
             </li>
           )}
           {hits.map((item, i) => {

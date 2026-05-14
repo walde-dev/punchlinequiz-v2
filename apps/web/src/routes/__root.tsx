@@ -10,17 +10,12 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "punchlinequiz — Kennst du die Punchline?" },
-      { name: "description", content: "Teste dein Rap-Wissen mit den härtesten Bars der deutschen Hip-Hop-Geschichte." },
+      { title: "punchlinequiz" },
+      { name: "description", content: "punchlinequiz — German hip-hop bars quiz." },
     ],
     links: [{ rel: "stylesheet", href: appCss }],
   }),
-  notFoundComponent: () => (
-    <main className="container mx-auto p-4 pt-16">
-      <h1>404</h1>
-      <p>Seite nicht gefunden.</p>
-    </main>
-  ),
+  notFoundComponent: () => <NotFound />,
   shellComponent: RootDocument,
 })
 
@@ -31,6 +26,16 @@ function LangSync() {
     document.documentElement.lang = i18n.language.startsWith("de") ? "de" : "en"
   }, [i18n.language])
   return null
+}
+
+function NotFound() {
+  const { t } = useTranslation()
+  return (
+    <main className="container mx-auto p-4 pt-16">
+      <h1>404</h1>
+      <p>{t("common.notFound")}</p>
+    </main>
+  )
 }
 
 function RootDocument({ children }: { children: React.ReactNode }) {

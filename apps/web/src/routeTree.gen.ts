@@ -11,18 +11,22 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PlayRouteImport } from './routes/play'
 import { Route as FinishingRouteImport } from './routes/finishing'
+import { Route as DailyRouteImport } from './routes/daily'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminReviewRouteImport } from './routes/admin/review'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
+import { Route as AdminDailyRouteImport } from './routes/admin/daily'
 import { Route as ApiAdminTagsRouteImport } from './routes/api/admin/tags'
 import { Route as ApiAdminSessionRouteImport } from './routes/api/admin/session'
 import { Route as ApiAdminPingRouteImport } from './routes/api/admin/ping'
+import { Route as ApiAdminDailyRouteImport } from './routes/api/admin/daily'
 import { Route as ApiAdminBarsRouteImport } from './routes/api/admin/bars'
 import { Route as ApiAdminArtistsRouteImport } from './routes/api/admin/artists'
 import { Route as ApiAdminSongsIdRouteImport } from './routes/api/admin/songs.$id'
 import { Route as ApiAdminSearchTracksRouteImport } from './routes/api/admin/search.tracks'
 import { Route as ApiAdminSearchArtistsRouteImport } from './routes/api/admin/search.artists'
+import { Route as ApiAdminDailyIdRouteImport } from './routes/api/admin/daily.$id'
 import { Route as ApiAdminBarsIdRouteImport } from './routes/api/admin/bars.$id'
 import { Route as ApiAdminArtistsIdRouteImport } from './routes/api/admin/artists.$id'
 import { Route as ApiAdminSearchTrackIdRouteImport } from './routes/api/admin/search.track.$id'
@@ -36,6 +40,11 @@ const PlayRoute = PlayRouteImport.update({
 const FinishingRoute = FinishingRouteImport.update({
   id: '/finishing',
   path: '/finishing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DailyRoute = DailyRouteImport.update({
+  id: '/daily',
+  path: '/daily',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -58,6 +67,11 @@ const AdminLoginRoute = AdminLoginRouteImport.update({
   path: '/admin/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminDailyRoute = AdminDailyRouteImport.update({
+  id: '/admin/daily',
+  path: '/admin/daily',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminTagsRoute = ApiAdminTagsRouteImport.update({
   id: '/api/admin/tags',
   path: '/api/admin/tags',
@@ -71,6 +85,11 @@ const ApiAdminSessionRoute = ApiAdminSessionRouteImport.update({
 const ApiAdminPingRoute = ApiAdminPingRouteImport.update({
   id: '/api/admin/ping',
   path: '/api/admin/ping',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminDailyRoute = ApiAdminDailyRouteImport.update({
+  id: '/api/admin/daily',
+  path: '/api/admin/daily',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAdminBarsRoute = ApiAdminBarsRouteImport.update({
@@ -98,6 +117,11 @@ const ApiAdminSearchArtistsRoute = ApiAdminSearchArtistsRouteImport.update({
   path: '/api/admin/search/artists',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminDailyIdRoute = ApiAdminDailyIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiAdminDailyRoute,
+} as any)
 const ApiAdminBarsIdRoute = ApiAdminBarsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -121,18 +145,22 @@ const ApiAdminArtistsIdTagsRoute = ApiAdminArtistsIdTagsRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/daily': typeof DailyRoute
   '/finishing': typeof FinishingRoute
   '/play': typeof PlayRoute
+  '/admin/daily': typeof AdminDailyRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/review': typeof AdminReviewRoute
   '/admin/': typeof AdminIndexRoute
   '/api/admin/artists': typeof ApiAdminArtistsRouteWithChildren
   '/api/admin/bars': typeof ApiAdminBarsRouteWithChildren
+  '/api/admin/daily': typeof ApiAdminDailyRouteWithChildren
   '/api/admin/ping': typeof ApiAdminPingRoute
   '/api/admin/session': typeof ApiAdminSessionRoute
   '/api/admin/tags': typeof ApiAdminTagsRoute
   '/api/admin/artists/$id': typeof ApiAdminArtistsIdRouteWithChildren
   '/api/admin/bars/$id': typeof ApiAdminBarsIdRoute
+  '/api/admin/daily/$id': typeof ApiAdminDailyIdRoute
   '/api/admin/search/artists': typeof ApiAdminSearchArtistsRoute
   '/api/admin/search/tracks': typeof ApiAdminSearchTracksRoute
   '/api/admin/songs/$id': typeof ApiAdminSongsIdRoute
@@ -141,18 +169,22 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/daily': typeof DailyRoute
   '/finishing': typeof FinishingRoute
   '/play': typeof PlayRoute
+  '/admin/daily': typeof AdminDailyRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/review': typeof AdminReviewRoute
   '/admin': typeof AdminIndexRoute
   '/api/admin/artists': typeof ApiAdminArtistsRouteWithChildren
   '/api/admin/bars': typeof ApiAdminBarsRouteWithChildren
+  '/api/admin/daily': typeof ApiAdminDailyRouteWithChildren
   '/api/admin/ping': typeof ApiAdminPingRoute
   '/api/admin/session': typeof ApiAdminSessionRoute
   '/api/admin/tags': typeof ApiAdminTagsRoute
   '/api/admin/artists/$id': typeof ApiAdminArtistsIdRouteWithChildren
   '/api/admin/bars/$id': typeof ApiAdminBarsIdRoute
+  '/api/admin/daily/$id': typeof ApiAdminDailyIdRoute
   '/api/admin/search/artists': typeof ApiAdminSearchArtistsRoute
   '/api/admin/search/tracks': typeof ApiAdminSearchTracksRoute
   '/api/admin/songs/$id': typeof ApiAdminSongsIdRoute
@@ -162,18 +194,22 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/daily': typeof DailyRoute
   '/finishing': typeof FinishingRoute
   '/play': typeof PlayRoute
+  '/admin/daily': typeof AdminDailyRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/review': typeof AdminReviewRoute
   '/admin/': typeof AdminIndexRoute
   '/api/admin/artists': typeof ApiAdminArtistsRouteWithChildren
   '/api/admin/bars': typeof ApiAdminBarsRouteWithChildren
+  '/api/admin/daily': typeof ApiAdminDailyRouteWithChildren
   '/api/admin/ping': typeof ApiAdminPingRoute
   '/api/admin/session': typeof ApiAdminSessionRoute
   '/api/admin/tags': typeof ApiAdminTagsRoute
   '/api/admin/artists/$id': typeof ApiAdminArtistsIdRouteWithChildren
   '/api/admin/bars/$id': typeof ApiAdminBarsIdRoute
+  '/api/admin/daily/$id': typeof ApiAdminDailyIdRoute
   '/api/admin/search/artists': typeof ApiAdminSearchArtistsRoute
   '/api/admin/search/tracks': typeof ApiAdminSearchTracksRoute
   '/api/admin/songs/$id': typeof ApiAdminSongsIdRoute
@@ -184,18 +220,22 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/daily'
     | '/finishing'
     | '/play'
+    | '/admin/daily'
     | '/admin/login'
     | '/admin/review'
     | '/admin/'
     | '/api/admin/artists'
     | '/api/admin/bars'
+    | '/api/admin/daily'
     | '/api/admin/ping'
     | '/api/admin/session'
     | '/api/admin/tags'
     | '/api/admin/artists/$id'
     | '/api/admin/bars/$id'
+    | '/api/admin/daily/$id'
     | '/api/admin/search/artists'
     | '/api/admin/search/tracks'
     | '/api/admin/songs/$id'
@@ -204,18 +244,22 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/daily'
     | '/finishing'
     | '/play'
+    | '/admin/daily'
     | '/admin/login'
     | '/admin/review'
     | '/admin'
     | '/api/admin/artists'
     | '/api/admin/bars'
+    | '/api/admin/daily'
     | '/api/admin/ping'
     | '/api/admin/session'
     | '/api/admin/tags'
     | '/api/admin/artists/$id'
     | '/api/admin/bars/$id'
+    | '/api/admin/daily/$id'
     | '/api/admin/search/artists'
     | '/api/admin/search/tracks'
     | '/api/admin/songs/$id'
@@ -224,18 +268,22 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/daily'
     | '/finishing'
     | '/play'
+    | '/admin/daily'
     | '/admin/login'
     | '/admin/review'
     | '/admin/'
     | '/api/admin/artists'
     | '/api/admin/bars'
+    | '/api/admin/daily'
     | '/api/admin/ping'
     | '/api/admin/session'
     | '/api/admin/tags'
     | '/api/admin/artists/$id'
     | '/api/admin/bars/$id'
+    | '/api/admin/daily/$id'
     | '/api/admin/search/artists'
     | '/api/admin/search/tracks'
     | '/api/admin/songs/$id'
@@ -245,13 +293,16 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DailyRoute: typeof DailyRoute
   FinishingRoute: typeof FinishingRoute
   PlayRoute: typeof PlayRoute
+  AdminDailyRoute: typeof AdminDailyRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminReviewRoute: typeof AdminReviewRoute
   AdminIndexRoute: typeof AdminIndexRoute
   ApiAdminArtistsRoute: typeof ApiAdminArtistsRouteWithChildren
   ApiAdminBarsRoute: typeof ApiAdminBarsRouteWithChildren
+  ApiAdminDailyRoute: typeof ApiAdminDailyRouteWithChildren
   ApiAdminPingRoute: typeof ApiAdminPingRoute
   ApiAdminSessionRoute: typeof ApiAdminSessionRoute
   ApiAdminTagsRoute: typeof ApiAdminTagsRoute
@@ -275,6 +326,13 @@ declare module '@tanstack/react-router' {
       path: '/finishing'
       fullPath: '/finishing'
       preLoaderRoute: typeof FinishingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/daily': {
+      id: '/daily'
+      path: '/daily'
+      fullPath: '/daily'
+      preLoaderRoute: typeof DailyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -305,6 +363,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/daily': {
+      id: '/admin/daily'
+      path: '/admin/daily'
+      fullPath: '/admin/daily'
+      preLoaderRoute: typeof AdminDailyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/tags': {
       id: '/api/admin/tags'
       path: '/api/admin/tags'
@@ -324,6 +389,13 @@ declare module '@tanstack/react-router' {
       path: '/api/admin/ping'
       fullPath: '/api/admin/ping'
       preLoaderRoute: typeof ApiAdminPingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/daily': {
+      id: '/api/admin/daily'
+      path: '/api/admin/daily'
+      fullPath: '/api/admin/daily'
+      preLoaderRoute: typeof ApiAdminDailyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/bars': {
@@ -360,6 +432,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/admin/search/artists'
       preLoaderRoute: typeof ApiAdminSearchArtistsRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/daily/$id': {
+      id: '/api/admin/daily/$id'
+      path: '/$id'
+      fullPath: '/api/admin/daily/$id'
+      preLoaderRoute: typeof ApiAdminDailyIdRouteImport
+      parentRoute: typeof ApiAdminDailyRoute
     }
     '/api/admin/bars/$id': {
       id: '/api/admin/bars/$id'
@@ -427,15 +506,30 @@ const ApiAdminBarsRouteWithChildren = ApiAdminBarsRoute._addFileChildren(
   ApiAdminBarsRouteChildren,
 )
 
+interface ApiAdminDailyRouteChildren {
+  ApiAdminDailyIdRoute: typeof ApiAdminDailyIdRoute
+}
+
+const ApiAdminDailyRouteChildren: ApiAdminDailyRouteChildren = {
+  ApiAdminDailyIdRoute: ApiAdminDailyIdRoute,
+}
+
+const ApiAdminDailyRouteWithChildren = ApiAdminDailyRoute._addFileChildren(
+  ApiAdminDailyRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DailyRoute: DailyRoute,
   FinishingRoute: FinishingRoute,
   PlayRoute: PlayRoute,
+  AdminDailyRoute: AdminDailyRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminReviewRoute: AdminReviewRoute,
   AdminIndexRoute: AdminIndexRoute,
   ApiAdminArtistsRoute: ApiAdminArtistsRouteWithChildren,
   ApiAdminBarsRoute: ApiAdminBarsRouteWithChildren,
+  ApiAdminDailyRoute: ApiAdminDailyRouteWithChildren,
   ApiAdminPingRoute: ApiAdminPingRoute,
   ApiAdminSessionRoute: ApiAdminSessionRoute,
   ApiAdminTagsRoute: ApiAdminTagsRoute,

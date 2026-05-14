@@ -1,5 +1,6 @@
 import { Select } from "@base-ui/react/select"
 import { useMemo } from "react"
+import { useTranslation } from "react-i18next"
 
 import { cn } from "@workspace/ui/lib/utils"
 
@@ -19,7 +20,7 @@ export function ArtistSelect({
   artists,
   excludeId,
   sortByOverlapWith,
-  placeholder = "Artist wählen…",
+  placeholder,
   className,
 }: {
   value: number
@@ -30,6 +31,7 @@ export function ArtistSelect({
   placeholder?: string
   className?: string
 }) {
+  const { t } = useTranslation()
   const sorted = useMemo(
     () => sortArtists(artists, sortByOverlapWith ?? null, excludeId, value),
     [artists, sortByOverlapWith, excludeId, value],
@@ -53,7 +55,7 @@ export function ArtistSelect({
           className,
         )}
       >
-        <Select.Value placeholder={placeholder} />
+        <Select.Value placeholder={placeholder ?? t("artistSelect.placeholder")} />
         <Select.Icon className="ml-2 text-muted-foreground">
           <ChevronIcon />
         </Select.Icon>
@@ -91,13 +93,13 @@ export function ArtistSelect({
                   <Select.ItemText>{a.name}</Select.ItemText>
                   {!a.active && (
                     <span className="ml-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-                      inaktiv
+                      {t("artistSelect.inactive")}
                     </span>
                   )}
                   {overlap > 0 && (
                     <span
                       className="ml-auto text-[10px] font-bold tabular-nums text-primary/70"
-                      title={`${overlap} gemeinsame Tags`}
+                      title={t("artistSelect.sharedTags", { count: overlap })}
                     >
                       ×{overlap}
                     </span>

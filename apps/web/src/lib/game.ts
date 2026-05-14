@@ -1,7 +1,14 @@
 import { createServerFn } from "@tanstack/react-start"
 import { and, eq, inArray, isNotNull, ne, sql } from "drizzle-orm"
-import { artists, punchlines, songs } from "@workspace/db"
+import { artists, dailyChallenges, punchlines, songs } from "@workspace/db"
 import { db } from "./db"
+
+/**
+ * Subquery: ids of punchlines that have been scheduled (past or future) as a
+ * daily challenge. These bars are kept out of the regular and cloze pools so
+ * the daily stays special — they're only playable via /daily on their date.
+ */
+const dailyScheduledIds = sql`(SELECT ${dailyChallenges.punchlineId} FROM ${dailyChallenges})`
 
 export type ArtistTile = {
   id: number
@@ -22,6 +29,7 @@ export const listPlayableArtists = createServerFn({ method: "GET" })
   )
   .handler(async ({ data }): Promise<ArtistTile[]> => {
     const punchlineConds = [eq(punchlines.active, true)]
+    punchlineConds.push(sql`${punchlines.id} NOT IN ${dailyScheduledIds}`)
     if (data.mode === "cloze") {
       punchlineConds.push(isNotNull(punchlines.clozePrompt))
       punchlineConds.push(eq(punchlines.clozeEnabled, true))
@@ -281,6 +289,7 @@ export const getRound = createServerFn({ method: "GET" })
   .handler(async ({ data }): Promise<Round> => {
     const mode = data.mode ?? "artist"
     const conds = [eq(punchlines.active, true)]
+    conds.push(sql`${punchlines.id} NOT IN ${dailyScheduledIds}`)
     if (data.excludeId) conds.push(ne(punchlines.id, data.excludeId))
     if (data.artistSlug) conds.push(eq(artists.slug, data.artistSlug))
     if (mode === "cloze") {
