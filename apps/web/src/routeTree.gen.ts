@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PlayRouteImport } from './routes/play'
+import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as FinishingRouteImport } from './routes/finishing'
 import { Route as DailyRouteImport } from './routes/daily'
 import { Route as IndexRouteImport } from './routes/index'
@@ -44,6 +45,11 @@ const ProfileRoute = ProfileRouteImport.update({
 const PlayRoute = PlayRouteImport.update({
   id: '/play',
   path: '/play',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeaderboardRoute = LeaderboardRouteImport.update({
+  id: '/leaderboard',
+  path: '/leaderboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FinishingRoute = FinishingRouteImport.update({
@@ -171,6 +177,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/daily': typeof DailyRoute
   '/finishing': typeof FinishingRoute
+  '/leaderboard': typeof LeaderboardRoute
   '/play': typeof PlayRoute
   '/profile': typeof ProfileRoute
   '/admin/daily': typeof AdminDailyRoute
@@ -199,6 +206,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/daily': typeof DailyRoute
   '/finishing': typeof FinishingRoute
+  '/leaderboard': typeof LeaderboardRoute
   '/play': typeof PlayRoute
   '/profile': typeof ProfileRoute
   '/admin/daily': typeof AdminDailyRoute
@@ -228,6 +236,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/daily': typeof DailyRoute
   '/finishing': typeof FinishingRoute
+  '/leaderboard': typeof LeaderboardRoute
   '/play': typeof PlayRoute
   '/profile': typeof ProfileRoute
   '/admin/daily': typeof AdminDailyRoute
@@ -258,6 +267,7 @@ export interface FileRouteTypes {
     | '/'
     | '/daily'
     | '/finishing'
+    | '/leaderboard'
     | '/play'
     | '/profile'
     | '/admin/daily'
@@ -286,6 +296,7 @@ export interface FileRouteTypes {
     | '/'
     | '/daily'
     | '/finishing'
+    | '/leaderboard'
     | '/play'
     | '/profile'
     | '/admin/daily'
@@ -314,6 +325,7 @@ export interface FileRouteTypes {
     | '/'
     | '/daily'
     | '/finishing'
+    | '/leaderboard'
     | '/play'
     | '/profile'
     | '/admin/daily'
@@ -343,6 +355,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DailyRoute: typeof DailyRoute
   FinishingRoute: typeof FinishingRoute
+  LeaderboardRoute: typeof LeaderboardRoute
   PlayRoute: typeof PlayRoute
   ProfileRoute: typeof ProfileRoute
   AdminDailyRoute: typeof AdminDailyRoute
@@ -378,6 +391,13 @@ declare module '@tanstack/react-router' {
       path: '/play'
       fullPath: '/play'
       preLoaderRoute: typeof PlayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leaderboard': {
+      id: '/leaderboard'
+      path: '/leaderboard'
+      fullPath: '/leaderboard'
+      preLoaderRoute: typeof LeaderboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/finishing': {
@@ -602,6 +622,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DailyRoute: DailyRoute,
   FinishingRoute: FinishingRoute,
+  LeaderboardRoute: LeaderboardRoute,
   PlayRoute: PlayRoute,
   ProfileRoute: ProfileRoute,
   AdminDailyRoute: AdminDailyRoute,

@@ -23,7 +23,8 @@
   "nav": {
     "logo": "punchlinequiz",
     "logoAria": "punchlinequiz — Startseite",
-    "signIn": "Anmelden"
+    "signIn": "Anmelden",
+    "leaderboard": "Rangliste"
   },
   "xp": {
     "suffix": "XP",
@@ -438,5 +439,38 @@
     "verdict_half": "Halb durch. Nochmal?",
     "verdict_low": "Knapp daneben.",
     "verdict_miss": "Beim nächsten besser."
+  },
+  "onboarding": {
+    "eyebrow": "/ start",
+    "title": "Wähl deinen Namen.",
+    "subtitle": "So erkennt dich die Rangliste. Einmalig — wähl mit Bedacht.",
+    "placeholder": "deinname",
+    "hint": "{{min}}–{{max}} Zeichen. Buchstaben, Zahlen, _",
+    "checking": "Wird geprüft …",
+    "available": "Frei. Gehört dir.",
+    "claiming": "Wird gesichert …",
+    "cta": "Name sichern",
+    "errors": {
+      "too_short": "Zu kurz.",
+      "too_long": "Zu lang.",
+      "charset": "Nur Buchstaben, Zahlen und _.",
+      "reserved": "Der Name ist reserviert.",
+      "profane": "Such dir was anderes.",
+      "taken": "Schon vergeben.",
+      "unauthorized": "Bitte erst anmelden."
+    }
+  },
+  "leaderboard": {
+    "eyebrow": "/ rangliste",
+    "title": "Die Bestenliste",
+    "tabs": {
+      "xp": "XP",
+      "completion": "Bars geknackt"
+    },
+    "window": {
+      "weekly": "Diese Woche",
+      "alltime": "Allzeit"
+    },
+    "empty": "Noch niemand hier. Sei der Erste."
   }
 }

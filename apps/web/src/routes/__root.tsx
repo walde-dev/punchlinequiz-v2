@@ -4,6 +4,7 @@ import { Suspense, useEffect } from "react"
 import { I18nextProvider, useTranslation } from "react-i18next"
 
 import i18n from "../i18n"
+import { OnboardingGate } from "../components/onboarding-gate"
 import appCss from "@workspace/ui/globals.css?url"
 
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
@@ -58,6 +59,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             <Suspense fallback={<div className="min-h-svh bg-background" />}>
               {children}
             </Suspense>
+            <OnboardingGate />
           </I18nextProvider>
         </ClerkProvider>
         <Scripts />

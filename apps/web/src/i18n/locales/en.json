@@ -23,7 +23,8 @@
   "nav": {
     "logo": "punchlinequiz",
     "logoAria": "punchlinequiz — Home",
-    "signIn": "Sign in"
+    "signIn": "Sign in",
+    "leaderboard": "Leaderboard"
   },
   "xp": {
     "suffix": "XP",
@@ -438,5 +439,38 @@
     "verdict_half": "Halfway. Run it back?",
     "verdict_low": "Close, not quite.",
     "verdict_miss": "Better next time."
+  },
+  "onboarding": {
+    "eyebrow": "/ start",
+    "title": "Pick your name.",
+    "subtitle": "This is how the leaderboard knows you. One time only — choose well.",
+    "placeholder": "yourname",
+    "hint": "{{min}}–{{max}} chars. Letters, numbers, _",
+    "checking": "Checking …",
+    "available": "Free. It's yours.",
+    "claiming": "Locking it in …",
+    "cta": "Claim name",
+    "errors": {
+      "too_short": "Too short.",
+      "too_long": "Too long.",
+      "charset": "Letters, numbers and _ only.",
+      "reserved": "That name is reserved.",
+      "profane": "Pick something else.",
+      "taken": "Already taken.",
+      "unauthorized": "Sign in first."
+    }
+  },
+  "leaderboard": {
+    "eyebrow": "/ leaderboard",
+    "title": "The Leaderboard",
+    "tabs": {
+      "xp": "XP",
+      "completion": "Bars solved"
+    },
+    "window": {
+      "weekly": "This week",
+      "alltime": "All-time"
+    },
+    "empty": "Nobody here yet. Be the first."
   }
 }

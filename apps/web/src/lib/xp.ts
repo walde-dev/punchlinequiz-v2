@@ -102,7 +102,7 @@ function toLevelInfo(l: Level, rank: number): LevelInfo {
  * Idempotent upsert of a Clerk user. Called as the first step of every grant
  * path so anonymous → signed-in transitions don't 404.
  */
-async function ensureUser(clerkId: string): Promise<void> {
+export async function ensureUser(clerkId: string): Promise<void> {
   await db
     .insert(users)
     .values({ clerkId, totalXp: 0, currentStreak: 0, longestStreak: 0 })

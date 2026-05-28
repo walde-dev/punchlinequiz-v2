@@ -88,6 +88,12 @@ export function AppHeader({
       </Link>
 
       <nav className="flex items-center gap-3 text-xs font-medium tabular-nums">
+        <Link
+          to="/leaderboard"
+          className="font-bold tracking-wide text-foreground/70 hover:text-primary transition-colors"
+        >
+          {t("nav.leaderboard")}
+        </Link>
         {streak !== undefined && streak > 0 && (
           <span className="flex items-center gap-1.5 text-primary" aria-label={t("play.streakAria", { count: streak })}>
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />

@@ -145,17 +145,34 @@ export type NewDailyChallenge = typeof dailyChallenges.$inferInsert
  * XP system. Tables are server-authoritative: the client never writes XP
  * directly. Anonymous players earn no XP (rows are keyed by Clerk user id).
  */
-export const users = pgTable("users", {
-  clerkId: varchar("clerk_id", { length: 64 }).primaryKey(),
-  totalXp: integer("total_xp").notNull().default(0),
-  currentStreak: integer("current_streak").notNull().default(0),
-  longestStreak: integer("longest_streak").notNull().default(0),
-  /** Last correct answer time. Drives streak idle reset. */
-  lastCorrectAt: timestamp("last_correct_at"),
-  /** Updated on every server-validated submit (right or wrong). Drives cooldown. */
-  lastAttemptAt: timestamp("last_attempt_at"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-})
+export const users = pgTable(
+  "users",
+  {
+    clerkId: varchar("clerk_id", { length: 64 }).primaryKey(),
+    totalXp: integer("total_xp").notNull().default(0),
+    currentStreak: integer("current_streak").notNull().default(0),
+    longestStreak: integer("longest_streak").notNull().default(0),
+    /** Last correct answer time. Drives streak idle reset. */
+    lastCorrectAt: timestamp("last_correct_at"),
+    /** Updated on every server-validated submit (right or wrong). Drives cooldown. */
+    lastAttemptAt: timestamp("last_attempt_at"),
+    /**
+     * Public leaderboard handle. Null until the user completes first-sign-in
+     * onboarding. Case-insensitive unique via the lower(handle) index — NULLs
+     * are distinct in Postgres, so un-onboarded users never collide.
+     */
+    handle: varchar("handle", { length: 20 }),
+    /** Reserved for the (future) preset avatar pack. Stored, not yet rendered. */
+    avatarKey: varchar("avatar_key", { length: 40 }),
+    /** Set when the user picks a handle. Null = onboarding incomplete. */
+    onboardedAt: timestamp("onboarded_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    handleLowerUq: uniqueIndex("users_handle_lower_uq").on(sql`lower(${t.handle})`),
+    byTotalXp: index("users_total_xp").on(t.totalXp),
+  }),
+)
 
 /**
  * One row per (user, punchline). Records the primary correct-answer grant
@@ -184,6 +201,7 @@ export const userPunchlineXp = pgTable(
   (t) => ({
     uq: uniqueIndex("user_punchline_uq").on(t.clerkId, t.punchlineId),
     byUser: index("user_punchline_xp_by_user").on(t.clerkId, t.createdAt),
+    byCreatedAt: index("user_punchline_xp_created_at").on(t.createdAt),
   }),
 )
 
@@ -209,6 +227,7 @@ export const userDailyXp = pgTable(
   },
   (t) => ({
     uq: uniqueIndex("user_daily_uq").on(t.clerkId, t.date),
+    byCreatedAt: index("user_daily_xp_created_at").on(t.createdAt),
   }),
 )
 
