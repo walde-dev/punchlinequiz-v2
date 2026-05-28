@@ -1,15 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router"
 
-import { handleError, json, requireAdmin } from "../../../lib/admin"
+import { handleError, json } from "../../../lib/admin"
+import { requireAdmin } from "../../../lib/auth"
 import { searchTracksList } from "../../../lib/deezer"
 
 export const Route = createFileRoute("/api/admin/search/tracks")({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        const unauthorized = requireAdmin(request)
-        if (unauthorized) return unauthorized
         try {
+          await requireAdmin(request)
           const url = new URL(request.url)
           const q = url.searchParams.get("q")?.trim() ?? ""
           if (!q) return json({ items: [] })

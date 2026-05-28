@@ -10,17 +10,16 @@ import {
   json,
   optionalString,
   readJsonBody,
-  requireAdmin,
 } from "../../../lib/admin"
+import { requireAdmin } from "../../../lib/auth"
 import { getArtistById } from "../../../lib/deezer"
 
 export const Route = createFileRoute("/api/admin/artists/$id")({
   server: {
     handlers: {
       PATCH: async ({ request, params }) => {
-        const unauthorized = requireAdmin(request)
-        if (unauthorized) return unauthorized
         try {
+          const actor = await requireAdmin(request)
           const id = Number(params.id)
           if (!Number.isInteger(id) || id <= 0)
             throw new HttpError(400, "invalid_id", "Id must be a positive integer.")
@@ -58,12 +57,16 @@ export const Route = createFileRoute("/api/admin/artists/$id")({
                 patch.artworkProvider = "deezer"
                 patch.artworkExternalId = match.id
                 patch.imageUrl = match.imageUrl
-                audit("artwork_overridden", {
-                  provider: "deezer",
-                  kind: "artist",
-                  entity_id: id,
-                  external_id: match.id,
-                })
+                audit(
+                  "artwork_overridden",
+                  {
+                    provider: "deezer",
+                    kind: "artist",
+                    entity_id: id,
+                    external_id: match.id,
+                  },
+                  actor,
+                )
               }
             }
           }
@@ -80,7 +83,7 @@ export const Route = createFileRoute("/api/admin/artists/$id")({
             .set(patch)
             .where(eq(artists.id, id))
             .returning()
-          audit("edit_artist", { id, fields: Object.keys(patch) })
+          audit("edit_artist", { id, fields: Object.keys(patch) }, actor)
           return json(updated)
         } catch (err) {
           return handleError(err)

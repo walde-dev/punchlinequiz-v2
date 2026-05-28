@@ -9,18 +9,17 @@ import {
   HttpError,
   json,
   readJsonBody,
-  requireAdmin,
   requireString,
 } from "../../../lib/admin"
+import { requireAdmin } from "../../../lib/auth"
 import { resolveOrCreateArtist } from "../../../lib/upsert"
 
 export const Route = createFileRoute("/api/admin/artists")({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        const unauthorized = requireAdmin(request)
-        if (unauthorized) return unauthorized
         try {
+          await requireAdmin(request)
           const url = new URL(request.url)
           const q = url.searchParams.get("q")?.trim()
           const includeInactive = url.searchParams.get("includeInactive") === "true"
@@ -66,9 +65,8 @@ export const Route = createFileRoute("/api/admin/artists")({
         }
       },
       POST: async ({ request }) => {
-        const unauthorized = requireAdmin(request)
-        if (unauthorized) return unauthorized
         try {
+          const actor = await requireAdmin(request)
           const body = await readJsonBody<Record<string, unknown>>(request)
           const name = requireString(body.name, "name", { max: 200 })
           const { row, created } = await resolveOrCreateArtist(name)
@@ -113,11 +111,15 @@ export const Route = createFileRoute("/api/admin/artists")({
             }
           }
 
-          audit(created ? "add_artist" : "lookup_artist", {
-            id: row.id,
-            name: row.name,
-            tags: tagCount,
-          })
+          audit(
+            created ? "add_artist" : "lookup_artist",
+            {
+              id: row.id,
+              name: row.name,
+              tags: tagCount,
+            },
+            actor,
+          )
           return json(
             {
               id: row.id,

@@ -21,7 +21,7 @@ function FinishingPicker() {
 
   return (
     <div className="relative flex min-h-svh flex-col overflow-hidden">
-      <header className="fixed top-0 inset-x-0 z-50 flex items-center justify-between px-6 h-14 border-b border-border/40 bg-background/95 md:bg-background/80 md:backdrop-blur-sm">
+      <header className="fixed top-0 inset-x-0 z-50 flex items-center justify-between pl-6 pr-16 h-14 border-b border-border/40 bg-background/95 md:bg-background/80 md:backdrop-blur-sm">
         <Link to="/" aria-label={t("common.backToHome")} className="select-none">
           <span className="font-bold text-base tracking-tight">
             <span className="text-foreground">punchline</span>

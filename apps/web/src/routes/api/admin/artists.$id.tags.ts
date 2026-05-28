@@ -9,16 +9,15 @@ import {
   HttpError,
   json,
   readJsonBody,
-  requireAdmin,
 } from "../../../lib/admin"
+import { requireAdmin } from "../../../lib/auth"
 
 export const Route = createFileRoute("/api/admin/artists/$id/tags")({
   server: {
     handlers: {
       GET: async ({ request, params }) => {
-        const unauthorized = requireAdmin(request)
-        if (unauthorized) return unauthorized
         try {
+          await requireAdmin(request)
           const id = Number(params.id)
           if (!Number.isInteger(id) || id <= 0)
             throw new HttpError(400, "invalid_id", "Id must be a positive integer.")
@@ -39,9 +38,8 @@ export const Route = createFileRoute("/api/admin/artists/$id/tags")({
         }
       },
       PUT: async ({ request, params }) => {
-        const unauthorized = requireAdmin(request)
-        if (unauthorized) return unauthorized
         try {
+          const actor = await requireAdmin(request)
           const id = Number(params.id)
           if (!Number.isInteger(id) || id <= 0)
             throw new HttpError(400, "invalid_id", "Id must be a positive integer.")
@@ -107,7 +105,7 @@ export const Route = createFileRoute("/api/admin/artists/$id/tags")({
               .insert(artistTags)
               .values(resolved.map((r) => ({ artistId: id, tagId: r.id, weight: r.weight })))
           }
-          audit("set_artist_tags", { id, count: resolved.length })
+          audit("set_artist_tags", { id, count: resolved.length }, actor)
 
           const items = await db
             .select({

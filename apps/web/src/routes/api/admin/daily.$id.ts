@@ -9,8 +9,8 @@ import {
   handleError,
   HttpError,
   json,
-  requireAdmin,
 } from "../../../lib/admin"
+import { requireAdmin } from "../../../lib/auth"
 
 function parseId(raw: string | undefined): number {
   const id = Number(raw)
@@ -24,9 +24,8 @@ export const Route = createFileRoute("/api/admin/daily/$id")({
   server: {
     handlers: {
       DELETE: async ({ request, params }) => {
-        const unauthorized = requireAdmin(request)
-        if (unauthorized) return unauthorized
         try {
+          const actor = await requireAdmin(request)
           const id = parseId(params.id)
           const existing = await db
             .select({ id: dailyChallenges.id, date: dailyChallenges.date })
@@ -37,7 +36,7 @@ export const Route = createFileRoute("/api/admin/daily/$id")({
             throw new HttpError(404, "not_found", "Daily entry not found.")
           }
           await db.delete(dailyChallenges).where(eq(dailyChallenges.id, id))
-          audit("unschedule_daily", { id, date: existing[0].date })
+          audit("unschedule_daily", { id, date: existing[0].date }, actor)
           return json({ deleted: true })
         } catch (err) {
           return handleError(err)

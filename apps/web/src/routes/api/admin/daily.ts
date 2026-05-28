@@ -10,9 +10,9 @@ import {
   HttpError,
   json,
   readJsonBody,
-  requireAdmin,
   requireString,
 } from "../../../lib/admin"
+import { requireAdmin } from "../../../lib/auth"
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
 
@@ -51,9 +51,8 @@ export const Route = createFileRoute("/api/admin/daily")({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        const unauthorized = requireAdmin(request)
-        if (unauthorized) return unauthorized
         try {
+          await requireAdmin(request)
           const url = new URL(request.url)
           const all = url.searchParams.get("all") === "true"
           const items = await listDailies(all)
@@ -63,9 +62,8 @@ export const Route = createFileRoute("/api/admin/daily")({
         }
       },
       POST: async ({ request }) => {
-        const unauthorized = requireAdmin(request)
-        if (unauthorized) return unauthorized
         try {
+          const actor = await requireAdmin(request)
           const body = await readJsonBody<Record<string, unknown>>(request)
           const date = requireString(body.date, "date", { max: 10, min: 10 })
           if (!ISO_DATE.test(date)) {
@@ -111,7 +109,7 @@ export const Route = createFileRoute("/api/admin/daily")({
             .insert(dailyChallenges)
             .values({ date, punchlineId })
             .returning()
-          audit("schedule_daily", { id: inserted.id, date, punchlineId })
+          audit("schedule_daily", { id: inserted.id, date, punchlineId }, actor)
           return json(inserted, 201)
         } catch (err) {
           return handleError(err)

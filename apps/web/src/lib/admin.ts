@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto"
 import { db } from "./db"
 import { gameEvents } from "@workspace/db"
+import type { Actor } from "./auth"
 
 export type ApiError = {
   error: string
@@ -24,61 +25,48 @@ export function errorJson(
   return json({ error: code, message, ...(details ? { details } : {}) } satisfies ApiError, status)
 }
 
-/** Name of the httpOnly cookie that carries the admin token in browser sessions. */
-export const ADMIN_COOKIE = "pquiz_admin"
-
 function constantTimeMatch(a: string, b: string): boolean {
   const ab = Buffer.from(a)
   const bb = Buffer.from(b)
   return ab.length === bb.length && timingSafeEqual(ab, bb)
 }
 
-function extractToken(request: Request): string | null {
+/** Extract a bearer token from the Authorization header. */
+function extractBearerToken(request: Request): string | null {
   const header = request.headers.get("authorization") ?? ""
-  if (header.startsWith("Bearer ")) {
-    const t = header.slice(7).trim()
-    if (t) return t
-  }
-  const cookie = request.headers.get("cookie") ?? ""
-  if (!cookie) return null
-  for (const part of cookie.split(";")) {
-    const [rawName, ...rawVal] = part.split("=")
-    const name = rawName?.trim()
-    if (name === ADMIN_COOKIE) {
-      return decodeURIComponent(rawVal.join("=").trim()) || null
-    }
-  }
-  return null
+  if (!header.startsWith("Bearer ")) return null
+  const t = header.slice(7).trim()
+  return t || null
 }
 
-/** Returns true if the request carries a valid admin credential (Bearer or cookie). */
-export function isAdminRequest(request: Request): boolean {
+/** True iff the request carries a valid PQUIZ_ADMIN_TOKEN bearer token. CLI-only path. */
+export function hasValidAdminToken(request: Request): boolean {
   const expected = process.env.PQUIZ_ADMIN_TOKEN
   if (!expected) return false
-  const presented = extractToken(request)
+  const presented = extractBearerToken(request)
   if (!presented) return false
   return constantTimeMatch(presented, expected)
 }
 
-/** Constant-time auth via Bearer header OR `pquiz_admin` cookie. Returns Response on failure, null on success. */
-export function requireAdmin(request: Request): Response | null {
-  const expected = process.env.PQUIZ_ADMIN_TOKEN
-  if (!expected) {
-    console.error("[admin] PQUIZ_ADMIN_TOKEN is not set on the server")
-    return errorJson("server_misconfigured", "Admin token not configured.", 500)
-  }
-  const presented = extractToken(request)
-  if (!presented) return errorJson("unauthorized", "Missing admin token.", 401)
-  if (!constantTimeMatch(presented, expected)) {
-    return errorJson("unauthorized", "Bad admin token.", 401)
-  }
-  return null
-}
-
-/** Fire-and-forget audit entry into the existing analytics table. */
-export function audit(name: string, props: Record<string, unknown>): void {
+/** Fire-and-forget audit entry. Pass an Actor for user-attributable admin actions; omit for system-level traces (deezer, etc.). */
+export function audit(
+  name: string,
+  props: Record<string, unknown>,
+  actor?: Actor,
+): void {
+  const sessionId =
+    actor?.kind === "clerk" ? actor.userId : actor?.kind === "token" ? "admin_token" : "admin"
+  const enrichedProps = actor
+    ? {
+        ...props,
+        actor_kind: actor.kind,
+        ...(actor.kind === "clerk"
+          ? { actor_user_id: actor.userId, actor_email: actor.email }
+          : {}),
+      }
+    : props
   db.insert(gameEvents)
-    .values({ sessionId: "admin", name: `admin_${name}`, props })
+    .values({ sessionId, name: `admin_${name}`, props: enrichedProps })
     .catch((e) => console.error("[admin] audit insert failed", e))
 }
 
@@ -103,6 +91,7 @@ export class HttpError extends Error {
 
 export function handleError(err: unknown): Response {
   if (err instanceof HttpError) return errorJson(err.code, err.message, err.status, err.details)
+  if (err instanceof Response) return err
   console.error("[admin] unexpected error", err)
   return errorJson("internal_error", "Unexpected server error.", 500)
 }

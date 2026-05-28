@@ -12,8 +12,8 @@ import {
   optionalString,
   optionalStringArray,
   readJsonBody,
-  requireAdmin,
 } from "../../../lib/admin"
+import { requireAdmin } from "../../../lib/auth"
 
 async function loadBar(id: number) {
   const rows = await db
@@ -57,9 +57,8 @@ export const Route = createFileRoute("/api/admin/bars/$id")({
   server: {
     handlers: {
       GET: async ({ request, params }) => {
-        const unauthorized = requireAdmin(request)
-        if (unauthorized) return unauthorized
         try {
+          await requireAdmin(request)
           const id = parseId(params.id)
           const bar = await loadBar(id)
           if (!bar) throw new HttpError(404, "not_found", "Bar not found.")
@@ -69,9 +68,8 @@ export const Route = createFileRoute("/api/admin/bars/$id")({
         }
       },
       PATCH: async ({ request, params }) => {
-        const unauthorized = requireAdmin(request)
-        if (unauthorized) return unauthorized
         try {
+          const actor = await requireAdmin(request)
           const id = parseId(params.id)
           const bar = await loadBar(id)
           if (!bar) throw new HttpError(404, "not_found", "Bar not found.")
@@ -140,16 +138,15 @@ export const Route = createFileRoute("/api/admin/bars/$id")({
             .set(patch)
             .where(eq(punchlines.id, id))
             .returning()
-          audit("edit_bar", { id, fields: Object.keys(patch) })
+          audit("edit_bar", { id, fields: Object.keys(patch) }, actor)
           return json(updated)
         } catch (err) {
           return handleError(err)
         }
       },
       DELETE: async ({ request, params }) => {
-        const unauthorized = requireAdmin(request)
-        if (unauthorized) return unauthorized
         try {
+          const actor = await requireAdmin(request)
           const id = parseId(params.id)
           const url = new URL(request.url)
           const hard = url.searchParams.get("hard") === "true"
@@ -158,11 +155,11 @@ export const Route = createFileRoute("/api/admin/bars/$id")({
 
           if (hard) {
             await db.delete(punchlines).where(eq(punchlines.id, id))
-            audit("delete_bar", { id, hard: true })
+            audit("delete_bar", { id, hard: true }, actor)
             return json({ deleted: true, hard: true })
           }
           await db.update(punchlines).set({ active: false }).where(eq(punchlines.id, id))
-          audit("delete_bar", { id, hard: false })
+          audit("delete_bar", { id, hard: false }, actor)
           return json({ deleted: true, hard: false })
         } catch (err) {
           return handleError(err)

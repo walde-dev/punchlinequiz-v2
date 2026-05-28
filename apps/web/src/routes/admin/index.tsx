@@ -1,4 +1,4 @@
-import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, redirect } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -19,6 +19,7 @@ import {
   searchDeezerTracks,
   setArtistTags,
 } from "../../lib/admin-client"
+import { AdminShell } from "../../components/admin-shell"
 import { Combobox, type ComboboxItem } from "../../components/combobox"
 import { EditBarDrawer } from "../../components/edit-bar-drawer"
 import { TagEditor, type SelectedTag } from "../../components/tag-editor"
@@ -35,7 +36,6 @@ export const Route = createFileRoute("/admin/")({
 
 function AdminDashboard() {
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const [bars, setBars] = useState<BarRow[]>([])
   const [artists, setArtists] = useState<ArtistRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -68,60 +68,12 @@ function AdminDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [includeInactive])
 
-  async function onLogout() {
-    await fetch("/api/admin/session", { method: "DELETE", credentials: "same-origin" })
-    await navigate({ to: "/admin/login" })
-  }
-
   const editingBar = editingId != null ? bars.find((b) => b.id === editingId) ?? null : null
   const artistName = (id: number) => artists.find((a) => a.id === id)?.name ?? `#${id}`
 
   return (
-    <div className="relative min-h-svh">
-      <div className="pq-spotlight pointer-events-none absolute inset-0" aria-hidden="true" />
-
-      <header className="sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-border/40 bg-background/95 px-5 py-3 md:bg-background/80 md:backdrop-blur-sm">
-        <div className="flex items-center gap-3">
-          <Link to="/" className="select-none text-base font-bold tracking-tight">
-            <span className="text-foreground">punchline</span>
-            <span className="text-primary">/quiz</span>
-          </Link>
-          <span className="rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-primary">
-            {t("admin.badge")}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link
-            to="/admin/review"
-            className="rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-primary hover:bg-primary/20"
-          >
-            {t("admin.dashboard.reviewStack")}
-          </Link>
-          <Link
-            to="/admin/daily"
-            className="rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-primary hover:bg-primary/20"
-          >
-            {t("admin.dashboard.daily")}
-          </Link>
-          <Link
-            to="/play"
-            className="text-xs font-semibold text-muted-foreground hover:text-foreground"
-          >
-            {t("admin.common.playLink")}
-          </Link>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={onLogout}
-            className="text-xs font-semibold"
-          >
-            {t("admin.common.logout")}
-          </Button>
-        </div>
-      </header>
-
-      <main className="relative mx-auto flex max-w-4xl flex-col gap-6 px-5 py-8 md:px-8">
+    <AdminShell>
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
         <div className="flex items-end justify-between gap-3">
           <div>
             <h1 className="text-2xl font-extrabold tracking-tight">{t("admin.dashboard.barsTitle")}</h1>
@@ -247,7 +199,7 @@ function AdminDashboard() {
             </li>
           )}
         </ul>
-      </main>
+      </div>
 
       {editingBar && (
         <EditBarDrawer
@@ -260,7 +212,7 @@ function AdminDashboard() {
           }}
         />
       )}
-    </div>
+    </AdminShell>
   )
 }
 

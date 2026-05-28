@@ -1,10 +1,11 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router"
+import { createFileRoute, redirect } from "@tanstack/react-router"
 import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 
+import { AdminShell } from "../../components/admin-shell"
 import {
   deleteDailyChallenge,
   fetchBars,
@@ -62,36 +63,8 @@ function AdminDailyPage() {
   const today = todayBerlin()
 
   return (
-    <div className="relative min-h-svh">
-      <div className="pq-spotlight pointer-events-none absolute inset-0" aria-hidden="true" />
-
-      <header className="sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-border/40 bg-background/95 px-5 py-3 md:bg-background/80 md:backdrop-blur-sm">
-        <div className="flex items-center gap-3">
-          <Link to="/admin" className="select-none text-base font-bold tracking-tight">
-            <span className="text-foreground">punchline</span>
-            <span className="text-primary">/quiz</span>
-          </Link>
-          <span className="rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-primary">
-            {t("admin.daily.badge")}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link
-            to="/admin"
-            className="text-xs font-semibold text-muted-foreground hover:text-foreground"
-          >
-            {t("admin.common.backToBars")}
-          </Link>
-          <Link
-            to="/daily"
-            className="text-xs font-semibold text-muted-foreground hover:text-foreground"
-          >
-            {t("admin.common.playLink")}
-          </Link>
-        </div>
-      </header>
-
-      <main className="relative mx-auto flex max-w-4xl flex-col gap-6 px-5 py-8 md:px-8">
+    <AdminShell>
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
         <div className="flex items-end justify-between gap-3">
           <div>
             <h1 className="text-2xl font-extrabold tracking-tight">{t("admin.daily.title")}</h1>
@@ -194,8 +167,8 @@ function AdminDailyPage() {
             })}
           </ul>
         </section>
-      </main>
-    </div>
+      </div>
+    </AdminShell>
   )
 }
 
