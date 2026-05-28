@@ -1,7 +1,9 @@
 import {
   boolean,
+  check,
   date,
   doublePrecision,
+  index,
   integer,
   json,
   pgTable,
@@ -9,8 +11,10 @@ import {
   serial,
   text,
   timestamp,
+  uniqueIndex,
   varchar,
 } from "drizzle-orm/pg-core"
+import { sql } from "drizzle-orm"
 
 export const artists = pgTable("artists", {
   id: serial("id").primaryKey(),
@@ -136,3 +140,124 @@ export type ArtistTag = typeof artistTags.$inferSelect
 export type NewArtistTag = typeof artistTags.$inferInsert
 export type DailyChallenge = typeof dailyChallenges.$inferSelect
 export type NewDailyChallenge = typeof dailyChallenges.$inferInsert
+
+/**
+ * XP system. Tables are server-authoritative: the client never writes XP
+ * directly. Anonymous players earn no XP (rows are keyed by Clerk user id).
+ */
+export const users = pgTable("users", {
+  clerkId: varchar("clerk_id", { length: 64 }).primaryKey(),
+  totalXp: integer("total_xp").notNull().default(0),
+  currentStreak: integer("current_streak").notNull().default(0),
+  longestStreak: integer("longest_streak").notNull().default(0),
+  /** Last correct answer time. Drives streak idle reset. */
+  lastCorrectAt: timestamp("last_correct_at"),
+  /** Updated on every server-validated submit (right or wrong). Drives cooldown. */
+  lastAttemptAt: timestamp("last_attempt_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+})
+
+/**
+ * One row per (user, punchline). Records the primary correct-answer grant
+ * (artist or cloze mode) and an optional song-bonus add-on. The unique
+ * (clerk_id, punchline_id) index makes the grant idempotent: replaying a
+ * solved bar is a no-op. Song bonus is layered onto the existing row.
+ */
+export const userPunchlineXp = pgTable(
+  "user_punchline_xp",
+  {
+    id: serial("id").primaryKey(),
+    clerkId: varchar("clerk_id", { length: 64 })
+      .notNull()
+      .references(() => users.clerkId, { onDelete: "cascade" }),
+    punchlineId: integer("punchline_id")
+      .notNull()
+      .references(() => punchlines.id),
+    /** "artist" | "cloze" — which mode awarded the primary XP. */
+    primaryMode: varchar("primary_mode", { length: 16 }).notNull(),
+    /** Cumulative XP awarded for this line (primary + song bonus). */
+    xpAwarded: integer("xp_awarded").notNull(),
+    streakAtAward: integer("streak_at_award").notNull(),
+    songBonusAwarded: boolean("song_bonus_awarded").notNull().default(false),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    uq: uniqueIndex("user_punchline_uq").on(t.clerkId, t.punchlineId),
+    byUser: index("user_punchline_xp_by_user").on(t.clerkId, t.createdAt),
+  }),
+)
+
+/**
+ * One row per (user, daily date). UNIQUE prevents double-grant on the same
+ * day. The song grant is folded in via UPSERT — first call inserts the
+ * artist outcome, the song submit updates the row.
+ */
+export const userDailyXp = pgTable(
+  "user_daily_xp",
+  {
+    id: serial("id").primaryKey(),
+    clerkId: varchar("clerk_id", { length: 64 })
+      .notNull()
+      .references(() => users.clerkId, { onDelete: "cascade" }),
+    date: date("date").notNull(),
+    artistCorrect: boolean("artist_correct").notNull(),
+    songCorrect: boolean("song_correct").notNull().default(false),
+    songResolved: boolean("song_resolved").notNull().default(false),
+    xpAwarded: integer("xp_awarded").notNull(),
+    streakAtAward: integer("streak_at_award").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    uq: uniqueIndex("user_daily_uq").on(t.clerkId, t.date),
+  }),
+)
+
+/**
+ * Singleton config row (id = 1). CHECK constraint enforces that no other id
+ * can exist — protects the singleton invariant at the DB layer.
+ */
+export const xpConfig = pgTable(
+  "xp_config",
+  {
+    id: integer("id").primaryKey(),
+    xpArtistCorrect: integer("xp_artist_correct").notNull().default(100),
+    xpClozeCorrect: integer("xp_cloze_correct").notNull().default(150),
+    xpSongBonus: integer("xp_song_bonus").notNull().default(50),
+    xpDailyArtist: integer("xp_daily_artist").notNull().default(200),
+    xpDailySong: integer("xp_daily_song").notNull().default(150),
+    xpDailyPerfectBonus: integer("xp_daily_perfect_bonus").notNull().default(100),
+    streakBonusPerStep: integer("streak_bonus_per_step").notNull().default(25),
+    streakMaxBonus: integer("streak_max_bonus").notNull().default(250),
+    streakIdleResetMinutes: integer("streak_idle_reset_minutes").notNull().default(1440),
+    /** Server-enforced minimum delay between answer submissions. Blocks autofarm. */
+    minSecondsBetweenAttempts: integer("min_seconds_between_attempts").notNull().default(2),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    singleton: check("xp_config_singleton", sql`${t.id} = 1`),
+  }),
+)
+
+/**
+ * Editable ranks. Current level = highest threshold ≤ totalXp. Next = lowest
+ * threshold > totalXp. Threshold is UNIQUE.
+ */
+export const levels = pgTable("levels", {
+  id: serial("id").primaryKey(),
+  threshold: integer("threshold").notNull().unique(),
+  nameDe: varchar("name_de", { length: 80 }).notNull(),
+  nameEn: varchar("name_en", { length: 80 }).notNull(),
+  /** Tailwind/CSS accent token (defaults to "primary" = gold). */
+  accent: varchar("accent", { length: 24 }).notNull().default("primary"),
+})
+
+export type User = typeof users.$inferSelect
+export type NewUser = typeof users.$inferInsert
+export type UserPunchlineXp = typeof userPunchlineXp.$inferSelect
+export type NewUserPunchlineXp = typeof userPunchlineXp.$inferInsert
+export type UserDailyXp = typeof userDailyXp.$inferSelect
+export type NewUserDailyXp = typeof userDailyXp.$inferInsert
+export type XpConfig = typeof xpConfig.$inferSelect
+export type NewXpConfig = typeof xpConfig.$inferInsert
+export type Level = typeof levels.$inferSelect
+export type NewLevel = typeof levels.$inferInsert

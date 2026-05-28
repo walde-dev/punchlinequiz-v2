@@ -1,7 +1,10 @@
 import { createServerFn } from "@tanstack/react-start"
+import { getRequest } from "@tanstack/react-start/server"
 import { and, eq, inArray, isNotNull, ne, sql } from "drizzle-orm"
 import { artists, dailyChallenges, punchlines, songs } from "@workspace/db"
 import { db } from "./db"
+import { getActor } from "./auth"
+import { grantPrimary, grantSongBonus, type XpGrantResult } from "./xp"
 
 /**
  * Subquery: ids of punchlines that have been scheduled (past or future) as a
@@ -132,24 +135,39 @@ export type SongReveal = {
 export type AnswerResult = {
   isCorrect: boolean
   correctArtist: ArtistChoice
-  // Only present when the artist guess was WRONG — the round is over so we
-  // can show the full answer. When the artist guess is correct, the client
-  // must call submitSongGuess (or skip) to reveal the song.
   song: SongReveal | null
+  /** Server-issued XP grant outcome. null when the caller is anonymous. */
+  xp: XpGrantResult | null
 }
 
 export type SongGuessResult = {
   isCorrect: boolean
   song: SongReveal
+  xp: XpGrantResult | null
 }
 
 export type ClozeGuessResult = {
   isCorrect: boolean
-  /** Canonical answer to reveal to the user (the first perfect_solution). */
   correctAnswer: string
-  /** Full bar line with the blank filled in — for the reveal display. */
   fullLine: string
   correctArtist: ArtistChoice
+  xp: XpGrantResult | null
+}
+
+/**
+ * Resolve the signed-in Clerk user id from the active request, or null for
+ * anonymous play. We never `throw` — anonymous play stays valid; XP just
+ * doesn't accrue.
+ */
+async function getClerkIdOrNull(): Promise<string | null> {
+  try {
+    const req = getRequest()
+    const result = await getActor(req)
+    if (result?.actor.kind === "clerk") return result.actor.userId
+  } catch {
+    /* getRequest only valid inside server fn context; ignore */
+  }
+  return null
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -380,6 +398,13 @@ export const submitAnswer = createServerFn({ method: "POST" })
     if (rows.length === 0) throw new Error("Punchline not found")
     const r = rows[0]
     const isCorrect = r.correctArtistId === data.artistId
+    let xp: XpGrantResult | null = null
+    if (isCorrect) {
+      const clerkId = await getClerkIdOrNull()
+      if (clerkId) {
+        xp = await grantPrimary({ clerkId, punchlineId: data.punchlineId, mode: "artist" })
+      }
+    }
     return {
       isCorrect,
       correctArtist: {
@@ -387,7 +412,6 @@ export const submitAnswer = createServerFn({ method: "POST" })
         name: r.artistName,
         imageUrl: r.artistImageUrl,
       },
-      // Wrong artist → round is over, show song. Right artist → withhold.
       song: isCorrect
         ? null
         : {
@@ -396,6 +420,7 @@ export const submitAnswer = createServerFn({ method: "POST" })
             albumArtUrl: r.albumArtUrl,
             releaseYear: r.releaseYear,
           },
+      xp,
     }
   })
 
@@ -426,6 +451,13 @@ export const submitClozeGuess = createServerFn({ method: "POST" })
     const guess = (data.guess ?? "").trim()
     const accepted = r.perfectSolution ?? []
     const isCorrect = clozeAnswerMatches(guess, accepted)
+    let xp: XpGrantResult | null = null
+    if (isCorrect) {
+      const clerkId = await getClerkIdOrNull()
+      if (clerkId) {
+        xp = await grantPrimary({ clerkId, punchlineId: data.punchlineId, mode: "cloze" })
+      }
+    }
     return {
       isCorrect,
       correctAnswer: accepted[0] ?? "",
@@ -435,6 +467,7 @@ export const submitClozeGuess = createServerFn({ method: "POST" })
         name: r.artistName,
         imageUrl: r.artistImageUrl,
       },
+      xp,
     }
   })
 
@@ -462,6 +495,13 @@ export const submitSongGuess = createServerFn({ method: "POST" })
     const r = rows[0]
     const guess = (data.guess ?? "").trim()
     const isCorrect = guess.length > 0 && songGuessMatches(guess, r.title)
+    let xp: XpGrantResult | null = null
+    if (isCorrect) {
+      const clerkId = await getClerkIdOrNull()
+      if (clerkId) {
+        xp = await grantSongBonus({ clerkId, punchlineId: data.punchlineId })
+      }
+    }
     return {
       isCorrect,
       song: {
@@ -470,5 +510,6 @@ export const submitSongGuess = createServerFn({ method: "POST" })
         albumArtUrl: r.albumArtUrl,
         releaseYear: r.releaseYear,
       },
+      xp,
     }
   })
