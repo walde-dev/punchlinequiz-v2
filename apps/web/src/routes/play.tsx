@@ -6,10 +6,14 @@ import type { TFunction } from "i18next"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 
+import { AnonymousXpCta } from "../components/anonymous-xp-cta"
+import { AppHeader } from "../components/app-header"
 import { Confetti } from "../components/confetti"
 import { EditBarDrawer } from "../components/edit-bar-drawer"
-import { LangToggle } from "../components/lang-toggle"
+import { LevelUpModal } from "../components/level-up-modal"
 import { SessionSummary } from "../components/session-summary"
+import { XpGain } from "../components/xp-gain"
+import type { LevelInfo, XpGrantResult } from "../lib/xp"
 import {
   fetchArtists,
   type ArtistRow,
@@ -121,6 +125,26 @@ function PlayInner({
   const [editLoading, setEditLoading] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
   const artistsCacheRef = useRef<ArtistRow[] | null>(null)
+  const [xpGrant, setXpGrant] = useState<{ key: number; grant: XpGrantResult } | null>(null)
+  const [levelUp, setLevelUp] = useState<LevelInfo | null>(null)
+  const [xpRefreshKey, setXpRefreshKey] = useState(0)
+  const [anonCtaKey, setAnonCtaKey] = useState(0)
+
+  function consumeXp(grant: XpGrantResult | null | undefined, isCorrect: boolean) {
+    if (!isCorrect) return
+    // Anonymous on correct answer: server returns null. Surface a soft nudge.
+    if (grant === null) {
+      setAnonCtaKey((k) => k + 1)
+      return
+    }
+    if (!grant || grant.awarded === false) return
+    setXpRefreshKey((k) => k + 1)
+    if (grant.leveledUp) {
+      setLevelUp(grant.level)
+    } else {
+      setXpGrant({ key: Date.now(), grant })
+    }
+  }
 
   async function onEditClick() {
     if (!isAdmin) return
@@ -199,6 +223,7 @@ function PlayInner({
         data: { punchlineId: round.punchlineId, artistId: choice.id },
       })
       setArtistResult(res)
+      consumeXp(res.xp, res.isCorrect)
       logEvent("answer_revealed", {
         punchline_id: round.punchlineId,
         artist_id: choice.id,
@@ -241,6 +266,7 @@ function PlayInner({
         isCorrect: true,
         correctArtist: res.correctArtist,
         song: null,
+        xp: null,
       })
       setClozeOutcome({
         guess: trimmed,
@@ -248,6 +274,7 @@ function PlayInner({
         correctAnswer: res.correctAnswer,
         fullLine: res.fullLine,
       })
+      consumeXp(res.xp, res.isCorrect)
       logEvent("cloze_revealed", {
         punchline_id: round.punchlineId,
         is_correct: res.isCorrect,
@@ -293,6 +320,7 @@ function PlayInner({
         data: { punchlineId: round.punchlineId, guess: trimmed },
       })
       setSongResult(res)
+      consumeXp(res.xp, res.isCorrect)
       logEvent("song_guess_revealed", {
         punchline_id: round.punchlineId,
         is_correct: res.isCorrect,
@@ -368,7 +396,7 @@ function PlayInner({
   if (phase === "session-complete") {
     return (
       <div className="relative flex min-h-svh flex-col overflow-hidden">
-        <Header score={score} streak={streak} artistCtx={artistCtx} playMode={playMode} />
+        <AppHeader score={score} streak={streak} artistCtx={artistCtx} playMode={playMode} />
         <div className="pq-spotlight pointer-events-none absolute inset-0" aria-hidden="true" />
         <main className="relative flex flex-1 flex-col px-5 pt-20 pb-8 md:px-8">
           <SessionSummary
@@ -389,12 +417,13 @@ function PlayInner({
   const isLastRound = results.length >= ROUND_SIZE
   return (
     <div className="relative flex min-h-svh flex-col overflow-hidden">
-      <Header
+      <AppHeader
         score={score}
         streak={streak}
         artistCtx={artistCtx}
         playMode={playMode}
         roundSize={ROUND_SIZE}
+        xpRefreshKey={xpRefreshKey}
       />
       <div className="pq-spotlight pointer-events-none absolute inset-0" aria-hidden="true" />
 
@@ -441,6 +470,8 @@ function PlayInner({
 
           <div className="relative">
             <Confetti trigger={confettiKey} />
+            {xpGrant && <XpGain key={xpGrant.key} xp={xpGrant.grant} />}
+            <AnonymousXpCta triggerKey={anonCtaKey} />
             {phase === "guessing" && round.mode === "artist" && (
               <Choices
                 choices={round.choices}
@@ -485,70 +516,12 @@ function PlayInner({
           onSaved={onEditSaved}
         />
       )}
+
+      <LevelUpModal level={levelUp} onClose={() => setLevelUp(null)} />
     </div>
   )
 }
 
-function Header({
-  score,
-  streak,
-  artistCtx,
-  playMode,
-  roundSize,
-}: {
-  score: { right: number; total: number }
-  streak: number
-  artistCtx: ArtistContext | null
-  playMode: "artist" | "cloze"
-  roundSize?: number
-}) {
-  const { t } = useTranslation()
-  return (
-    <header className="fixed top-0 inset-x-0 z-50 flex items-center justify-between px-5 h-14 border-b border-border/40 bg-background/95 md:bg-background/80 md:backdrop-blur-sm">
-      <Link to="/" aria-label={t("common.backToHome")} className="select-none flex items-center gap-2.5">
-        <span className="font-bold text-base tracking-tight">
-          <span className="text-foreground">punchline</span>
-          <span className="text-primary">/quiz</span>
-        </span>
-        {playMode === "cloze" && !artistCtx && (
-          <>
-            <span className="text-primary/40 text-sm select-none">/</span>
-            <span className="text-[10px] font-bold tracking-[0.16em] uppercase text-primary/80">
-              {t("home.modes.clozeEyebrow").replace(/^\/\s*/, "")}
-            </span>
-          </>
-        )}
-        {artistCtx && (
-          <>
-            <span className="text-primary/40 text-sm select-none">/</span>
-            <span className="flex items-center gap-1.5">
-              <ArtistAvatar
-                artist={{ id: artistCtx.id, name: artistCtx.name, imageUrl: artistCtx.imageUrl }}
-                size={22}
-              />
-              <span className="text-xs font-bold tracking-tight text-foreground/90 truncate max-w-[7.5rem]">
-                {artistCtx.name}
-              </span>
-            </span>
-          </>
-        )}
-      </Link>
-      <div className="flex items-center gap-3 text-xs font-medium tabular-nums">
-        <LangToggle />
-        {streak > 0 && (
-          <span className="flex items-center gap-1.5 text-primary" aria-label={t("play.streakAria", { count: streak })}>
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-            <span>{t("play.streakLabel", { count: streak })}</span>
-          </span>
-        )}
-        <span className="text-muted-foreground" aria-label={t("play.scoreAria", { score: score.right, total: roundSize ?? score.total })}>
-          <span className="text-foreground">{score.right}</span>
-          <span className="opacity-50"> / {roundSize ?? score.total}</span>
-        </span>
-      </div>
-    </header>
-  )
-}
 
 function BarDisplay({
   line,
@@ -1135,7 +1108,7 @@ function EmptyArtistState({
       : t("play.empty.noBars")
   return (
     <div className="relative flex min-h-svh flex-col">
-      <Header score={{ right: 0, total: 0 }} streak={0} artistCtx={artist} playMode={mode} />
+      <AppHeader score={{ right: 0, total: 0 }} streak={0} artistCtx={artist} playMode={mode} />
       <div className="pq-spotlight pointer-events-none absolute inset-0" aria-hidden="true" />
       <main className="relative mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-5 px-6 text-center">
         <span className="text-xs font-bold tracking-[0.18em] uppercase text-primary/70">

@@ -12,18 +12,17 @@ import {
   optionalString,
   optionalStringArray,
   readJsonBody,
-  requireAdmin,
   requireString,
 } from "../../../lib/admin"
+import { requireAdmin } from "../../../lib/auth"
 import { upsertBar } from "../../../lib/upsert"
 
 export const Route = createFileRoute("/api/admin/bars")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const unauthorized = requireAdmin(request)
-        if (unauthorized) return unauthorized
         try {
+          const actor = await requireAdmin(request)
           const body = await readJsonBody<Record<string, unknown>>(request)
           const input = {
             artist: requireString(body.artist, "artist", { max: 200 }),
@@ -41,23 +40,26 @@ export const Route = createFileRoute("/api/admin/bars")({
               : undefined,
           }
           const result = await upsertBar(input)
-          audit("add_bar", {
-            punchlineId: result.punchlineId,
-            songId: result.songId,
-            artistId: result.artistId,
-            distractor1Id: result.distractor1Id,
-            distractor2Id: result.distractor2Id,
-            created: result.created,
-          })
+          audit(
+            "add_bar",
+            {
+              punchlineId: result.punchlineId,
+              songId: result.songId,
+              artistId: result.artistId,
+              distractor1Id: result.distractor1Id,
+              distractor2Id: result.distractor2Id,
+              created: result.created,
+            },
+            actor,
+          )
           return json(result, 201)
         } catch (err) {
           return handleError(err)
         }
       },
       GET: async ({ request }) => {
-        const unauthorized = requireAdmin(request)
-        if (unauthorized) return unauthorized
         try {
+          await requireAdmin(request)
           const url = new URL(request.url)
           const artistQ = url.searchParams.get("artist")
           const songQ = url.searchParams.get("song")

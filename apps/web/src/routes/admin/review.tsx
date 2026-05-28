@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 
+import { AdminShell } from "../../components/admin-shell"
 import { ArtistSelect } from "../../components/artist-select"
 
 import {
@@ -142,19 +143,8 @@ function ReviewPage() {
   }, [bar, loading])
 
   return (
-    <div className="relative min-h-svh">
-      <div className="pq-spotlight pointer-events-none absolute inset-0" aria-hidden="true" />
-
-      <header className="sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-border/40 bg-background/95 px-5 py-3 md:bg-background/80 md:backdrop-blur-sm">
-        <div className="flex items-center gap-3">
-          <Link to="/admin" className="select-none text-base font-bold tracking-tight">
-            <span className="text-foreground">punchline</span>
-            <span className="text-primary">/quiz</span>
-          </Link>
-          <span className="rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-primary">
-            {t("admin.review.badge")}
-          </span>
-        </div>
+    <AdminShell
+      topRight={
         <div className="flex items-center gap-3 text-xs font-bold tabular-nums">
           <span className="text-primary" title={t("admin.review.reviewedTitle")}>
             ✓ {reviewedCount}
@@ -167,9 +157,9 @@ function ReviewPage() {
             <span className="opacity-50"> {t("admin.review.remaining")}</span>
           </span>
         </div>
-      </header>
-
-      <main className="relative mx-auto flex max-w-xl flex-col gap-4 px-4 py-6">
+      }
+    >
+      <div className="mx-auto flex w-full max-w-xl flex-col gap-4">
         {err && (
           <p className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
             {err}
@@ -198,8 +188,8 @@ function ReviewPage() {
             disabled={loading}
           />
         )}
-      </main>
-    </div>
+      </div>
+    </AdminShell>
   )
 }
 

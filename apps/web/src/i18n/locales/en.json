@@ -22,11 +22,55 @@
   },
   "nav": {
     "logo": "punchlinequiz",
-    "logoAria": "punchlinequiz — Home"
+    "logoAria": "punchlinequiz — Home",
+    "signIn": "Sign in",
+    "leaderboard": "Leaderboard"
+  },
+  "xp": {
+    "suffix": "XP",
+    "headerAria": "Level {{level}}, {{xp}} XP. Open profile.",
+    "levelUp": {
+      "eyebrow": "Level Up",
+      "levelLabel": "Level",
+      "subtitle": "You're one of the real ones now — {{rank}}.",
+      "cta": "Keep going"
+    },
+    "anonCta": {
+      "headline": "That could've been XP.",
+      "sub": "Sign in and climb the ranks.",
+      "cta": "Sign in"
+    }
+  },
+  "profile": {
+    "levelLabel": "Level",
+    "nextLevelCaption": "{{xp}} XP to {{rank}}",
+    "maxLevelReached": "Top of the league.",
+    "sparklineTitle": "Last 30 days",
+    "recentTitle": "Recently conquered",
+    "playMore": "Keep grinding",
+    "stats": {
+      "currentStreak": "Current streak",
+      "longestStreak": "Longest streak",
+      "linesConquered": "Bars conquered",
+      "daysCompleted": "Daily days"
+    },
+    "anon": {
+      "eyebrow": "/ profile",
+      "headline": "Sign in to earn XP.",
+      "subtext": "No account, no XP. Sign in and climb from Rookie to OG.",
+      "subtextWithNext": "Earn XP on every correct guess — from Rookie all the way to {{rank}}.",
+      "cta": "Sign in"
+    }
   },
   "home": {
     "hero": "Guess the punchline?",
     "subtitle": "Two game modes. Pick your style.",
+    "signInBanner": {
+      "eyebrow": "/ XP & ranks",
+      "headline": "From Rookie to OG.",
+      "sub": "Earn XP, keep streaks, climb the ranks.",
+      "cta": "Sign in"
+    },
     "betaBadge": "Public Beta",
     "betaNotice": "The game is still in development. Feedback welcome.",
     "madeWith": "Made for the culture.",
@@ -328,6 +372,59 @@
       "noBar": "No matching bar.",
       "schedule": "Schedule daily",
       "scheduled": "✓ {{artist}} – {{song}} → {{date}}"
+    },
+    "nav": {
+      "bars": "Bars",
+      "review": "Review",
+      "daily": "Daily",
+      "xp": "XP values",
+      "levels": "Levels"
+    },
+    "xp": {
+      "eyebrow": "/ XP",
+      "title": "XP values",
+      "subtitle": "Points per action and streak rules. Changes take effect immediately.",
+      "save": "Save",
+      "saved": "saved",
+      "fields": {
+        "artist": "Artist correct",
+        "cloze": "Cloze correct",
+        "songBonus": "Song bonus",
+        "dailyArtist": "Daily artist",
+        "dailySong": "Daily song",
+        "dailyPerfect": "Daily perfect bonus",
+        "streakStep": "Streak bonus per step",
+        "streakMax": "Max streak bonus",
+        "streakIdle": "Streak reset (min.)",
+        "minCooldown": "Cooldown (sec.)"
+      },
+      "hints": {
+        "artist": "Base XP for a correct artist guess.",
+        "cloze": "Base XP for a correct cloze answer.",
+        "songBonus": "Extra XP when the song title is also right.",
+        "dailyArtist": "Base XP for the daily artist hit.",
+        "dailySong": "Base XP for the daily song hit.",
+        "dailyPerfect": "Bonus when both daily steps are correct.",
+        "streakStep": "XP bonus per current streak step.",
+        "streakMax": "Hard cap on the streak bonus.",
+        "streakIdle": "Streak resets after this many idle minutes.",
+        "minCooldown": "Minimum seconds between submissions — blocks autofarming."
+      }
+    },
+    "levels": {
+      "eyebrow": "/ levels",
+      "title": "Levels & ranks",
+      "subtitle": "Ordered by threshold. First level must start at 0. Saving replaces all rows atomically.",
+      "save": "Save",
+      "saved": "saved",
+      "addRow": "Add level",
+      "removeAria": "Remove level",
+      "col": {
+        "threshold": "XP",
+        "nameDe": "Name (DE)",
+        "nameEn": "Name (EN)",
+        "accent": "Accent"
+      }
     }
   },
   "share": {
@@ -342,5 +439,38 @@
     "verdict_half": "Halfway. Run it back?",
     "verdict_low": "Close, not quite.",
     "verdict_miss": "Better next time."
+  },
+  "onboarding": {
+    "eyebrow": "/ start",
+    "title": "Pick your name.",
+    "subtitle": "This is how the leaderboard knows you. One time only — choose well.",
+    "placeholder": "yourname",
+    "hint": "{{min}}–{{max}} chars. Letters, numbers, _",
+    "checking": "Checking …",
+    "available": "Free. It's yours.",
+    "claiming": "Locking it in …",
+    "cta": "Claim name",
+    "errors": {
+      "too_short": "Too short.",
+      "too_long": "Too long.",
+      "charset": "Letters, numbers and _ only.",
+      "reserved": "That name is reserved.",
+      "profane": "Pick something else.",
+      "taken": "Already taken.",
+      "unauthorized": "Sign in first."
+    }
+  },
+  "leaderboard": {
+    "eyebrow": "/ leaderboard",
+    "title": "The Leaderboard",
+    "tabs": {
+      "xp": "XP",
+      "completion": "Bars solved"
+    },
+    "window": {
+      "weekly": "This week",
+      "alltime": "All-time"
+    },
+    "empty": "Nobody here yet. Be the first."
   }
 }

@@ -9,18 +9,17 @@ import {
   HttpError,
   json,
   readJsonBody,
-  requireAdmin,
   requireString,
   slugify,
 } from "../../../lib/admin"
+import { requireAdmin } from "../../../lib/auth"
 
 export const Route = createFileRoute("/api/admin/tags")({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        const unauthorized = requireAdmin(request)
-        if (unauthorized) return unauthorized
         try {
+          await requireAdmin(request)
           const rows = await db
             .select({
               id: tags.id,
@@ -38,9 +37,8 @@ export const Route = createFileRoute("/api/admin/tags")({
         }
       },
       POST: async ({ request }) => {
-        const unauthorized = requireAdmin(request)
-        if (unauthorized) return unauthorized
         try {
+          const actor = await requireAdmin(request)
           const body = await readJsonBody<Record<string, unknown>>(request)
           const label = requireString(body.label, "label", { max: 120 })
           const slug = slugify(label).slice(0, 60)
@@ -55,7 +53,7 @@ export const Route = createFileRoute("/api/admin/tags")({
             .insert(tags)
             .values({ slug, label })
             .returning()
-          audit("create_tag", { id: row!.id, slug: row!.slug })
+          audit("create_tag", { id: row!.id, slug: row!.slug }, actor)
           return json({ id: row!.id, slug: row!.slug, label: row!.label, created: true }, 201)
         } catch (err) {
           return handleError(err)

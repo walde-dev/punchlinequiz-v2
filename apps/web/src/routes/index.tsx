@@ -3,7 +3,8 @@ import { useTranslation } from "react-i18next"
 
 import { cn } from "@workspace/ui/lib/utils"
 
-import { LangToggle } from "../components/lang-toggle"
+import { AppHeader } from "../components/app-header"
+import { SignInBanner } from "../components/sign-in-banner"
 import { getDailyChallenge } from "../lib/daily"
 import { listPlayableArtists } from "../lib/game"
 
@@ -26,31 +27,6 @@ export const Route = createFileRoute("/")({
 
 const ease = "cubic-bezier(0.16, 1, 0.3, 1)"
 
-function Logo() {
-  return (
-    <span
-      className="font-bold text-lg tracking-tight select-none"
-      style={{ animation: `pq-slide-down 0.5s ${ease} both` }}
-    >
-      <span className="text-foreground">punchline</span>
-      <span className="text-primary">/quiz</span>
-    </span>
-  )
-}
-
-function Header() {
-  const { t } = useTranslation()
-  return (
-    <header className="fixed top-0 inset-x-0 z-50 flex items-center justify-between px-6 h-14 border-b border-border/40 bg-background/95 md:bg-background/80 md:backdrop-blur-sm">
-      <Link to="/" aria-label={t("nav.logoAria")}>
-        <Logo />
-      </Link>
-      <nav className="flex items-center gap-1">
-        <LangToggle />
-      </nav>
-    </header>
-  )
-}
 
 function BetaBadge({ label }: { label: string }) {
   return (
@@ -70,7 +46,7 @@ function HomePage() {
 
   return (
     <div className="relative flex min-h-svh flex-col overflow-hidden">
-      <Header />
+      <AppHeader />
       <div className="pq-spotlight pointer-events-none absolute inset-0" aria-hidden="true" />
 
       <main className="relative flex flex-1 flex-col items-center px-5 pt-20 pb-10 md:px-8">
@@ -92,6 +68,7 @@ function HomePage() {
           </div>
 
           {dailyNumber !== null && <DailyBanner dailyNumber={dailyNumber} />}
+          <SignInBanner />
           <ModeCards artistTotal={artistTotal} clozeTotal={clozeTotal} clozeArtists={clozeArtists} />
         </div>
       </main>

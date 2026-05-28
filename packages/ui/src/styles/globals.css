@@ -90,6 +90,27 @@
   60%  { opacity: 1; transform: scale(1.04); }
   100% { opacity: 1; transform: scale(1); }
 }
+@keyframes pq-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+/* +XP gold pill: lifts up and out. Pure transform/opacity — GPU only. */
+@keyframes pq-xp-float {
+  0%   { opacity: 0; transform: translateY(8px) scale(0.95); }
+  15%  { opacity: 1; transform: translateY(0) scale(1); }
+  75%  { opacity: 1; transform: translateY(-12px) scale(1); }
+  100% { opacity: 0; transform: translateY(-32px) scale(0.98); }
+}
+@keyframes pq-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.18); }
+}
+/* Banner sheen: a single sweep on mount. Decoration only — fires once. */
+@keyframes pq-banner-sheen {
+  from { transform: translateX(0); opacity: 0; }
+  20%  { opacity: 1; }
+  to   { transform: translateX(400%); opacity: 0; }
+}
 
 /* Reusable utility classes that reference tokens */
 .pq-spotlight {

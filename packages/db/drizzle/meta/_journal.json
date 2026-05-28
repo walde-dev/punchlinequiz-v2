@@ -64,6 +64,20 @@
       "when": 1779000000000,
       "tag": "0008_daily_challenges",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1779100000000,
+      "tag": "0009_xp_system",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1780000986621,
+      "tag": "0010_worried_charles_xavier",
+      "breakpoints": true
     }
   ]
 }

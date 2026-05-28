@@ -22,11 +22,55 @@
   },
   "nav": {
     "logo": "punchlinequiz",
-    "logoAria": "punchlinequiz — Startseite"
+    "logoAria": "punchlinequiz — Startseite",
+    "signIn": "Anmelden",
+    "leaderboard": "Rangliste"
+  },
+  "xp": {
+    "suffix": "XP",
+    "headerAria": "Level {{level}}, {{xp}} XP. Profil öffnen.",
+    "levelUp": {
+      "eyebrow": "Level Up",
+      "levelLabel": "Level",
+      "subtitle": "Du bist jetzt einer der echten — {{rank}}.",
+      "cta": "Weitermachen"
+    },
+    "anonCta": {
+      "headline": "Das wären XP gewesen.",
+      "sub": "Anmelden und Ränge knacken.",
+      "cta": "Anmelden"
+    }
+  },
+  "profile": {
+    "levelLabel": "Level",
+    "nextLevelCaption": "Noch {{xp}} XP bis {{rank}}",
+    "maxLevelReached": "Top der Liga.",
+    "sparklineTitle": "Letzte 30 Tage",
+    "recentTitle": "Zuletzt geknackt",
+    "playMore": "Weiter grinden",
+    "stats": {
+      "currentStreak": "Aktuelle Streak",
+      "longestStreak": "Längste Streak",
+      "linesConquered": "Bars geknackt",
+      "daysCompleted": "Daily Tage"
+    },
+    "anon": {
+      "eyebrow": "/ profil",
+      "headline": "Anmelden, um XP zu sammeln.",
+      "subtext": "Ohne Account zählt nix. Anmelden und vom Neuling zum OG werden.",
+      "subtextWithNext": "Mit jedem richtigen Treffer XP sammeln — vom Neuling bis zum {{rank}}.",
+      "cta": "Anmelden"
+    }
   },
   "home": {
     "hero": "Errätst du die Punchline?",
     "subtitle": "Zwei Spielmodi. Welcher liegt dir?",
+    "signInBanner": {
+      "eyebrow": "/ XP & Ränge",
+      "headline": "Vom Neuling zum OG.",
+      "sub": "XP sammeln, Streaks halten, im Ranking klettern.",
+      "cta": "Anmelden"
+    },
     "betaBadge": "Public Beta",
     "betaNotice": "Das Spiel ist noch in Entwicklung. Feedback ist willkommen.",
     "madeWith": "Made for the culture.",
@@ -328,6 +372,59 @@
       "noBar": "Keine passende Bar.",
       "schedule": "Daily planen",
       "scheduled": "✓ {{artist}} – {{song}} → {{date}}"
+    },
+    "nav": {
+      "bars": "Bars",
+      "review": "Review",
+      "daily": "Daily",
+      "xp": "XP-Werte",
+      "levels": "Level"
+    },
+    "xp": {
+      "eyebrow": "/ XP",
+      "title": "XP-Werte",
+      "subtitle": "Punkte pro Aktion und Streak-Regeln. Änderungen greifen sofort.",
+      "save": "Speichern",
+      "saved": "gespeichert",
+      "fields": {
+        "artist": "Artist richtig",
+        "cloze": "Cloze richtig",
+        "songBonus": "Song-Bonus",
+        "dailyArtist": "Daily Artist",
+        "dailySong": "Daily Song",
+        "dailyPerfect": "Daily Perfect-Bonus",
+        "streakStep": "Streak-Bonus pro Stufe",
+        "streakMax": "Max. Streak-Bonus",
+        "streakIdle": "Streak-Reset (Min.)",
+        "minCooldown": "Cooldown (Sek.)"
+      },
+      "hints": {
+        "artist": "Basis-XP für eine richtige Artist-Antwort.",
+        "cloze": "Basis-XP für eine richtige Cloze-Antwort.",
+        "songBonus": "Zusatz, wenn der Song-Titel danach stimmt.",
+        "dailyArtist": "Basis-XP für den Daily-Artist-Treffer.",
+        "dailySong": "Basis-XP für den Daily-Song-Treffer.",
+        "dailyPerfect": "Bonus, wenn Daily Artist + Song beide richtig sind.",
+        "streakStep": "XP-Bonus pro aktueller Streak-Stufe.",
+        "streakMax": "Hartes Maximum für den Streak-Bonus.",
+        "streakIdle": "Streak zerfällt nach so viel Inaktivität (Minuten).",
+        "minCooldown": "Mindest-Abstand zwischen zwei Submits in Sekunden — blockt Autofarming."
+      }
+    },
+    "levels": {
+      "eyebrow": "/ Level",
+      "title": "Level & Ränge",
+      "subtitle": "Reihenfolge nach Threshold. Erstes Level muss bei 0 starten. Speichern ersetzt alle Einträge atomar.",
+      "save": "Speichern",
+      "saved": "gespeichert",
+      "addRow": "Level hinzufügen",
+      "removeAria": "Level entfernen",
+      "col": {
+        "threshold": "XP",
+        "nameDe": "Name (DE)",
+        "nameEn": "Name (EN)",
+        "accent": "Accent"
+      }
     }
   },
   "share": {
@@ -342,5 +439,38 @@
     "verdict_half": "Halb durch. Nochmal?",
     "verdict_low": "Knapp daneben.",
     "verdict_miss": "Beim nächsten besser."
+  },
+  "onboarding": {
+    "eyebrow": "/ start",
+    "title": "Wähl deinen Namen.",
+    "subtitle": "So erkennt dich die Rangliste. Einmalig — wähl mit Bedacht.",
+    "placeholder": "deinname",
+    "hint": "{{min}}–{{max}} Zeichen. Buchstaben, Zahlen, _",
+    "checking": "Wird geprüft …",
+    "available": "Frei. Gehört dir.",
+    "claiming": "Wird gesichert …",
+    "cta": "Name sichern",
+    "errors": {
+      "too_short": "Zu kurz.",
+      "too_long": "Zu lang.",
+      "charset": "Nur Buchstaben, Zahlen und _.",
+      "reserved": "Der Name ist reserviert.",
+      "profane": "Such dir was anderes.",
+      "taken": "Schon vergeben.",
+      "unauthorized": "Bitte erst anmelden."
+    }
+  },
+  "leaderboard": {
+    "eyebrow": "/ rangliste",
+    "title": "Die Bestenliste",
+    "tabs": {
+      "xp": "XP",
+      "completion": "Bars geknackt"
+    },
+    "window": {
+      "weekly": "Diese Woche",
+      "alltime": "Allzeit"
+    },
+    "empty": "Noch niemand hier. Sei der Erste."
   }
 }

@@ -1,9 +1,17 @@
+import { ClerkProvider } from "@clerk/tanstack-react-start"
 import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router"
 import { Suspense, useEffect } from "react"
 import { I18nextProvider, useTranslation } from "react-i18next"
 
 import i18n from "../i18n"
+import { OnboardingGate } from "../components/onboarding-gate"
 import appCss from "@workspace/ui/globals.css?url"
+
+const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+
+if (!CLERK_PUBLISHABLE_KEY) {
+  throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY")
+}
 
 export const Route = createRootRoute({
   head: () => ({
@@ -45,12 +53,15 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body className="min-h-svh bg-background text-foreground antialiased">
-        <I18nextProvider i18n={i18n}>
-          <LangSync />
-          <Suspense fallback={<div className="min-h-svh bg-background" />}>
-            {children}
-          </Suspense>
-        </I18nextProvider>
+        <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} afterSignOutUrl="/">
+          <I18nextProvider i18n={i18n}>
+            <LangSync />
+            <Suspense fallback={<div className="min-h-svh bg-background" />}>
+              {children}
+            </Suspense>
+            <OnboardingGate />
+          </I18nextProvider>
+        </ClerkProvider>
         <Scripts />
       </body>
     </html>

@@ -1,13 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { json, requireAdmin } from "../../../lib/admin"
+import { handleError, json } from "../../../lib/admin"
+import { requireAdmin } from "../../../lib/auth"
 
 export const Route = createFileRoute("/api/admin/ping")({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        const unauthorized = requireAdmin(request)
-        if (unauthorized) return unauthorized
-        return json({ ok: true, time: new Date().toISOString() })
+        try {
+          await requireAdmin(request)
+          return json({ ok: true, time: new Date().toISOString() })
+        } catch (err) {
+          return handleError(err)
+        }
       },
     },
   },
