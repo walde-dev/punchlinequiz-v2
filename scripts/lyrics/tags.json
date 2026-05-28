@@ -1,0 +1,146 @@
+{
+  "$schema": "Edit freely. Each artist maps to an array of {tag, weight (0..1)} entries. Categories: city (frankfurt, berlin, koeln, hamburg, muenchen, ruhrgebiet, stuttgart, hessen, oesterreich), style (wordplay, street, melodic, trap, drill, old-school, battle, pop-rap, conscious, gangsta), mood (braggadocio, love, introspective, hard, funny, party), era (00s, 10s, 20s), language (slang, multilingual, hochdeutsch, dialect). Add tags as needed — pickDistractors scores by shared tag * product of weights.",
+  "artists": {
+    "Kollegah": [
+      { "tag": "hessen", "weight": 0.8 },
+      { "tag": "wordplay", "weight": 1.0 },
+      { "tag": "braggadocio", "weight": 1.0 },
+      { "tag": "battle", "weight": 0.9 },
+      { "tag": "hard", "weight": 0.8 },
+      { "tag": "10s", "weight": 1.0 },
+      { "tag": "gangsta", "weight": 0.7 }
+    ],
+    "Farid Bang": [
+      { "tag": "nrw", "weight": 0.9 },
+      { "tag": "battle", "weight": 0.9 },
+      { "tag": "braggadocio", "weight": 0.9 },
+      { "tag": "hard", "weight": 0.9 },
+      { "tag": "gangsta", "weight": 0.8 },
+      { "tag": "10s", "weight": 0.9 }
+    ],
+    "Haftbefehl": [
+      { "tag": "frankfurt", "weight": 1.0 },
+      { "tag": "street", "weight": 1.0 },
+      { "tag": "multilingual", "weight": 0.9 },
+      { "tag": "slang", "weight": 1.0 },
+      { "tag": "hard", "weight": 0.8 },
+      { "tag": "gangsta", "weight": 0.9 }
+    ],
+    "Celo & Abdi": [
+      { "tag": "frankfurt", "weight": 1.0 },
+      { "tag": "street", "weight": 0.9 },
+      { "tag": "multilingual", "weight": 0.8 },
+      { "tag": "slang", "weight": 0.9 },
+      { "tag": "hard", "weight": 0.7 }
+    ],
+    "Olexesh": [
+      { "tag": "street", "weight": 0.8 },
+      { "tag": "multilingual", "weight": 0.7 },
+      { "tag": "10s", "weight": 0.9 }
+    ],
+    "SSIO": [
+      { "tag": "nrw", "weight": 0.9 },
+      { "tag": "funny", "weight": 0.9 },
+      { "tag": "wordplay", "weight": 0.8 },
+      { "tag": "braggadocio", "weight": 0.8 },
+      { "tag": "slang", "weight": 0.7 },
+      { "tag": "10s", "weight": 0.9 }
+    ],
+    "Sido": [
+      { "tag": "berlin", "weight": 1.0 },
+      { "tag": "street", "weight": 0.7 },
+      { "tag": "old-school", "weight": 0.9 },
+      { "tag": "00s", "weight": 1.0 },
+      { "tag": "10s", "weight": 0.7 },
+      { "tag": "funny", "weight": 0.6 }
+    ],
+    "Bushido": [
+      { "tag": "berlin", "weight": 1.0 },
+      { "tag": "hard", "weight": 0.8 },
+      { "tag": "battle", "weight": 0.7 },
+      { "tag": "braggadocio", "weight": 0.8 },
+      { "tag": "old-school", "weight": 0.9 },
+      { "tag": "00s", "weight": 1.0 },
+      { "tag": "gangsta", "weight": 0.8 }
+    ],
+    "Fler": [
+      { "tag": "berlin", "weight": 1.0 },
+      { "tag": "hard", "weight": 0.7 },
+      { "tag": "old-school", "weight": 0.8 },
+      { "tag": "00s", "weight": 0.9 },
+      { "tag": "braggadocio", "weight": 0.7 }
+    ],
+    "Massiv": [
+      { "tag": "berlin", "weight": 0.9 },
+      { "tag": "street", "weight": 0.7 },
+      { "tag": "00s", "weight": 0.8 },
+      { "tag": "10s", "weight": 0.7 }
+    ],
+    "RAF Camora": [
+      { "tag": "oesterreich", "weight": 0.9 },
+      { "tag": "trap", "weight": 1.0 },
+      { "tag": "melodic", "weight": 0.8 },
+      { "tag": "10s", "weight": 0.9 },
+      { "tag": "20s", "weight": 0.9 }
+    ],
+    "Bonez MC": [
+      { "tag": "hamburg", "weight": 1.0 },
+      { "tag": "trap", "weight": 0.9 },
+      { "tag": "melodic", "weight": 0.8 },
+      { "tag": "street", "weight": 0.7 },
+      { "tag": "10s", "weight": 0.9 },
+      { "tag": "20s", "weight": 0.8 }
+    ],
+    "Gzuz": [
+      { "tag": "hamburg", "weight": 1.0 },
+      { "tag": "street", "weight": 0.9 },
+      { "tag": "hard", "weight": 0.8 },
+      { "tag": "gangsta", "weight": 0.8 },
+      { "tag": "10s", "weight": 0.9 }
+    ],
+    "Capital Bra": [
+      { "tag": "berlin", "weight": 0.8 },
+      { "tag": "trap", "weight": 0.9 },
+      { "tag": "melodic", "weight": 0.7 },
+      { "tag": "multilingual", "weight": 0.6 },
+      { "tag": "10s", "weight": 0.9 },
+      { "tag": "20s", "weight": 0.8 }
+    ],
+    "Luciano": [
+      { "tag": "stuttgart", "weight": 0.8 },
+      { "tag": "trap", "weight": 0.9 },
+      { "tag": "melodic", "weight": 0.8 },
+      { "tag": "20s", "weight": 0.9 }
+    ],
+    "Apache 207": [
+      { "tag": "melodic", "weight": 1.0 },
+      { "tag": "pop-rap", "weight": 1.0 },
+      { "tag": "love", "weight": 0.7 },
+      { "tag": "20s", "weight": 1.0 }
+    ],
+    "OG Keemo": [
+      { "tag": "wordplay", "weight": 0.9 },
+      { "tag": "conscious", "weight": 0.8 },
+      { "tag": "introspective", "weight": 0.8 },
+      { "tag": "20s", "weight": 0.9 }
+    ],
+    "Edgar Wasser": [
+      { "tag": "wordplay", "weight": 1.0 },
+      { "tag": "funny", "weight": 0.8 },
+      { "tag": "conscious", "weight": 0.7 },
+      { "tag": "10s", "weight": 0.9 }
+    ],
+    "Megaloh": [
+      { "tag": "berlin", "weight": 0.7 },
+      { "tag": "conscious", "weight": 0.9 },
+      { "tag": "wordplay", "weight": 0.7 },
+      { "tag": "10s", "weight": 0.9 }
+    ],
+    "Marteria": [
+      { "tag": "conscious", "weight": 0.8 },
+      { "tag": "wordplay", "weight": 0.8 },
+      { "tag": "10s", "weight": 0.9 },
+      { "tag": "20s", "weight": 0.7 }
+    ]
+  }
+}
