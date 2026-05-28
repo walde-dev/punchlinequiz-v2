@@ -9,17 +9,21 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PlayRouteImport } from './routes/play'
 import { Route as FinishingRouteImport } from './routes/finishing'
 import { Route as DailyRouteImport } from './routes/daily'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminXpRouteImport } from './routes/admin/xp'
 import { Route as AdminReviewRouteImport } from './routes/admin/review'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
+import { Route as AdminLevelsRouteImport } from './routes/admin/levels'
 import { Route as AdminDailyRouteImport } from './routes/admin/daily'
+import { Route as ApiAdminXpConfigRouteImport } from './routes/api/admin/xp-config'
 import { Route as ApiAdminTagsRouteImport } from './routes/api/admin/tags'
-import { Route as ApiAdminSessionRouteImport } from './routes/api/admin/session'
 import { Route as ApiAdminPingRouteImport } from './routes/api/admin/ping'
+import { Route as ApiAdminLevelsRouteImport } from './routes/api/admin/levels'
 import { Route as ApiAdminDailyRouteImport } from './routes/api/admin/daily'
 import { Route as ApiAdminBarsRouteImport } from './routes/api/admin/bars'
 import { Route as ApiAdminArtistsRouteImport } from './routes/api/admin/artists'
@@ -32,6 +36,11 @@ import { Route as ApiAdminArtistsIdRouteImport } from './routes/api/admin/artist
 import { Route as ApiAdminSearchTrackIdRouteImport } from './routes/api/admin/search.track.$id'
 import { Route as ApiAdminArtistsIdTagsRouteImport } from './routes/api/admin/artists.$id.tags'
 
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PlayRoute = PlayRouteImport.update({
   id: '/play',
   path: '/play',
@@ -57,6 +66,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminXpRoute = AdminXpRouteImport.update({
+  id: '/admin/xp',
+  path: '/admin/xp',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminReviewRoute = AdminReviewRouteImport.update({
   id: '/admin/review',
   path: '/admin/review',
@@ -67,9 +81,19 @@ const AdminLoginRoute = AdminLoginRouteImport.update({
   path: '/admin/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminLevelsRoute = AdminLevelsRouteImport.update({
+  id: '/admin/levels',
+  path: '/admin/levels',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminDailyRoute = AdminDailyRouteImport.update({
   id: '/admin/daily',
   path: '/admin/daily',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminXpConfigRoute = ApiAdminXpConfigRouteImport.update({
+  id: '/api/admin/xp-config',
+  path: '/api/admin/xp-config',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAdminTagsRoute = ApiAdminTagsRouteImport.update({
@@ -77,14 +101,14 @@ const ApiAdminTagsRoute = ApiAdminTagsRouteImport.update({
   path: '/api/admin/tags',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiAdminSessionRoute = ApiAdminSessionRouteImport.update({
-  id: '/api/admin/session',
-  path: '/api/admin/session',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiAdminPingRoute = ApiAdminPingRouteImport.update({
   id: '/api/admin/ping',
   path: '/api/admin/ping',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminLevelsRoute = ApiAdminLevelsRouteImport.update({
+  id: '/api/admin/levels',
+  path: '/api/admin/levels',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAdminDailyRoute = ApiAdminDailyRouteImport.update({
@@ -148,16 +172,20 @@ export interface FileRoutesByFullPath {
   '/daily': typeof DailyRoute
   '/finishing': typeof FinishingRoute
   '/play': typeof PlayRoute
+  '/profile': typeof ProfileRoute
   '/admin/daily': typeof AdminDailyRoute
+  '/admin/levels': typeof AdminLevelsRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/review': typeof AdminReviewRoute
+  '/admin/xp': typeof AdminXpRoute
   '/admin/': typeof AdminIndexRoute
   '/api/admin/artists': typeof ApiAdminArtistsRouteWithChildren
   '/api/admin/bars': typeof ApiAdminBarsRouteWithChildren
   '/api/admin/daily': typeof ApiAdminDailyRouteWithChildren
+  '/api/admin/levels': typeof ApiAdminLevelsRoute
   '/api/admin/ping': typeof ApiAdminPingRoute
-  '/api/admin/session': typeof ApiAdminSessionRoute
   '/api/admin/tags': typeof ApiAdminTagsRoute
+  '/api/admin/xp-config': typeof ApiAdminXpConfigRoute
   '/api/admin/artists/$id': typeof ApiAdminArtistsIdRouteWithChildren
   '/api/admin/bars/$id': typeof ApiAdminBarsIdRoute
   '/api/admin/daily/$id': typeof ApiAdminDailyIdRoute
@@ -172,16 +200,20 @@ export interface FileRoutesByTo {
   '/daily': typeof DailyRoute
   '/finishing': typeof FinishingRoute
   '/play': typeof PlayRoute
+  '/profile': typeof ProfileRoute
   '/admin/daily': typeof AdminDailyRoute
+  '/admin/levels': typeof AdminLevelsRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/review': typeof AdminReviewRoute
+  '/admin/xp': typeof AdminXpRoute
   '/admin': typeof AdminIndexRoute
   '/api/admin/artists': typeof ApiAdminArtistsRouteWithChildren
   '/api/admin/bars': typeof ApiAdminBarsRouteWithChildren
   '/api/admin/daily': typeof ApiAdminDailyRouteWithChildren
+  '/api/admin/levels': typeof ApiAdminLevelsRoute
   '/api/admin/ping': typeof ApiAdminPingRoute
-  '/api/admin/session': typeof ApiAdminSessionRoute
   '/api/admin/tags': typeof ApiAdminTagsRoute
+  '/api/admin/xp-config': typeof ApiAdminXpConfigRoute
   '/api/admin/artists/$id': typeof ApiAdminArtistsIdRouteWithChildren
   '/api/admin/bars/$id': typeof ApiAdminBarsIdRoute
   '/api/admin/daily/$id': typeof ApiAdminDailyIdRoute
@@ -197,16 +229,20 @@ export interface FileRoutesById {
   '/daily': typeof DailyRoute
   '/finishing': typeof FinishingRoute
   '/play': typeof PlayRoute
+  '/profile': typeof ProfileRoute
   '/admin/daily': typeof AdminDailyRoute
+  '/admin/levels': typeof AdminLevelsRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/review': typeof AdminReviewRoute
+  '/admin/xp': typeof AdminXpRoute
   '/admin/': typeof AdminIndexRoute
   '/api/admin/artists': typeof ApiAdminArtistsRouteWithChildren
   '/api/admin/bars': typeof ApiAdminBarsRouteWithChildren
   '/api/admin/daily': typeof ApiAdminDailyRouteWithChildren
+  '/api/admin/levels': typeof ApiAdminLevelsRoute
   '/api/admin/ping': typeof ApiAdminPingRoute
-  '/api/admin/session': typeof ApiAdminSessionRoute
   '/api/admin/tags': typeof ApiAdminTagsRoute
+  '/api/admin/xp-config': typeof ApiAdminXpConfigRoute
   '/api/admin/artists/$id': typeof ApiAdminArtistsIdRouteWithChildren
   '/api/admin/bars/$id': typeof ApiAdminBarsIdRoute
   '/api/admin/daily/$id': typeof ApiAdminDailyIdRoute
@@ -223,16 +259,20 @@ export interface FileRouteTypes {
     | '/daily'
     | '/finishing'
     | '/play'
+    | '/profile'
     | '/admin/daily'
+    | '/admin/levels'
     | '/admin/login'
     | '/admin/review'
+    | '/admin/xp'
     | '/admin/'
     | '/api/admin/artists'
     | '/api/admin/bars'
     | '/api/admin/daily'
+    | '/api/admin/levels'
     | '/api/admin/ping'
-    | '/api/admin/session'
     | '/api/admin/tags'
+    | '/api/admin/xp-config'
     | '/api/admin/artists/$id'
     | '/api/admin/bars/$id'
     | '/api/admin/daily/$id'
@@ -247,16 +287,20 @@ export interface FileRouteTypes {
     | '/daily'
     | '/finishing'
     | '/play'
+    | '/profile'
     | '/admin/daily'
+    | '/admin/levels'
     | '/admin/login'
     | '/admin/review'
+    | '/admin/xp'
     | '/admin'
     | '/api/admin/artists'
     | '/api/admin/bars'
     | '/api/admin/daily'
+    | '/api/admin/levels'
     | '/api/admin/ping'
-    | '/api/admin/session'
     | '/api/admin/tags'
+    | '/api/admin/xp-config'
     | '/api/admin/artists/$id'
     | '/api/admin/bars/$id'
     | '/api/admin/daily/$id'
@@ -271,16 +315,20 @@ export interface FileRouteTypes {
     | '/daily'
     | '/finishing'
     | '/play'
+    | '/profile'
     | '/admin/daily'
+    | '/admin/levels'
     | '/admin/login'
     | '/admin/review'
+    | '/admin/xp'
     | '/admin/'
     | '/api/admin/artists'
     | '/api/admin/bars'
     | '/api/admin/daily'
+    | '/api/admin/levels'
     | '/api/admin/ping'
-    | '/api/admin/session'
     | '/api/admin/tags'
+    | '/api/admin/xp-config'
     | '/api/admin/artists/$id'
     | '/api/admin/bars/$id'
     | '/api/admin/daily/$id'
@@ -296,16 +344,20 @@ export interface RootRouteChildren {
   DailyRoute: typeof DailyRoute
   FinishingRoute: typeof FinishingRoute
   PlayRoute: typeof PlayRoute
+  ProfileRoute: typeof ProfileRoute
   AdminDailyRoute: typeof AdminDailyRoute
+  AdminLevelsRoute: typeof AdminLevelsRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminReviewRoute: typeof AdminReviewRoute
+  AdminXpRoute: typeof AdminXpRoute
   AdminIndexRoute: typeof AdminIndexRoute
   ApiAdminArtistsRoute: typeof ApiAdminArtistsRouteWithChildren
   ApiAdminBarsRoute: typeof ApiAdminBarsRouteWithChildren
   ApiAdminDailyRoute: typeof ApiAdminDailyRouteWithChildren
+  ApiAdminLevelsRoute: typeof ApiAdminLevelsRoute
   ApiAdminPingRoute: typeof ApiAdminPingRoute
-  ApiAdminSessionRoute: typeof ApiAdminSessionRoute
   ApiAdminTagsRoute: typeof ApiAdminTagsRoute
+  ApiAdminXpConfigRoute: typeof ApiAdminXpConfigRoute
   ApiAdminSearchArtistsRoute: typeof ApiAdminSearchArtistsRoute
   ApiAdminSearchTracksRoute: typeof ApiAdminSearchTracksRoute
   ApiAdminSongsIdRoute: typeof ApiAdminSongsIdRoute
@@ -314,6 +366,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/play': {
       id: '/play'
       path: '/play'
@@ -349,6 +408,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/xp': {
+      id: '/admin/xp'
+      path: '/admin/xp'
+      fullPath: '/admin/xp'
+      preLoaderRoute: typeof AdminXpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/review': {
       id: '/admin/review'
       path: '/admin/review'
@@ -363,11 +429,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/levels': {
+      id: '/admin/levels'
+      path: '/admin/levels'
+      fullPath: '/admin/levels'
+      preLoaderRoute: typeof AdminLevelsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/daily': {
       id: '/admin/daily'
       path: '/admin/daily'
       fullPath: '/admin/daily'
       preLoaderRoute: typeof AdminDailyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/xp-config': {
+      id: '/api/admin/xp-config'
+      path: '/api/admin/xp-config'
+      fullPath: '/api/admin/xp-config'
+      preLoaderRoute: typeof ApiAdminXpConfigRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/tags': {
@@ -377,18 +457,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminTagsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/admin/session': {
-      id: '/api/admin/session'
-      path: '/api/admin/session'
-      fullPath: '/api/admin/session'
-      preLoaderRoute: typeof ApiAdminSessionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/admin/ping': {
       id: '/api/admin/ping'
       path: '/api/admin/ping'
       fullPath: '/api/admin/ping'
       preLoaderRoute: typeof ApiAdminPingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/levels': {
+      id: '/api/admin/levels'
+      path: '/api/admin/levels'
+      fullPath: '/api/admin/levels'
+      preLoaderRoute: typeof ApiAdminLevelsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/daily': {
@@ -523,16 +603,20 @@ const rootRouteChildren: RootRouteChildren = {
   DailyRoute: DailyRoute,
   FinishingRoute: FinishingRoute,
   PlayRoute: PlayRoute,
+  ProfileRoute: ProfileRoute,
   AdminDailyRoute: AdminDailyRoute,
+  AdminLevelsRoute: AdminLevelsRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminReviewRoute: AdminReviewRoute,
+  AdminXpRoute: AdminXpRoute,
   AdminIndexRoute: AdminIndexRoute,
   ApiAdminArtistsRoute: ApiAdminArtistsRouteWithChildren,
   ApiAdminBarsRoute: ApiAdminBarsRouteWithChildren,
   ApiAdminDailyRoute: ApiAdminDailyRouteWithChildren,
+  ApiAdminLevelsRoute: ApiAdminLevelsRoute,
   ApiAdminPingRoute: ApiAdminPingRoute,
-  ApiAdminSessionRoute: ApiAdminSessionRoute,
   ApiAdminTagsRoute: ApiAdminTagsRoute,
+  ApiAdminXpConfigRoute: ApiAdminXpConfigRoute,
   ApiAdminSearchArtistsRoute: ApiAdminSearchArtistsRoute,
   ApiAdminSearchTracksRoute: ApiAdminSearchTracksRoute,
   ApiAdminSongsIdRoute: ApiAdminSongsIdRoute,
@@ -543,10 +627,11 @@ export const routeTree = rootRouteImport
   ._addFileTypes<FileRouteTypes>()
 
 import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
+import type { startInstance } from './start.ts'
 declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
     router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
   }
 }

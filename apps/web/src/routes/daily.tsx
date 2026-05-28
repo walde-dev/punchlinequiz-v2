@@ -5,8 +5,12 @@ import { useTranslation } from "react-i18next"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 
+import { AnonymousXpCta } from "../components/anonymous-xp-cta"
 import { Confetti } from "../components/confetti"
 import { LangToggle } from "../components/lang-toggle"
+import { LevelUpModal } from "../components/level-up-modal"
+import { XpGain } from "../components/xp-gain"
+import type { LevelInfo, XpGrantResult } from "../lib/xp"
 import {
   getDailyChallenge,
   submitDailyArtistGuess,
@@ -117,7 +121,24 @@ function DailyInner({ daily }: { daily: DailyChallenge }) {
   )
   const [confettiKey, setConfettiKey] = useState(0)
   const [wrongShake, setWrongShake] = useState(0)
+  const [xpGrant, setXpGrant] = useState<{ key: number; grant: XpGrantResult } | null>(null)
+  const [levelUp, setLevelUp] = useState<LevelInfo | null>(null)
+  const [anonCtaKey, setAnonCtaKey] = useState(0)
   const loggedRef = useRef(false)
+
+  function consumeXp(grant: XpGrantResult | null | undefined, isCorrect: boolean) {
+    if (!isCorrect) return
+    if (grant === null) {
+      setAnonCtaKey((k) => k + 1)
+      return
+    }
+    if (!grant || grant.awarded === false) return
+    if (grant.leveledUp) {
+      setLevelUp(grant.level)
+    } else if (grant.xpAwarded > 0) {
+      setXpGrant({ key: Date.now(), grant })
+    }
+  }
 
   useEffect(() => {
     if (loggedRef.current) return
@@ -140,9 +161,10 @@ function DailyInner({ daily }: { daily: DailyChallenge }) {
     })
     try {
       const res = await submitDailyArtistGuess({
-        data: { punchlineId: daily.punchlineId, artistId: choice.id },
+        data: { punchlineId: daily.punchlineId, artistId: choice.id, date: daily.date },
       })
       setArtistResult(res)
+      consumeXp(res.xp, res.isCorrect)
       logEvent("daily_artist_revealed", {
         daily_date: daily.date,
         is_correct: res.isCorrect,
@@ -171,9 +193,10 @@ function DailyInner({ daily }: { daily: DailyChallenge }) {
     logEvent("daily_song_submitted", { daily_date: daily.date, skipped: skip })
     try {
       const res = await submitDailySongGuess({
-        data: { punchlineId: daily.punchlineId, guess: trimmed },
+        data: { punchlineId: daily.punchlineId, guess: trimmed, date: daily.date },
       })
       setSongResult(res)
+      consumeXp(res.xp, res.isCorrect)
       logEvent("daily_song_revealed", {
         daily_date: daily.date,
         is_correct: res.isCorrect,
@@ -212,6 +235,8 @@ function DailyInner({ daily }: { daily: DailyChallenge }) {
 
           <div className="relative">
             <Confetti trigger={confettiKey} />
+            {xpGrant && <XpGain key={xpGrant.key} xp={xpGrant.grant} />}
+            <AnonymousXpCta triggerKey={anonCtaKey} />
             {phase === "artist" && (
               <ArtistChoices
                 choices={daily.choices}
@@ -242,6 +267,8 @@ function DailyInner({ daily }: { daily: DailyChallenge }) {
           </div>
         </div>
       </main>
+
+      <LevelUpModal level={levelUp} onClose={() => setLevelUp(null)} />
     </div>
   )
 }
@@ -249,7 +276,7 @@ function DailyInner({ daily }: { daily: DailyChallenge }) {
 function Header({ dailyNumber, date }: { dailyNumber: number; date: string }) {
   const { t } = useTranslation()
   return (
-    <header className="fixed top-0 inset-x-0 z-50 flex items-center justify-between px-5 h-14 border-b border-border/40 bg-background/95 md:bg-background/80 md:backdrop-blur-sm">
+    <header className="fixed top-0 inset-x-0 z-50 flex items-center justify-between pl-5 pr-16 h-14 border-b border-border/40 bg-background/95 md:bg-background/80 md:backdrop-blur-sm">
       <Link to="/" aria-label={t("common.backToHome")} className="select-none flex items-center gap-2.5">
         <span className="font-bold text-base tracking-tight">
           <span className="text-foreground">punchline</span>
@@ -701,7 +728,7 @@ function NoDailyState({ requestedDate }: { requestedDate: string | null }) {
   const { t } = useTranslation()
   return (
     <div className="relative flex min-h-svh flex-col">
-      <header className="fixed top-0 inset-x-0 z-50 flex items-center justify-between px-5 h-14 border-b border-border/40 bg-background/95 md:bg-background/80 md:backdrop-blur-sm">
+      <header className="fixed top-0 inset-x-0 z-50 flex items-center justify-between pl-5 pr-16 h-14 border-b border-border/40 bg-background/95 md:bg-background/80 md:backdrop-blur-sm">
         <Link to="/" className="select-none font-bold text-base tracking-tight">
           <span className="text-foreground">punchline</span>
           <span className="text-primary">/quiz</span>
