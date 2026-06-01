@@ -1,19 +1,34 @@
-import { Show, SignInButton, UserButton } from "@clerk/tanstack-react-start"
+import { SignInButton, UserButton, useUser } from "@clerk/tanstack-react-start"
 import { Link } from "@tanstack/react-router"
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { clerkDarkAppearance } from "../lib/clerk-theme"
+import { syncProfileImageFn } from "../lib/profile"
 import { LangToggle } from "./lang-toggle"
 import { XpHeaderChip } from "./xp-header-chip"
 import type { ArtistContext } from "../lib/game"
 
 type ArtistChoice = { id: number; name: string; imageUrl?: string | null }
 
+/** Small icon for the custom "Profile" item in the Clerk account menu. */
+function ProfileMenuIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  )
+}
+
 function Logo() {
   return (
-    <span className="font-bold text-lg tracking-tight select-none">
-      <span className="text-foreground">punchline</span>
-      <span className="text-primary">/quiz</span>
+    <span className="flex items-center gap-2 select-none">
+      <img src="/logo.png" alt="" aria-hidden="true" className="h-7 w-7" />
+      <span className="font-bold text-lg tracking-tight">
+        <span className="text-foreground">punchline</span>
+        <span className="text-primary">/quiz</span>
+      </span>
     </span>
   )
 }
@@ -58,7 +73,7 @@ export function AppHeader({
   const { t } = useTranslation()
 
   return (
-    <header className="fixed top-0 inset-x-0 z-50 flex items-center justify-between pl-6 pr-16 h-14 border-b border-border/40 bg-background/95 md:bg-background/80 md:backdrop-blur-sm">
+    <header className="fixed top-0 inset-x-0 z-50 flex items-center justify-between gap-3 pl-4 pr-4 h-14 border-b border-border/40 bg-background/95 md:bg-background/80 md:backdrop-blur-sm md:pl-6 md:pr-16">
       <Link to="/" aria-label={playMode ? t("common.backToHome") : t("nav.logoAria")} className="select-none flex items-center gap-2.5">
         <Logo />
         {playMode && !artistCtx && (
@@ -87,7 +102,7 @@ export function AppHeader({
         )}
       </Link>
 
-      <nav className="flex items-center gap-3 text-xs font-medium tabular-nums">
+      <nav className="flex items-center gap-2 text-xs font-medium tabular-nums sm:gap-3">
         <Link
           to="/leaderboard"
           className="font-bold tracking-wide text-foreground/70 hover:text-primary transition-colors"
@@ -106,24 +121,115 @@ export function AppHeader({
             <span className="opacity-50"> / {roundSize ?? score.total}</span>
           </span>
         )}
-        <Show when="signed-in">
-          <XpHeaderChip refreshKey={xpRefreshKey} />
-        </Show>
-        <LangToggle />
-        <Show when="signed-in">
-          <UserButton appearance={clerkDarkAppearance} />
-        </Show>
-        <Show when="signed-out">
-          <SignInButton mode="modal">
-            <button
-              type="button"
-              className="h-8 rounded-full border border-border/60 bg-card/80 px-3 text-xs font-bold tracking-wide text-foreground/80 hover:border-primary/60 hover:text-foreground transition-colors"
-            >
-              {t("nav.signIn")}
-            </button>
-          </SignInButton>
-        </Show>
+        <AuthSlot xpRefreshKey={xpRefreshKey} />
       </nav>
     </header>
+  )
+}
+
+/**
+ * Right-side auth cluster. Reads a cached signed-in flag synchronously on mount
+ * so we render the correct slot (UserButton vs Sign-in pill) without waiting
+ * for Clerk to hydrate — no layout shift. `useUser` patches the flag once Clerk
+ * loads in case the cache was wrong (e.g. signed out in another tab).
+ */
+const AUTH_CACHE_KEY = "pq.auth.v1"
+
+type AuthCache = { signedIn: boolean; imageUrl: string | null }
+
+function readAuthCache(): AuthCache | null {
+  if (typeof window === "undefined") return null
+  try {
+    const raw = window.localStorage.getItem(AUTH_CACHE_KEY)
+    return raw ? (JSON.parse(raw) as AuthCache) : null
+  } catch {
+    return null
+  }
+}
+
+function writeAuthCache(value: AuthCache) {
+  if (typeof window === "undefined") return
+  try {
+    window.localStorage.setItem(AUTH_CACHE_KEY, JSON.stringify(value))
+  } catch {
+    /* ignore */
+  }
+}
+
+function AuthSlot({ xpRefreshKey }: { xpRefreshKey?: number }) {
+  const { t } = useTranslation()
+  const { isLoaded, isSignedIn, user } = useUser()
+  const [cache, setCache] = useState<AuthCache | null>(() => readAuthCache())
+
+  useEffect(() => {
+    if (!isLoaded || isSignedIn === undefined) return
+    const next: AuthCache = {
+      signedIn: isSignedIn,
+      imageUrl: isSignedIn ? (user?.imageUrl ?? null) : null,
+    }
+    writeAuthCache(next)
+    setCache(next)
+    // Persist the Clerk avatar so public profiles can render it for any user.
+    // Fire-and-forget; the server no-ops when the URL is unchanged.
+    if (isSignedIn && user?.imageUrl) {
+      syncProfileImageFn({ data: { imageUrl: user.imageUrl } }).catch(() => {})
+    }
+  }, [isLoaded, isSignedIn, user?.imageUrl])
+
+  const signedIn = isLoaded ? isSignedIn : cache?.signedIn ?? null
+  const cachedAvatar = cache?.imageUrl ?? null
+
+  return (
+    <>
+      {signedIn === true && <XpHeaderChip refreshKey={xpRefreshKey} />}
+      <LangToggle />
+      {signedIn === true && (
+        /* Fixed slot: UserButton renders empty for a beat while Clerk hydrates
+           internally. We stamp the cached avatar underneath so the slot looks
+           correct from the first paint; UserButton then paints its own avatar
+           on top (same image, so the handoff is invisible). */
+        <span className="relative inline-flex h-7 w-7 items-center justify-center">
+          {cachedAvatar ? (
+            <img
+              src={cachedAvatar}
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 h-full w-full rounded-full object-cover"
+            />
+          ) : (
+            <span
+              aria-hidden="true"
+              className="absolute inset-0 rounded-full bg-card/40"
+            />
+          )}
+          <UserButton appearance={clerkDarkAppearance}>
+            <UserButton.MenuItems>
+              <UserButton.Link label={t("nav.profile")} labelIcon={<ProfileMenuIcon />} href="/profile" />
+              <UserButton.Action label="manageAccount" />
+              <UserButton.Action label="signOut" />
+            </UserButton.MenuItems>
+          </UserButton>
+        </span>
+      )}
+      {signedIn === false && (
+        <SignInButton mode="modal">
+          <button
+            type="button"
+            className="h-8 rounded-full border border-border/60 bg-card/80 px-3 text-xs font-bold tracking-wide text-foreground/80 hover:border-primary/60 hover:text-foreground transition-colors"
+          >
+            {t("nav.signIn")}
+          </button>
+        </SignInButton>
+      )}
+      {signedIn === null && (
+        /* First-ever visit: nothing cached, Clerk still hydrating. Reserve a
+           28×28 slot so the eventual UserButton/SignIn pill doesn't shift
+           anything when it appears. */
+        <span
+          aria-hidden="true"
+          className="inline-block h-7 w-7 rounded-full bg-card/40"
+        />
+      )}
+    </>
   )
 }

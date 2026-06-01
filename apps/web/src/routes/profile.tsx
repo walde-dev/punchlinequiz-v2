@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute, Link, redirect } from "@tanstack/react-router"
 import { SignInButton } from "@clerk/tanstack-react-start"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
@@ -8,11 +8,21 @@ import { cn } from "@workspace/ui/lib/utils"
 
 import { AppHeader } from "../components/app-header"
 import { rankIconPath } from "../lib/rank-icon"
+import { getMyHandleFn } from "../lib/profile"
 import { getProfileFn, type ProfileFnResult } from "../lib/session"
 
 export const Route = createFileRoute("/profile")({
   component: ProfilePage,
-  loader: async () => ({ profile: await getProfileFn() }),
+  // Profiles are unified at /u/$handle. Onboarded users redirect to their
+  // public page; un-onboarded + anonymous users fall through to the existing
+  // self view / sign-in pitch (handle claiming is the parallel onboarding work).
+  loader: async () => {
+    const me = await getMyHandleFn()
+    if (me.signedIn && me.handle) {
+      throw redirect({ to: "/u/$handle", params: { handle: me.handle } })
+    }
+    return { profile: await getProfileFn() }
+  },
 })
 
 const ease = "cubic-bezier(0.16, 1, 0.3, 1)"

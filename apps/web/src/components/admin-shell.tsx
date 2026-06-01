@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next"
 import { cn } from "@workspace/ui/lib/utils"
 
 type NavItem = {
-  to: "/admin" | "/admin/review" | "/admin/daily" | "/admin/xp" | "/admin/levels"
+  to: "/admin" | "/admin/review" | "/admin/submissions" | "/admin/daily" | "/admin/xp" | "/admin/levels"
   labelKey: string
   glyph: string
 }
@@ -13,6 +13,7 @@ type NavItem = {
 const NAV: NavItem[] = [
   { to: "/admin", labelKey: "admin.nav.bars", glyph: "♪" },
   { to: "/admin/review", labelKey: "admin.nav.review", glyph: "✓" },
+  { to: "/admin/submissions", labelKey: "admin.nav.submissions", glyph: "✎" },
   { to: "/admin/daily", labelKey: "admin.nav.daily", glyph: "★" },
   { to: "/admin/xp", labelKey: "admin.nav.xp", glyph: "✦" },
   { to: "/admin/levels", labelKey: "admin.nav.levels", glyph: "▲" },

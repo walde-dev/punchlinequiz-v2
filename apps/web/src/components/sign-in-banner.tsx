@@ -51,7 +51,7 @@ export function SignInBanner() {
               aria-hidden="true"
               width={64}
               height={64}
-              className="hidden shrink-0 select-none sm:block"
+              className="h-12 w-12 shrink-0 select-none sm:h-16 sm:w-16"
               style={{
                 mixBlendMode: "screen",
                 WebkitMaskImage:

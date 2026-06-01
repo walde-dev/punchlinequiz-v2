@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SubmitRouteImport } from './routes/submit'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PlayRouteImport } from './routes/play'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
@@ -16,18 +17,23 @@ import { Route as FinishingRouteImport } from './routes/finishing'
 import { Route as DailyRouteImport } from './routes/daily'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as UHandleRouteImport } from './routes/u.$handle'
+import { Route as CSlugRouteImport } from './routes/c.$slug'
 import { Route as AdminXpRouteImport } from './routes/admin/xp'
+import { Route as AdminSubmissionsRouteImport } from './routes/admin/submissions'
 import { Route as AdminReviewRouteImport } from './routes/admin/review'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as AdminLevelsRouteImport } from './routes/admin/levels'
 import { Route as AdminDailyRouteImport } from './routes/admin/daily'
 import { Route as ApiAdminXpConfigRouteImport } from './routes/api/admin/xp-config'
 import { Route as ApiAdminTagsRouteImport } from './routes/api/admin/tags'
+import { Route as ApiAdminSubmissionsRouteImport } from './routes/api/admin/submissions'
 import { Route as ApiAdminPingRouteImport } from './routes/api/admin/ping'
 import { Route as ApiAdminLevelsRouteImport } from './routes/api/admin/levels'
 import { Route as ApiAdminDailyRouteImport } from './routes/api/admin/daily'
 import { Route as ApiAdminBarsRouteImport } from './routes/api/admin/bars'
 import { Route as ApiAdminArtistsRouteImport } from './routes/api/admin/artists'
+import { Route as ApiAdminSubmissionsIdRouteImport } from './routes/api/admin/submissions.$id'
 import { Route as ApiAdminSongsIdRouteImport } from './routes/api/admin/songs.$id'
 import { Route as ApiAdminSearchTracksRouteImport } from './routes/api/admin/search.tracks'
 import { Route as ApiAdminSearchArtistsRouteImport } from './routes/api/admin/search.artists'
@@ -37,6 +43,11 @@ import { Route as ApiAdminArtistsIdRouteImport } from './routes/api/admin/artist
 import { Route as ApiAdminSearchTrackIdRouteImport } from './routes/api/admin/search.track.$id'
 import { Route as ApiAdminArtistsIdTagsRouteImport } from './routes/api/admin/artists.$id.tags'
 
+const SubmitRoute = SubmitRouteImport.update({
+  id: '/submit',
+  path: '/submit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -72,9 +83,24 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UHandleRoute = UHandleRouteImport.update({
+  id: '/u/$handle',
+  path: '/u/$handle',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CSlugRoute = CSlugRouteImport.update({
+  id: '/c/$slug',
+  path: '/c/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminXpRoute = AdminXpRouteImport.update({
   id: '/admin/xp',
   path: '/admin/xp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminSubmissionsRoute = AdminSubmissionsRouteImport.update({
+  id: '/admin/submissions',
+  path: '/admin/submissions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminReviewRoute = AdminReviewRouteImport.update({
@@ -107,6 +133,11 @@ const ApiAdminTagsRoute = ApiAdminTagsRouteImport.update({
   path: '/api/admin/tags',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminSubmissionsRoute = ApiAdminSubmissionsRouteImport.update({
+  id: '/api/admin/submissions',
+  path: '/api/admin/submissions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminPingRoute = ApiAdminPingRouteImport.update({
   id: '/api/admin/ping',
   path: '/api/admin/ping',
@@ -131,6 +162,11 @@ const ApiAdminArtistsRoute = ApiAdminArtistsRouteImport.update({
   id: '/api/admin/artists',
   path: '/api/admin/artists',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminSubmissionsIdRoute = ApiAdminSubmissionsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiAdminSubmissionsRoute,
 } as any)
 const ApiAdminSongsIdRoute = ApiAdminSongsIdRouteImport.update({
   id: '/api/admin/songs/$id',
@@ -180,17 +216,22 @@ export interface FileRoutesByFullPath {
   '/leaderboard': typeof LeaderboardRoute
   '/play': typeof PlayRoute
   '/profile': typeof ProfileRoute
+  '/submit': typeof SubmitRoute
   '/admin/daily': typeof AdminDailyRoute
   '/admin/levels': typeof AdminLevelsRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/review': typeof AdminReviewRoute
+  '/admin/submissions': typeof AdminSubmissionsRoute
   '/admin/xp': typeof AdminXpRoute
+  '/c/$slug': typeof CSlugRoute
+  '/u/$handle': typeof UHandleRoute
   '/admin/': typeof AdminIndexRoute
   '/api/admin/artists': typeof ApiAdminArtistsRouteWithChildren
   '/api/admin/bars': typeof ApiAdminBarsRouteWithChildren
   '/api/admin/daily': typeof ApiAdminDailyRouteWithChildren
   '/api/admin/levels': typeof ApiAdminLevelsRoute
   '/api/admin/ping': typeof ApiAdminPingRoute
+  '/api/admin/submissions': typeof ApiAdminSubmissionsRouteWithChildren
   '/api/admin/tags': typeof ApiAdminTagsRoute
   '/api/admin/xp-config': typeof ApiAdminXpConfigRoute
   '/api/admin/artists/$id': typeof ApiAdminArtistsIdRouteWithChildren
@@ -199,6 +240,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/search/artists': typeof ApiAdminSearchArtistsRoute
   '/api/admin/search/tracks': typeof ApiAdminSearchTracksRoute
   '/api/admin/songs/$id': typeof ApiAdminSongsIdRoute
+  '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRoute
   '/api/admin/artists/$id/tags': typeof ApiAdminArtistsIdTagsRoute
   '/api/admin/search/track/$id': typeof ApiAdminSearchTrackIdRoute
 }
@@ -209,17 +251,22 @@ export interface FileRoutesByTo {
   '/leaderboard': typeof LeaderboardRoute
   '/play': typeof PlayRoute
   '/profile': typeof ProfileRoute
+  '/submit': typeof SubmitRoute
   '/admin/daily': typeof AdminDailyRoute
   '/admin/levels': typeof AdminLevelsRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/review': typeof AdminReviewRoute
+  '/admin/submissions': typeof AdminSubmissionsRoute
   '/admin/xp': typeof AdminXpRoute
+  '/c/$slug': typeof CSlugRoute
+  '/u/$handle': typeof UHandleRoute
   '/admin': typeof AdminIndexRoute
   '/api/admin/artists': typeof ApiAdminArtistsRouteWithChildren
   '/api/admin/bars': typeof ApiAdminBarsRouteWithChildren
   '/api/admin/daily': typeof ApiAdminDailyRouteWithChildren
   '/api/admin/levels': typeof ApiAdminLevelsRoute
   '/api/admin/ping': typeof ApiAdminPingRoute
+  '/api/admin/submissions': typeof ApiAdminSubmissionsRouteWithChildren
   '/api/admin/tags': typeof ApiAdminTagsRoute
   '/api/admin/xp-config': typeof ApiAdminXpConfigRoute
   '/api/admin/artists/$id': typeof ApiAdminArtistsIdRouteWithChildren
@@ -228,6 +275,7 @@ export interface FileRoutesByTo {
   '/api/admin/search/artists': typeof ApiAdminSearchArtistsRoute
   '/api/admin/search/tracks': typeof ApiAdminSearchTracksRoute
   '/api/admin/songs/$id': typeof ApiAdminSongsIdRoute
+  '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRoute
   '/api/admin/artists/$id/tags': typeof ApiAdminArtistsIdTagsRoute
   '/api/admin/search/track/$id': typeof ApiAdminSearchTrackIdRoute
 }
@@ -239,17 +287,22 @@ export interface FileRoutesById {
   '/leaderboard': typeof LeaderboardRoute
   '/play': typeof PlayRoute
   '/profile': typeof ProfileRoute
+  '/submit': typeof SubmitRoute
   '/admin/daily': typeof AdminDailyRoute
   '/admin/levels': typeof AdminLevelsRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/review': typeof AdminReviewRoute
+  '/admin/submissions': typeof AdminSubmissionsRoute
   '/admin/xp': typeof AdminXpRoute
+  '/c/$slug': typeof CSlugRoute
+  '/u/$handle': typeof UHandleRoute
   '/admin/': typeof AdminIndexRoute
   '/api/admin/artists': typeof ApiAdminArtistsRouteWithChildren
   '/api/admin/bars': typeof ApiAdminBarsRouteWithChildren
   '/api/admin/daily': typeof ApiAdminDailyRouteWithChildren
   '/api/admin/levels': typeof ApiAdminLevelsRoute
   '/api/admin/ping': typeof ApiAdminPingRoute
+  '/api/admin/submissions': typeof ApiAdminSubmissionsRouteWithChildren
   '/api/admin/tags': typeof ApiAdminTagsRoute
   '/api/admin/xp-config': typeof ApiAdminXpConfigRoute
   '/api/admin/artists/$id': typeof ApiAdminArtistsIdRouteWithChildren
@@ -258,6 +311,7 @@ export interface FileRoutesById {
   '/api/admin/search/artists': typeof ApiAdminSearchArtistsRoute
   '/api/admin/search/tracks': typeof ApiAdminSearchTracksRoute
   '/api/admin/songs/$id': typeof ApiAdminSongsIdRoute
+  '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRoute
   '/api/admin/artists/$id/tags': typeof ApiAdminArtistsIdTagsRoute
   '/api/admin/search/track/$id': typeof ApiAdminSearchTrackIdRoute
 }
@@ -270,17 +324,22 @@ export interface FileRouteTypes {
     | '/leaderboard'
     | '/play'
     | '/profile'
+    | '/submit'
     | '/admin/daily'
     | '/admin/levels'
     | '/admin/login'
     | '/admin/review'
+    | '/admin/submissions'
     | '/admin/xp'
+    | '/c/$slug'
+    | '/u/$handle'
     | '/admin/'
     | '/api/admin/artists'
     | '/api/admin/bars'
     | '/api/admin/daily'
     | '/api/admin/levels'
     | '/api/admin/ping'
+    | '/api/admin/submissions'
     | '/api/admin/tags'
     | '/api/admin/xp-config'
     | '/api/admin/artists/$id'
@@ -289,6 +348,7 @@ export interface FileRouteTypes {
     | '/api/admin/search/artists'
     | '/api/admin/search/tracks'
     | '/api/admin/songs/$id'
+    | '/api/admin/submissions/$id'
     | '/api/admin/artists/$id/tags'
     | '/api/admin/search/track/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -299,17 +359,22 @@ export interface FileRouteTypes {
     | '/leaderboard'
     | '/play'
     | '/profile'
+    | '/submit'
     | '/admin/daily'
     | '/admin/levels'
     | '/admin/login'
     | '/admin/review'
+    | '/admin/submissions'
     | '/admin/xp'
+    | '/c/$slug'
+    | '/u/$handle'
     | '/admin'
     | '/api/admin/artists'
     | '/api/admin/bars'
     | '/api/admin/daily'
     | '/api/admin/levels'
     | '/api/admin/ping'
+    | '/api/admin/submissions'
     | '/api/admin/tags'
     | '/api/admin/xp-config'
     | '/api/admin/artists/$id'
@@ -318,6 +383,7 @@ export interface FileRouteTypes {
     | '/api/admin/search/artists'
     | '/api/admin/search/tracks'
     | '/api/admin/songs/$id'
+    | '/api/admin/submissions/$id'
     | '/api/admin/artists/$id/tags'
     | '/api/admin/search/track/$id'
   id:
@@ -328,17 +394,22 @@ export interface FileRouteTypes {
     | '/leaderboard'
     | '/play'
     | '/profile'
+    | '/submit'
     | '/admin/daily'
     | '/admin/levels'
     | '/admin/login'
     | '/admin/review'
+    | '/admin/submissions'
     | '/admin/xp'
+    | '/c/$slug'
+    | '/u/$handle'
     | '/admin/'
     | '/api/admin/artists'
     | '/api/admin/bars'
     | '/api/admin/daily'
     | '/api/admin/levels'
     | '/api/admin/ping'
+    | '/api/admin/submissions'
     | '/api/admin/tags'
     | '/api/admin/xp-config'
     | '/api/admin/artists/$id'
@@ -347,6 +418,7 @@ export interface FileRouteTypes {
     | '/api/admin/search/artists'
     | '/api/admin/search/tracks'
     | '/api/admin/songs/$id'
+    | '/api/admin/submissions/$id'
     | '/api/admin/artists/$id/tags'
     | '/api/admin/search/track/$id'
   fileRoutesById: FileRoutesById
@@ -358,17 +430,22 @@ export interface RootRouteChildren {
   LeaderboardRoute: typeof LeaderboardRoute
   PlayRoute: typeof PlayRoute
   ProfileRoute: typeof ProfileRoute
+  SubmitRoute: typeof SubmitRoute
   AdminDailyRoute: typeof AdminDailyRoute
   AdminLevelsRoute: typeof AdminLevelsRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminReviewRoute: typeof AdminReviewRoute
+  AdminSubmissionsRoute: typeof AdminSubmissionsRoute
   AdminXpRoute: typeof AdminXpRoute
+  CSlugRoute: typeof CSlugRoute
+  UHandleRoute: typeof UHandleRoute
   AdminIndexRoute: typeof AdminIndexRoute
   ApiAdminArtistsRoute: typeof ApiAdminArtistsRouteWithChildren
   ApiAdminBarsRoute: typeof ApiAdminBarsRouteWithChildren
   ApiAdminDailyRoute: typeof ApiAdminDailyRouteWithChildren
   ApiAdminLevelsRoute: typeof ApiAdminLevelsRoute
   ApiAdminPingRoute: typeof ApiAdminPingRoute
+  ApiAdminSubmissionsRoute: typeof ApiAdminSubmissionsRouteWithChildren
   ApiAdminTagsRoute: typeof ApiAdminTagsRoute
   ApiAdminXpConfigRoute: typeof ApiAdminXpConfigRoute
   ApiAdminSearchArtistsRoute: typeof ApiAdminSearchArtistsRoute
@@ -379,6 +456,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/submit': {
+      id: '/submit'
+      path: '/submit'
+      fullPath: '/submit'
+      preLoaderRoute: typeof SubmitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/profile': {
       id: '/profile'
       path: '/profile'
@@ -428,11 +512,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/u/$handle': {
+      id: '/u/$handle'
+      path: '/u/$handle'
+      fullPath: '/u/$handle'
+      preLoaderRoute: typeof UHandleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/c/$slug': {
+      id: '/c/$slug'
+      path: '/c/$slug'
+      fullPath: '/c/$slug'
+      preLoaderRoute: typeof CSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/xp': {
       id: '/admin/xp'
       path: '/admin/xp'
       fullPath: '/admin/xp'
       preLoaderRoute: typeof AdminXpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/submissions': {
+      id: '/admin/submissions'
+      path: '/admin/submissions'
+      fullPath: '/admin/submissions'
+      preLoaderRoute: typeof AdminSubmissionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/review': {
@@ -477,6 +582,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminTagsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/submissions': {
+      id: '/api/admin/submissions'
+      path: '/api/admin/submissions'
+      fullPath: '/api/admin/submissions'
+      preLoaderRoute: typeof ApiAdminSubmissionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/ping': {
       id: '/api/admin/ping'
       path: '/api/admin/ping'
@@ -511,6 +623,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/admin/artists'
       preLoaderRoute: typeof ApiAdminArtistsRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/submissions/$id': {
+      id: '/api/admin/submissions/$id'
+      path: '/$id'
+      fullPath: '/api/admin/submissions/$id'
+      preLoaderRoute: typeof ApiAdminSubmissionsIdRouteImport
+      parentRoute: typeof ApiAdminSubmissionsRoute
     }
     '/api/admin/songs/$id': {
       id: '/api/admin/songs/$id'
@@ -618,6 +737,17 @@ const ApiAdminDailyRouteWithChildren = ApiAdminDailyRoute._addFileChildren(
   ApiAdminDailyRouteChildren,
 )
 
+interface ApiAdminSubmissionsRouteChildren {
+  ApiAdminSubmissionsIdRoute: typeof ApiAdminSubmissionsIdRoute
+}
+
+const ApiAdminSubmissionsRouteChildren: ApiAdminSubmissionsRouteChildren = {
+  ApiAdminSubmissionsIdRoute: ApiAdminSubmissionsIdRoute,
+}
+
+const ApiAdminSubmissionsRouteWithChildren =
+  ApiAdminSubmissionsRoute._addFileChildren(ApiAdminSubmissionsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DailyRoute: DailyRoute,
@@ -625,17 +755,22 @@ const rootRouteChildren: RootRouteChildren = {
   LeaderboardRoute: LeaderboardRoute,
   PlayRoute: PlayRoute,
   ProfileRoute: ProfileRoute,
+  SubmitRoute: SubmitRoute,
   AdminDailyRoute: AdminDailyRoute,
   AdminLevelsRoute: AdminLevelsRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminReviewRoute: AdminReviewRoute,
+  AdminSubmissionsRoute: AdminSubmissionsRoute,
   AdminXpRoute: AdminXpRoute,
+  CSlugRoute: CSlugRoute,
+  UHandleRoute: UHandleRoute,
   AdminIndexRoute: AdminIndexRoute,
   ApiAdminArtistsRoute: ApiAdminArtistsRouteWithChildren,
   ApiAdminBarsRoute: ApiAdminBarsRouteWithChildren,
   ApiAdminDailyRoute: ApiAdminDailyRouteWithChildren,
   ApiAdminLevelsRoute: ApiAdminLevelsRoute,
   ApiAdminPingRoute: ApiAdminPingRoute,
+  ApiAdminSubmissionsRoute: ApiAdminSubmissionsRouteWithChildren,
   ApiAdminTagsRoute: ApiAdminTagsRoute,
   ApiAdminXpConfigRoute: ApiAdminXpConfigRoute,
   ApiAdminSearchArtistsRoute: ApiAdminSearchArtistsRoute,

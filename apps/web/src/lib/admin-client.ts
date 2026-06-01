@@ -313,3 +313,54 @@ export async function deleteBar(id: number, hard = false): Promise<void> {
   const res = await fetch(url, { method: "DELETE", credentials: "same-origin" })
   await jsonOrThrow(res)
 }
+
+export type SubmissionRow = {
+  id: number
+  line: string
+  clozePrompt: string | null
+  perfectSolution: string[] | null
+  artistHint: string | null
+  songHint: string | null
+  note: string | null
+  status: string
+  createdAt: string
+  submitterHandle: string | null
+}
+
+export async function fetchSubmissions(status = "pending"): Promise<{ items: SubmissionRow[] }> {
+  const url = new URL("/api/admin/submissions", window.location.origin)
+  url.searchParams.set("status", status)
+  const res = await fetch(url, { credentials: "same-origin" })
+  return jsonOrThrow(res)
+}
+
+export async function approveSubmission(
+  id: number,
+  input: {
+    artist: string
+    song: string
+    line: string
+    distractor1: string
+    distractor2: string
+    clozePrompt?: string
+    perfectSolution?: string[]
+  },
+): Promise<{ ok: true; punchlineId: number }> {
+  const res = await fetch(`/api/admin/submissions/${id}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "approve", ...input }),
+    credentials: "same-origin",
+  })
+  return jsonOrThrow(res)
+}
+
+export async function rejectSubmission(id: number, reason?: string): Promise<{ ok: true }> {
+  const res = await fetch(`/api/admin/submissions/${id}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "reject", reason }),
+    credentials: "same-origin",
+  })
+  return jsonOrThrow(res)
+}

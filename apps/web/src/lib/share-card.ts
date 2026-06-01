@@ -229,3 +229,112 @@ export function shareFilenameFor(data: ShareCardData): string {
     : data.mode
   return `punchlinequiz-${slug}-${data.score}-${data.total}.png`
 }
+
+/** Shared charcoal background + gold spotlight + dot grid. */
+function drawBackground(ctx: CanvasRenderingContext2D, size: number) {
+  const bg = ctx.createLinearGradient(0, 0, 0, size)
+  bg.addColorStop(0, BG_TOP)
+  bg.addColorStop(1, BG_BOTTOM)
+  ctx.fillStyle = bg
+  ctx.fillRect(0, 0, size, size)
+
+  const glow = ctx.createRadialGradient(size * 0.5, size * 0.38, 0, size * 0.5, size * 0.38, size * 0.75)
+  glow.addColorStop(0, "rgba(251, 191, 36, 0.22)")
+  glow.addColorStop(0.5, "rgba(251, 191, 36, 0.06)")
+  glow.addColorStop(1, "rgba(251, 191, 36, 0)")
+  ctx.fillStyle = glow
+  ctx.fillRect(0, 0, size, size)
+
+  ctx.fillStyle = "rgba(255,255,255,0.022)"
+  for (let y = 40; y < size; y += 44) {
+    for (let x = 40; x < size; x += 44) {
+      ctx.beginPath()
+      ctx.arc(x, y, 1.4, 0, Math.PI * 2)
+      ctx.fill()
+    }
+  }
+}
+
+export type ChallengeCardData = {
+  /** The creator/sharer's locked score, or null if they haven't played yet. */
+  correctCount: number | null
+  size: number
+  creatorHandle: string | null
+}
+
+/**
+ * Challenge share card (PUN-11). Hero = "X/5 — beat me" when the sharer has a
+ * score, else "5 bars — crack these". Client-canvas PNG, gold-on-charcoal.
+ */
+export async function renderChallengeCard(data: ChallengeCardData): Promise<Blob> {
+  await ensureFonts()
+  const size = 1080
+  const canvas = document.createElement("canvas")
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext("2d")!
+  drawBackground(ctx, size)
+
+  const pad = 80
+  const font = "'Figtree Variable', system-ui, sans-serif"
+  const ctxAny = ctx as CanvasRenderingContext2D & { letterSpacing?: string }
+
+  // Wordmark — top-left
+  ctx.textBaseline = "top"
+  ctx.font = `700 44px ${font}`
+  ctx.fillStyle = FG
+  ctx.fillText("punchline", pad, pad)
+  const pm = ctx.measureText("punchline")
+  ctx.fillStyle = GOLD
+  ctx.fillText("/quiz", pad + pm.width, pad)
+
+  // Eyebrow
+  ctx.font = `700 26px ${font}`
+  ctx.fillStyle = "rgba(251, 191, 36, 0.85)"
+  if ("letterSpacing" in ctxAny) ctxAny.letterSpacing = "4px"
+  const eyebrow = data.creatorHandle
+    ? i18n.t("challenge.creatorThrewDown", { handle: data.creatorHandle }).toUpperCase()
+    : i18n.t("challenge.eyebrow").replace(/^\/\s*/, "").toUpperCase()
+  ctx.fillText(eyebrow, pad, 340)
+  if ("letterSpacing" in ctxAny) ctxAny.letterSpacing = "0px"
+
+  // Hero
+  ctx.textBaseline = "alphabetic"
+  const scoreY = 760
+  if (data.correctCount != null) {
+    ctx.font = `900 360px ${font}`
+    ctx.fillStyle = FG
+    const scoreText = String(data.correctCount)
+    ctx.fillText(scoreText, pad, scoreY)
+    const sw = ctx.measureText(scoreText).width
+    ctx.font = `900 180px ${font}`
+    ctx.fillStyle = "rgba(251, 191, 36, 0.45)"
+    ctx.fillText(`/${data.size}`, pad + sw + 24, scoreY - 12)
+    ctx.font = `700 40px ${font}`
+    ctx.fillStyle = "rgba(250, 250, 250, 0.78)"
+    ctx.textBaseline = "top"
+    ctx.fillText(i18n.t("share.cta"), pad, scoreY + 30)
+  } else {
+    ctx.font = `900 300px ${font}`
+    ctx.fillStyle = FG
+    ctx.fillText(String(data.size), pad, scoreY)
+    const sw = ctx.measureText(String(data.size)).width
+    ctx.font = `900 90px ${font}`
+    ctx.fillStyle = "rgba(251, 191, 36, 0.5)"
+    ctx.fillText(i18n.t("challenge.recapTitle").toUpperCase(), pad + sw + 28, scoreY - 30)
+    ctx.font = `700 40px ${font}`
+    ctx.fillStyle = "rgba(250, 250, 250, 0.78)"
+    ctx.textBaseline = "top"
+    ctx.fillText(i18n.t("challenge.beFirst"), pad, scoreY + 30)
+  }
+
+  // Footer
+  ctx.font = `900 44px ${font}`
+  ctx.fillStyle = GOLD
+  ctx.textBaseline = "top"
+  ctx.fillText("punchlinequiz.de", pad, size - 105)
+
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("canvas.toBlob returned null"))), "image/png", 0.95)
+  })
+}

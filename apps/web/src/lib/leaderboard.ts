@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start"
 import { getRequest } from "@tanstack/react-start/server"
 import {  and, desc, eq, gt, isNotNull, sql } from "drizzle-orm"
-import { punchlines, userPunchlineXp, users } from "@workspace/db"
+import { follows, punchlines, songs, userPunchlineXp, users } from "@workspace/db"
 
 import { getActor } from "./auth"
 import { db } from "./db"
@@ -9,7 +9,12 @@ import {  levelFor, loadLevels } from "./xp"
 import type {SQL} from "drizzle-orm";
 import type {LevelInfo} from "./xp";
 
-export type LeaderboardBoard = "xp" | "completion"
+/**
+ * Boards: xp (weekly calendar-week | all-time totalXp), completion (global
+ * bars-solved, all-time), friends (weekly XP among the followed set + self),
+ * artist (bars-solved for one artist). friends/artist were added in PUN-13.
+ */
+export type LeaderboardBoard = "xp" | "completion" | "friends" | "artist"
 export type LeaderboardWindow = "weekly" | "alltime"
 
 export type LeaderboardEntry = {
@@ -67,20 +72,98 @@ function toEntry(row: Row, rank: number, levels: Awaited<ReturnType<typeof loadL
   }
 }
 
-export async function getLeaderboard(input: {
+/** Clerk ids the user follows, plus themselves (the friends-board scope). */
+async function followedSet(callerId: string): Promise<string[]> {
+  const rows = await db
+    .select({ id: follows.followeeClerkId })
+    .from(follows)
+    .where(eq(follows.followerClerkId, callerId))
+  return [callerId, ...rows.map((r) => r.id)]
+}
+
+/** me-row derived directly from the visible top list (friends/artist boards). */
+function meFromTop(
+  callerId: string | null,
+  topRows: Array<Row>,
+  levels: Awaited<ReturnType<typeof loadLevels>>,
+): (LeaderboardEntry & { inTop: boolean }) | null {
+  if (!callerId) return null
+  const idx = topRows.findIndex((r) => r.clerk_id === callerId)
+  if (idx < 0) return null
+  return { ...toEntry(topRows[idx], idx + 1, levels), inTop: true }
+}
+
+async function getLeaderboard(input: {
   board: LeaderboardBoard
   window: LeaderboardWindow
+  artistId?: number
   callerId: string | null
 }): Promise<LeaderboardResult> {
-  const { board, callerId } = input
-  // Completion is inherently all-time; only XP honors the weekly window.
-  const window: LeaderboardWindow = board === "completion" ? "alltime" : input.window
+  const { board, callerId, artistId } = input
+  // Only the XP board honors a weekly/all-time toggle. completion + artist are
+  // all-time bars-solved; friends is always the weekly window.
+  const window: LeaderboardWindow =
+    board === "completion" || board === "artist"
+      ? "alltime"
+      : board === "friends"
+        ? "weekly"
+        : input.window
   const levels = await loadLevels()
 
   let topRows: Array<Row>
   let totalActiveLines: number | null = null
+  let me: (LeaderboardEntry & { inTop: boolean }) | null = null
 
-  if (board === "completion") {
+  if (board === "friends") {
+    // Weekly XP among the followed set + self. Anonymous → empty board.
+    if (!callerId) {
+      return { board, window, totalActiveLines, top: [], me: null }
+    }
+    const ids = await followedSet(callerId)
+    const start = currentWeekStartUtc()
+    const inList = sql.join(
+      ids.map((id) => sql`${id}`),
+      sql`, `,
+    )
+    // LEFT JOIN so everyone you follow shows even at 0 XP this week.
+    topRows = await rawRows<Row>(sql`
+      SELECT u.clerk_id, u.handle, u.avatar_key, u.total_xp, COALESCE(SUM(t.xp), 0)::int AS metric
+      FROM ${users} u
+      LEFT JOIN (
+        SELECT clerk_id, xp_awarded AS xp FROM ${userPunchlineXp} WHERE created_at >= ${start}
+        UNION ALL
+        SELECT clerk_id, xp_awarded AS xp FROM user_daily_xp WHERE created_at >= ${start}
+      ) t ON t.clerk_id = u.clerk_id
+      WHERE u.handle IS NOT NULL AND u.clerk_id IN (${inList})
+      GROUP BY u.clerk_id, u.handle, u.avatar_key, u.total_xp
+      ORDER BY metric DESC, u.total_xp DESC
+      LIMIT ${TOP_N}
+    `)
+    me = meFromTop(callerId, topRows, levels)
+  } else if (board === "artist") {
+    // Bars-solved for one artist. metric = solved count for that artist.
+    if (!artistId) {
+      return { board, window, totalActiveLines: 0, top: [], me: null }
+    }
+    const [{ count: total }] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(punchlines)
+      .innerJoin(songs, eq(songs.id, punchlines.songId))
+      .where(and(eq(punchlines.active, true), eq(songs.artistId, artistId)))
+    totalActiveLines = total
+
+    topRows = await rawRows<Row>(sql`
+      SELECT u.clerk_id, u.handle, u.avatar_key, u.total_xp, count(*)::int AS metric
+      FROM ${userPunchlineXp} up
+      JOIN ${punchlines} p ON p.id = up.punchline_id AND p.active
+      JOIN ${songs} s ON s.id = p.song_id AND s.artist_id = ${artistId}
+      JOIN ${users} u ON u.clerk_id = up.clerk_id AND u.handle IS NOT NULL
+      GROUP BY u.clerk_id, u.handle, u.avatar_key, u.total_xp
+      ORDER BY metric DESC, u.total_xp DESC
+      LIMIT ${TOP_N}
+    `)
+    me = meFromTop(callerId, topRows, levels)
+  } else if (board === "completion") {
     const [{ count: total }] = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(punchlines)
@@ -96,6 +179,7 @@ export async function getLeaderboard(input: {
       ORDER BY metric DESC, u.total_xp DESC
       LIMIT ${TOP_N}
     `)
+    me = await computeMe({ board, window, callerId, levels, topRows })
   } else if (window === "weekly") {
     const start = currentWeekStartUtc()
     topRows = await rawRows<Row>(sql`
@@ -111,6 +195,7 @@ export async function getLeaderboard(input: {
       ORDER BY metric DESC
       LIMIT ${TOP_N}
     `)
+    me = await computeMe({ board, window, callerId, levels, topRows })
   } else {
     const rows = await db
       .select({
@@ -125,22 +210,28 @@ export async function getLeaderboard(input: {
       .orderBy(desc(users.totalXp))
       .limit(TOP_N)
     topRows = rows as Array<Row>
+    me = await computeMe({ board, window, callerId, levels, topRows })
   }
 
   const top = topRows.map((r, i) => toEntry(r, i + 1, levels))
-
-  const me = await computeMe({ board, window, callerId, levels, topRows })
 
   return { board, window, totalActiveLines, top, me }
 }
 
 export const getLeaderboardFn = createServerFn({ method: "POST" })
-  .inputValidator((d: { board: LeaderboardBoard; window: LeaderboardWindow }) => d)
+  .inputValidator(
+    (d: { board: LeaderboardBoard; window: LeaderboardWindow; artistId?: number }) => d,
+  )
   .handler(async ({ data }): Promise<LeaderboardResult> => {
     const req = getRequest()
     const result = await getActor(req)
     const callerId = result?.actor.kind === "clerk" ? result.actor.userId : null
-    return getLeaderboard({ board: data.board, window: data.window, callerId })
+    return getLeaderboard({
+      board: data.board,
+      window: data.window,
+      artistId: data.artistId,
+      callerId,
+    })
   })
 
 async function computeMe(args: {

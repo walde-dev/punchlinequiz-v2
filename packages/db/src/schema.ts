@@ -164,6 +164,12 @@ export const users = pgTable(
     handle: varchar("handle", { length: 20 }),
     /** Reserved for the (future) preset avatar pack. Stored, not yet rendered. */
     avatarKey: varchar("avatar_key", { length: 40 }),
+    /**
+     * Clerk profile image URL, synced client-side from the signed-in session so
+     * the public profile (/u/handle) can render real avatars for any user, not
+     * just the viewer. Null until first sync.
+     */
+    imageUrl: text("image_url"),
     /** Set when the user picks a handle. Null = onboarding incomplete. */
     onboardedAt: timestamp("onboarded_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -270,6 +276,35 @@ export const levels = pgTable("levels", {
   accent: varchar("accent", { length: 24 }).notNull().default("primary"),
 })
 
+/**
+ * Asymmetric follow graph (no approval). A row means follower → followee.
+ * "Friends" = the set a user follows. FKs cascade so deleting a user tears
+ * down their follow edges in both directions. The composite PK (follower,
+ * followee) makes follow idempotent and already indexes follower-prefix
+ * lookups (a user's following list / friends set); the extra index on
+ * followee powers follower-list lookups. Self-follow is blocked at the DB.
+ */
+export const follows = pgTable(
+  "follows",
+  {
+    followerClerkId: varchar("follower_clerk_id", { length: 64 })
+      .notNull()
+      .references(() => users.clerkId, { onDelete: "cascade" }),
+    followeeClerkId: varchar("followee_clerk_id", { length: 64 })
+      .notNull()
+      .references(() => users.clerkId, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.followerClerkId, t.followeeClerkId] }),
+    byFollowee: index("follows_followee").on(t.followeeClerkId),
+    noSelf: check("follows_no_self", sql`${t.followerClerkId} <> ${t.followeeClerkId}`),
+  }),
+)
+
+export type Follow = typeof follows.$inferSelect
+export type NewFollow = typeof follows.$inferInsert
+
 export type User = typeof users.$inferSelect
 export type NewUser = typeof users.$inferInsert
 export type UserPunchlineXp = typeof userPunchlineXp.$inferSelect
@@ -280,3 +315,87 @@ export type XpConfig = typeof xpConfig.$inferSelect
 export type NewXpConfig = typeof xpConfig.$inferInsert
 export type Level = typeof levels.$inferSelect
 export type NewLevel = typeof levels.$inferInsert
+
+/**
+ * Challenges (PUN-8/9/10). A challenge freezes a dedicated 5-bar set (artist-
+ * guess mode) into a shareable, one-to-many "beat my score" board. `bar_ids`
+ * is the ordered snapshot of punchline ids; `slug` is the short URL key.
+ */
+export const challenges = pgTable("challenges", {
+  id: serial("id").primaryKey(),
+  slug: varchar("slug", { length: 16 }).notNull().unique(),
+  creatorClerkId: varchar("creator_clerk_id", { length: 64 })
+    .notNull()
+    .references(() => users.clerkId, { onDelete: "cascade" }),
+  /** Ordered snapshot of the 5 punchline ids — the frozen set. */
+  barIds: json("bar_ids").$type<number[]>().notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+})
+
+/**
+ * One row per (challenge, user). UNIQUE enforces first-attempt-lock: a user's
+ * first completed run is their permanent board score; later replays never
+ * overwrite it (insert is onConflictDoNothing). Ranked correct_count DESC,
+ * then solve_ms ASC (the tiebreak). Anonymous runs are not persisted until the
+ * player signs up and claims.
+ */
+export const challengeAttempts = pgTable(
+  "challenge_attempts",
+  {
+    id: serial("id").primaryKey(),
+    challengeId: integer("challenge_id")
+      .notNull()
+      .references(() => challenges.id, { onDelete: "cascade" }),
+    clerkId: varchar("clerk_id", { length: 64 })
+      .notNull()
+      .references(() => users.clerkId, { onDelete: "cascade" }),
+    correctCount: integer("correct_count").notNull(),
+    solveMs: integer("solve_ms").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    uq: uniqueIndex("challenge_attempt_uq").on(t.challengeId, t.clerkId),
+    byChallenge: index("challenge_attempt_by_challenge").on(t.challengeId),
+  }),
+)
+
+export type Challenge = typeof challenges.$inferSelect
+export type NewChallenge = typeof challenges.$inferInsert
+export type ChallengeAttempt = typeof challengeAttempts.$inferSelect
+export type NewChallengeAttempt = typeof challengeAttempts.$inferInsert
+
+/**
+ * UGC bar submissions (PUN-14/15/16). Staging table — we can't insert into
+ * `punchlines` directly (song_id + distractor FKs are NOT NULL and submitters
+ * may omit them). Only `line` is required; the admin completes the rest at
+ * review and, on approval, mints a real punchline (`created_punchline_id`).
+ */
+export const punchlineSubmissions = pgTable(
+  "punchline_submissions",
+  {
+    id: serial("id").primaryKey(),
+    submitterClerkId: varchar("submitter_clerk_id", { length: 64 })
+      .notNull()
+      .references(() => users.clerkId, { onDelete: "cascade" }),
+    line: text("line").notNull(),
+    /** Optional free-text / structured hints the submitter may provide. */
+    clozePrompt: text("cloze_prompt"),
+    perfectSolution: json("perfect_solution").$type<string[]>(),
+    artistHint: text("artist_hint"),
+    songHint: text("song_hint"),
+    note: text("note"),
+    /** 'pending' | 'approved' | 'rejected'. */
+    status: varchar("status", { length: 16 }).notNull().default("pending"),
+    /** Set on approval — the minted, playable punchline. */
+    createdPunchlineId: integer("created_punchline_id").references(() => punchlines.id),
+    rejectionReason: text("rejection_reason"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    byStatus: index("punchline_submissions_status").on(t.status, t.createdAt),
+    bySubmitter: index("punchline_submissions_submitter").on(t.submitterClerkId),
+  }),
+)
+
+export type PunchlineSubmission = typeof punchlineSubmissions.$inferSelect
+export type NewPunchlineSubmission = typeof punchlineSubmissions.$inferInsert

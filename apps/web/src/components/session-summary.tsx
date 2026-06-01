@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { TFunction } from "i18next"
+import { useNavigate } from "@tanstack/react-router"
+import { SignInButton, useAuth } from "@clerk/tanstack-react-start"
 
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 
+import { createChallengeFn } from "../lib/challenge"
 import { renderShareCard, shareFilenameFor, shareUrlFor } from "../lib/share-card"
 import { logEvent } from "../lib/track"
 import type { ShareCardData } from "../lib/share-card"
@@ -50,10 +53,26 @@ export function SessionSummary({
   onRestart,
 }: Props) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
+  const { isSignedIn } = useAuth()
+  const [creatingChallenge, setCreatingChallenge] = useState(false)
   const cardData = useMemo<ShareCardData>(
     () => ({ score, total, mode, artistName, artistImageUrl }),
     [score, total, mode, artistName, artistImageUrl],
   )
+
+  async function createChallenge() {
+    if (creatingChallenge) return
+    setCreatingChallenge(true)
+    try {
+      const { slug } = await createChallengeFn()
+      logEvent("create_challenge", { slug, from: "session" })
+      navigate({ to: "/c/$slug", params: { slug } })
+    } catch (e) {
+      console.error(e)
+      setCreatingChallenge(false)
+    }
+  }
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [blob, setBlob] = useState<Blob | null>(null)
@@ -274,6 +293,29 @@ export function SessionSummary({
             </Button>
           )}
         </div>
+
+        {/* Challenge a friend — turns a finished run into a shareable board. */}
+        {isSignedIn ? (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={createChallenge}
+            disabled={creatingChallenge}
+            className="min-h-12 w-full rounded-full border border-primary/50 text-base font-bold text-primary hover:bg-primary/10"
+          >
+            {creatingChallenge ? t("challenge.creating") : t("profile.public.createChallenge")}
+          </Button>
+        ) : (
+          <SignInButton mode="modal">
+            <Button
+              type="button"
+              variant="ghost"
+              className="min-h-12 w-full rounded-full border border-primary/50 text-base font-bold text-primary hover:bg-primary/10"
+            >
+              {t("profile.public.createChallenge")}
+            </Button>
+          </SignInButton>
+        )}
 
         <Button
           type="button"

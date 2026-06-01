@@ -49,10 +49,10 @@ function HomePage() {
       <AppHeader />
       <div className="pq-spotlight pointer-events-none absolute inset-0" aria-hidden="true" />
 
-      <main className="relative flex flex-1 flex-col items-center px-5 pt-20 pb-10 md:px-8">
-        <div className="flex w-full max-w-3xl flex-col gap-8">
+      <main className="relative flex flex-1 flex-col items-center px-5 pt-16 pb-10 md:px-8 md:pt-20">
+        <div className="flex w-full max-w-3xl flex-col gap-5 md:gap-8">
           <div
-            className="flex flex-col items-center gap-3 text-center md:items-start md:text-left"
+            className="flex flex-col items-center gap-2 text-center md:items-start md:gap-3 md:text-left"
             style={{ animation: `pq-fade-up 0.55s ${ease} both` }}
           >
             <BetaBadge label={t("home.betaBadge")} />
@@ -139,6 +139,7 @@ function ModeCards({
         title={t("home.modes.classicTitle")}
         meta={t("home.modes.classicMeta", { count: artistTotal })}
         ariaLabel={t("home.modes.classicAria", { count: artistTotal })}
+        iconSrc="/mic.png"
         index={0}
       />
       <div className="flex flex-col gap-2">
@@ -149,6 +150,7 @@ function ModeCards({
           title={t("home.modes.clozeTitle")}
           meta={t("home.modes.clozeMeta", { count: clozeTotal, artists: clozeArtists })}
           ariaLabel={t("home.modes.clozeAria", { count: clozeTotal, artists: clozeArtists })}
+          iconSrc="/cloze.png"
           index={1}
         />
         <Link
@@ -176,6 +178,7 @@ function ModeCard({
   title,
   meta,
   ariaLabel,
+  iconSrc,
   index,
 }: {
   to: string
@@ -184,6 +187,7 @@ function ModeCard({
   title: string
   meta: string
   ariaLabel: string
+  iconSrc: string
   index: number
 }) {
   return (
@@ -192,7 +196,7 @@ function ModeCard({
       search={search}
       aria-label={ariaLabel}
       className={cn(
-        "group relative flex flex-col gap-5 overflow-hidden rounded-3xl",
+        "group relative flex flex-col gap-4 overflow-hidden rounded-3xl sm:gap-5",
         "border border-border/60 bg-card/50 p-5",
         "transition-[border-color,background-color] duration-200",
         "hover:border-primary/60 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
@@ -201,16 +205,38 @@ function ModeCard({
         animation: `pq-fade-up 0.55s ${ease} ${0.2 + index * 0.08}s both`,
       }}
     >
-      <div className="flex flex-col gap-2" aria-hidden="true">
-        <span className="text-[10px] font-bold tracking-[0.18em] uppercase text-primary/80">
-          {eyebrow}
-        </span>
-        <h2 className="flex items-center gap-2 text-2xl font-extrabold leading-[1.1] tracking-tight text-balance">
-          <span>{title}</span>
-          <span className="inline-block translate-y-px text-primary transition-transform duration-200 group-hover:translate-x-0.5">
-            →
+      <div className="flex items-center gap-4" aria-hidden="true">
+        {/* Gold hero icon. Same mix-blend-screen + radial-mask trick as the
+            sign-in banner: kills the PNG's pure-black backdrop and softens the
+            edge into the card. */}
+        <img
+          src={iconSrc}
+          alt=""
+          aria-hidden="true"
+          width={80}
+          height={80}
+          className="h-14 w-14 shrink-0 select-none transition-transform duration-200 motion-safe:group-hover:translate-x-1 sm:h-20 sm:w-20"
+          style={{
+            mixBlendMode: "screen",
+            WebkitMaskImage:
+              "radial-gradient(circle at center, black 55%, transparent 90%)",
+            maskImage:
+              "radial-gradient(circle at center, black 55%, transparent 90%)",
+            filter:
+              "drop-shadow(0 0 18px color-mix(in oklch, var(--primary), transparent 55%))",
+          }}
+        />
+        <div className="flex flex-col gap-2">
+          <span className="text-[10px] font-bold tracking-[0.18em] uppercase text-primary/80">
+            {eyebrow}
           </span>
-        </h2>
+          <h2 className="flex items-center gap-2 text-2xl font-extrabold leading-[1.1] tracking-tight text-balance">
+            <span>{title}</span>
+            <span className="inline-block translate-y-px text-primary transition-transform duration-200 group-hover:translate-x-0.5">
+              →
+            </span>
+          </h2>
+        </div>
       </div>
 
       <span

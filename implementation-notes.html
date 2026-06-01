@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Implementation notes — Profiles project, Phase 1 (follow graph)</title>
+<style>
+  body { font: 14px/1.5 -apple-system, system-ui, sans-serif; max-width: 820px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }
+  h1 { font-size: 1.4rem; }
+  h2 { font-size: 1.1rem; margin-top: 2rem; border-bottom: 1px solid #ddd; padding-bottom: 0.25rem; }
+  .entry { margin: 0.75rem 0 1.25rem; padding-left: 0.75rem; border-left: 3px solid #ddd; }
+  .entry.open { border-left-color: #d97706; }
+  .entry.deviation { border-left-color: #dc2626; }
+  .entry.decision { border-left-color: #2563eb; }
+  .entry.tradeoff { border-left-color: #7c3aed; }
+  .meta { color: #666; font-size: 0.85rem; }
+  code { background: #f3f3f3; padding: 0 0.25rem; border-radius: 3px; }
+</style>
+</head>
+<body>
+<h1>Implementation notes</h1>
+<p class="meta">Spec: Profiles project — Phase 1 (migration + PUN-5) + Phase 2 (PUN-6 profile, PUN-13 boards, PUN-12 verify) · Source of truth: grilled decision ledger + enriched Linear tickets · Started: 2026-05-31</p>
+
+<h2>Design decisions</h2>
+
+<div class="entry decision">
+  <strong>follows schema: composite PK + single followee index</strong>
+  <p>Added <code>follows</code> at <code>packages/db/src/schema.ts</code> with PK <code>(follower_clerk_id, followee_clerk_id)</code>, an index on <code>followee_clerk_id</code>, a self-follow CHECK, and cascade FKs to <code>users.clerkId</code>. The composite PK already indexes follower-prefix lookups (a user's following list / friends set), so the standalone <code>follower</code> index PUN-5 mentions is redundant and was omitted.</p>
+</div>
+
+<div class="entry decision">
+  <strong>Auth + idempotency pattern for server fns</strong>
+  <p>follow/unfollow resolve the caller via <code>getActor(getRequest())</code> (same pattern as <code>lib/leaderboard.ts</code>), throw if the actor isn't a Clerk user, call <code>ensureUser(callerClerkId)</code> first (FK safety, per <code>lib/xp.ts:105</code>), then <code>insert…onConflictDoNothing</code> / <code>delete</code>. Both are no-ops on repeat → idempotent.</p>
+</div>
+
+<div class="entry decision">
+  <strong>Handle-based follow on the public profile</strong>
+  <p>The client only knows handles (URLs are <code>/u/handle</code>), and the leaderboard already exposes handle-only — so other users' Clerk ids stay server-side. Extracted <code>doFollow</code>/<code>doUnfollow</code> in <code>lib/follow.ts</code>; added <code>followByHandleFn</code>/<code>unfollowByHandleFn</code> in <code>lib/profile.ts</code> that resolve handle → clerkId then call them. The clerk-id <code>followFn</code>/<code>unfollowFn</code> (PUN-5 contract) remain.</p>
+</div>
+
+<div class="entry decision">
+  <strong>topArtists + follow counts live in the profile loader, not the snapshot</strong>
+  <p>Computed in <code>getPublicProfileFn</code> (<code>lib/profile.ts</code>), NOT folded into <code>getProfileSnapshot</code> — the header chip (<code>getHeaderXpFn</code>) reuses the snapshot on every page, and adding artist/follow joins there would tax that hot path. Top artists = bars-solved per artist, top 3.</p>
+</div>
+
+<div class="entry decision">
+  <strong>/profile unification via redirect</strong>
+  <p><code>routes/profile.tsx</code> loader calls <code>getMyHandleFn</code>; onboarded users <code>throw redirect()</code> to <code>/u/$handle</code>. Anonymous + signed-in-without-handle users fall through to the existing self view / sign-in pitch (handle claiming is the parallel onboarding work). Single rich profile surface at <code>/u/$handle</code>.</p>
+</div>
+
+<div class="entry decision">
+  <strong>follow_user / unfollow_user logged client-side (resolves the Phase-1 open question)</strong>
+  <p>Emitted via <code>logEvent</code> in <code>u.$handle.tsx</code> <code>Actions.toggle</code>, at the button call site — matching the existing convention (server fns stay pure). Server functions were left pure as planned.</p>
+</div>
+
+<div class="entry decision">
+  <strong>Friends/per-artist board internals (PUN-13)</strong>
+  <p>In <code>lib/leaderboard.ts</code>: Friends uses a LEFT JOIN over the weekly XP union so everyone you follow shows even at 0 XP this week, scoped via <code>clerk_id IN (followedSet)</code> (self + followees). Per-artist mirrors the completion query with a <code>songs.artist_id</code> join filter; <code>totalActiveLines</code> = active lines for that artist (drives the % subLabel). For both, the "me" row is derived from the visible top list (<code>meFromTop</code>) rather than a second ranking query — these boards are bounded (friends set small; per-artist solvers ≤ TOP_N=100). Trade-off: a user outside the artist top-100 shows no me-row (acceptable v1).</p>
+</div>
+
+<div class="entry decision">
+  <strong>PUN-12 verified, not rebuilt</strong>
+  <p>Global all-time XP + weekly XP boards already existed and are kept on the calendar-week window (per the grilled override). Confirmed correct via the production build + a live-data query smoke test. No code change beyond sharing the row component with the new boards.</p>
+</div>
+
+<h2>Deviations from spec</h2>
+
+<div class="entry deviation">
+  <strong>Phase-1 migration adds only <code>follows</code>, not all four tables</strong>
+  <p>The project plan said "one migration: follows, challenges, challenge_attempts, punchline_submissions." Phase 1 adds <em>only</em> <code>follows</code>. Rationale: design the challenge/submission tables alongside the code that consumes them (Phases 3–4) so columns aren't guessed early; Drizzle migrations are cheap to add per phase. Keeps each phase's migration reviewable.</p>
+</div>
+
+<div class="entry deviation">
+  <strong>Challenge button stubbed (disabled) on the profile</strong>
+  <p>PUN-6 lists a Challenge button (visitor) + Create-challenge (owner). Challenge creation is Phase 3 (PUN-8), so <code>ChallengeButton</code> in <code>u.$handle.tsx</code> renders disabled with a "Soon" tag. Will be wired when PUN-8 lands.</p>
+</div>
+
+<div class="entry decision">
+  <strong>Review fixes (2026-05-31 manual review)</strong>
+  <p>(1) Profile link added to the Clerk account menu via <code>UserButton.MenuItems</code> → <code>UserButton.Link href="/profile"</code> (which redirects to <code>/u/$handle</code>), keeping default manageAccount/signOut. (2) <code>LangToggle</code> hover aligned to the Leaderboard nav link (<code>text-foreground/70 hover:text-primary</code>, no ghost bg). (3) Artist-picker chevron fixed: native <code>&lt;select&gt;</code> set to <code>appearance-none</code> + a custom chevron SVG. (4) Profile hero reworked — see below.</p>
+</div>
+
+<div class="entry decision">
+  <strong>Avatar persistence for public profiles</strong>
+  <p>The server can't read another user's Clerk image, so the public profile couldn't show avatars for anyone but the viewer. Added <code>users.image_url</code> (migration <code>0012</code>) + <code>syncProfileImageFn</code> (<code>lib/profile.ts</code>), called fire-and-forget from <code>AuthSlot</code> in <code>app-header.tsx</code> using <code>useUser().imageUrl</code> (no-ops when unchanged). <code>getPublicProfileFn</code> now returns <code>imageUrl</code>; the hero renders it with an initial fallback. Avoids Clerk backend calls + onboarding coupling.</p>
+</div>
+
+<div class="entry decision">
+  <strong>Profile hero: avatar + @handle is the focus, XP demoted</strong>
+  <p>Per review feedback. <code>u.$handle.tsx</code> now leads with the avatar + large <code>@handle</code>; the rank badge + level name are a small supporting pill; the big XP number is gone — XP moved to a thin line under the progress bar.</p>
+</div>
+
+<div class="entry decision">
+  <strong>Phase 3 — Challenges: no XP, end-of-run server validation</strong>
+  <p>Challenges grant <strong>no XP</strong> (competitive mode, not the grind — and avoids an XP farm). The 5 answers are validated <strong>server-side in one call at the end</strong> (<code>submitChallengeAttemptFn</code>): the correct answer is never sent to the client (no cheat vector) and per-bar correctness is revealed only in the post-submit recap. No per-bar reveal during play — keeps the timed run fast. <code>solve_ms</code> is client-supplied per bar, clamped server-side to [0, 120000].</p>
+</div>
+
+<div class="entry decision">
+  <strong>First-attempt-lock + anonymous claim</strong>
+  <p><code>challenge_attempts</code> has UNIQUE(challenge_id, clerk_id); submit uses <code>onConflictDoNothing</code> so the first run is permanent (replays never overwrite). Anonymous runs are scored but not persisted; the client holds answers in <code>localStorage</code> (<code>pq.challenge.&lt;slug&gt;</code>) and re-submits after Clerk modal sign-in (a <code>useAuth</code> effect claims on sign-in, covering both modal + redirect).</p>
+</div>
+
+<div class="entry decision">
+  <strong>Challenge creation, slug, share card, button wiring</strong>
+  <p><code>createChallengeFn</code> picks 5 random distinct active bars (excl. daily), 8-char base62 slug via <code>crypto</code> (retry on unique collision). Share card = new client-canvas <code>renderChallengeCard</code> (no server OG). Challenge buttons un-stubbed: profile (visitor + owner) and the session-complete screen create a challenge → navigate to <code>/c/$slug</code>; logged-out users hit a sign-in modal first (creation is auth-required). Board highlights the viewer via a server-returned <code>viewerHandle</code>.</p>
+</div>
+
+<div class="entry decision">
+  <strong>Phase 4 — UGC submissions</strong>
+  <p><code>punchline_submissions</code> staging table (migration <code>0014</code>): only <code>line</code> required; optionals are free-text (<code>artist_hint</code>, <code>song_hint</code>, answer→<code>perfect_solution</code>, <code>cloze_prompt</code>, <code>note</code>). <code>/submit</code> (<code>routes/submit.tsx</code>) is auth-gated (anon pitch otherwise). Admin reviews at <code>/admin/submissions</code>; <strong>approve</strong> reuses <code>upsertBar</code> (names → resolve/create artist+song+distractors + Deezer artwork), then flips the minted row to <code>reviewed=true</code> (+ optional cloze) and stamps <code>created_punchline_id</code>. <strong>Reject</strong> sets status. "My submissions" is an owner-only client-fetched section on <code>/u/$handle</code> (links approved bars into <code>/play?artist=</code>).</p>
+</div>
+
+<h2>Tradeoffs considered</h2>
+<p class="meta">None yet.</p>
+
+<h2>Open questions</h2>
+
+<div class="entry open">
+  <strong>Admin approve takes distractors by name (can create junk artists on typo)</strong>
+  <p>The mint form passes artist/song/2 distractors as <em>names</em> to <code>upsertBar</code> (the proven add-bar path), so a typo'd distractor auto-creates a new artist. Admin-only + trusted, acceptable for v1. Could switch distractors to an <code>ArtistSelect</code> (existing-IDs only) if junk artists show up. Flag if you want that now.</p>
+</div>
+
+<div class="entry open">
+  <strong>Challenge play shows no per-bar feedback — confirm</strong>
+  <p>Unlike the casual game (which reveals right/wrong after each bar), the challenge run advances silently and reveals all 5 outcomes only in the post-run recap. This was deliberate (speed + anti-cheat for the timed board). Flag if you'd rather show per-bar feedback.</p>
+</div>
+
+<div class="entry open">
+  <strong>Solve-time trusts the client (clamped)</strong>
+  <p>The tiebreak <code>solve_ms</code> is measured client-side and clamped to [0, 120s] per bar server-side. A determined cheat could under-report time. Anti-cheat hardening is explicitly deferred in this project — flag if you want a server-side timer floor sooner.</p>
+</div>
+
+<div class="entry open">
+  <strong>Show the real Clerk name on the public profile?</strong>
+  <p>The review said "make pfp+name the focus." I led with <strong>@handle</strong> as the identity (consistent with the leaderboards/URLs) and did <em>not</em> render the Clerk full name (e.g. "Waldemar Panin"), since the page is public and the real name is PII a user may not want exposed. If you want the display name shown (e.g. small, under the handle), say so and I'll add it (would also need persisting the name like the avatar).</p>
+</div>
+
+</body>
+</html>

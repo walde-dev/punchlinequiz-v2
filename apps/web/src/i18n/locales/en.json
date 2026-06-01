@@ -24,7 +24,8 @@
     "logo": "punchlinequiz",
     "logoAria": "punchlinequiz — Home",
     "signIn": "Sign in",
-    "leaderboard": "Leaderboard"
+    "leaderboard": "Leaderboard",
+    "profile": "Profile"
   },
   "xp": {
     "suffix": "XP",
@@ -60,6 +61,21 @@
       "subtext": "No account, no XP. Sign in and climb from Rookie to OG.",
       "subtextWithNext": "Earn XP on every correct guess — from Rookie all the way to {{rank}}.",
       "cta": "Sign in"
+    },
+    "public": {
+      "topArtistsTitle": "Top artists",
+      "followers": "Followers",
+      "following": "Following",
+      "follow": "Follow",
+      "followingBtn": "Following",
+      "challenge": "Challenge",
+      "createChallenge": "Challenge a friend",
+      "shareProfile": "Share profile",
+      "comingSoon": "Soon",
+      "barsShort": "bars",
+      "notFoundTitle": "No such player",
+      "notFoundBody": "@{{handle}} isn't on the board (yet).",
+      "submitBar": "Submit a bar"
     }
   },
   "home": {
@@ -378,7 +394,8 @@
       "review": "Review",
       "daily": "Daily",
       "xp": "XP values",
-      "levels": "Levels"
+      "levels": "Levels",
+      "submissions": "Submissions"
     },
     "xp": {
       "eyebrow": "/ XP",
@@ -425,6 +442,26 @@
         "nameEn": "Name (EN)",
         "accent": "Accent"
       }
+    },
+    "submissions": {
+      "title": "Submissions",
+      "empty": "No pending submissions.",
+      "by": "by @{{handle}}",
+      "artist": "Artist",
+      "song": "Song",
+      "line": "The bar",
+      "distractor1": "Distractor 1",
+      "distractor2": "Distractor 2",
+      "clozePrompt": "Cloze prompt (___)",
+      "answers": "Cloze answers (comma-separated)",
+      "note": "Note",
+      "approve": "Approve & mint",
+      "reject": "Reject",
+      "approved": "Minted ✓",
+      "rejected": "Rejected",
+      "error": "Action failed.",
+      "remaining": "{{n}} pending",
+      "hint": "Submitter hint"
     }
   },
   "share": {
@@ -465,12 +502,75 @@
     "title": "The Leaderboard",
     "tabs": {
       "xp": "XP",
-      "completion": "Bars solved"
+      "completion": "Bars solved",
+      "friends": "Friends",
+      "artists": "Artists"
     },
     "window": {
       "weekly": "This week",
       "alltime": "All-time"
     },
-    "empty": "Nobody here yet. Be the first."
+    "empty": "Nobody here yet. Be the first.",
+    "friendsSignIn": "Sign in to rank against the people you follow.",
+    "friendsEmpty": "Follow some players to build your friends board.",
+    "pickArtist": "Pick an artist"
+  },
+  "challenge": {
+    "eyebrow": "/ challenge",
+    "notFoundTitle": "Challenge not found",
+    "notFoundBody": "This challenge link is invalid or no longer exists.",
+    "progress": "Bar {{n}} / {{total}}",
+    "prompt": "Who dropped this bar?",
+    "resultEyebrow": "/ your run",
+    "score": "{{correct}} / {{total}}",
+    "yourTime": "Your time",
+    "seconds": "{{s}}s",
+    "recapTitle": "The bars",
+    "correctLabel": "Correct",
+    "wallTitle": "Claim your spot",
+    "wallBody": "Sign up to lock your score onto the board.",
+    "wallCta": "Sign up & claim",
+    "boardTitle": "Beat my score",
+    "creatorThrewDown": "@{{handle}} threw down",
+    "beatThem": "Can you beat @{{handle}}?",
+    "beFirst": "Be the first to crack these 5.",
+    "playAgain": "Play again",
+    "lockedNote": "Your first run locks your board score.",
+    "alreadyLocked": "Your locked score stays {{correct}}/{{total}}.",
+    "share": "Share challenge",
+    "creating": "Setting up…",
+    "startError": "Couldn't start the challenge.",
+    "viewBoard": "View board",
+    "you": "You"
+  },
+  "submit": {
+    "eyebrow": "/ submit a bar",
+    "title": "Submit a bar",
+    "subtitle": "Drop a punchline. Only the line is required — we fill in the rest.",
+    "lineLabel": "The bar",
+    "linePlaceholder": "Paste the line… use / for bar breaks",
+    "optionalToggle": "Add details (optional)",
+    "artistHint": "Artist",
+    "songHint": "Song",
+    "answer": "The answer (for finish-the-line)",
+    "clozePrompt": "Line with the blank marked (use ___)",
+    "note": "Note for the reviewer",
+    "cta": "Submit bar",
+    "submitting": "Submitting…",
+    "successTitle": "Submitted ✊",
+    "successBody": "We'll review it and add it if it hits. Track it on your profile.",
+    "another": "Submit another",
+    "viewMine": "My submissions",
+    "anonTitle": "Sign in to submit",
+    "anonBody": "Submitting a bar needs an account so we can credit you.",
+    "error": "Couldn't submit — try again."
+  },
+  "mySubmissions": {
+    "title": "My submissions",
+    "empty": "No submissions yet.",
+    "pending": "Pending",
+    "approved": "Live",
+    "rejected": "Passed",
+    "play": "Play"
   }
 }

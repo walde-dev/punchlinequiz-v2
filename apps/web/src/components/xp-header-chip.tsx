@@ -11,17 +11,53 @@ import { rankIconPath } from "../lib/rank-icon"
  * Header chip showing current level, mini XP bar, and total XP. Tap → /profile.
  * Signed-out users see a ghost "Anmelden für XP" pitch instead. Re-fetches on
  * `refreshKey` change (caller bumps it after a correct answer).
+ *
+ * Cached in localStorage so the chip renders instantly on page load instead of
+ * flickering in. The server fetch still runs in the background and patches the
+ * cache if anything drifted.
  */
+const CACHE_KEY = "pq.xp.header.v1"
+
+function readCache(): HeaderXp | null {
+  if (typeof window === "undefined") return null
+  try {
+    const raw = window.localStorage.getItem(CACHE_KEY)
+    return raw ? (JSON.parse(raw) as HeaderXp) : null
+  } catch {
+    return null
+  }
+}
+
+function writeCache(data: HeaderXp | null) {
+  if (typeof window === "undefined") return
+  try {
+    if (data) window.localStorage.setItem(CACHE_KEY, JSON.stringify(data))
+    else window.localStorage.removeItem(CACHE_KEY)
+  } catch {
+    /* quota / private mode — ignore */
+  }
+}
+
 export function XpHeaderChip({ refreshKey = 0 }: { refreshKey?: number }) {
   const { t, i18n } = useTranslation()
-  const [data, setData] = useState<HeaderXp | null>(null)
+  const [data, setData] = useState<HeaderXp | null>(() => readCache())
   const [pulse, setPulse] = useState(0)
 
   useEffect(() => {
     let cancelled = false
     getHeaderXpFn()
       .then((r) => {
-        if (!cancelled) setData(r)
+        if (cancelled) return
+        if (!r.signedIn) {
+          writeCache(null)
+          setData(r)
+          return
+        }
+        setData((prev) => {
+          if (prev && JSON.stringify(prev) === JSON.stringify(r)) return prev
+          writeCache(r)
+          return r
+        })
       })
       .catch(() => {
         /* anonymous or transient — silent */
@@ -45,8 +81,8 @@ export function XpHeaderChip({ refreshKey = 0 }: { refreshKey?: number }) {
     <Link
       to="/profile"
       className={cn(
-        "group inline-flex items-center gap-2.5 rounded-full",
-        "border border-primary/25 bg-primary/5 px-3 py-1.5",
+        "group inline-flex items-center gap-2 rounded-full sm:gap-2.5",
+        "border border-primary/25 bg-primary/5 px-2.5 py-1.5 sm:px-3",
         "hover:border-primary/50 hover:bg-primary/10 active:scale-[0.97]",
         "transition-all duration-150",
       )}
@@ -61,11 +97,11 @@ export function XpHeaderChip({ refreshKey = 0 }: { refreshKey?: number }) {
         height={20}
         className="select-none -ml-0.5"
       />
-      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary/90">
+      <span className="hidden text-[10px] font-bold uppercase tracking-[0.14em] text-primary/90 sm:inline">
         {levelName}
       </span>
       <span
-        className="relative block h-1.5 w-12 overflow-hidden rounded-full bg-primary/15"
+        className="relative block h-1.5 w-8 overflow-hidden rounded-full bg-primary/15 sm:w-12"
         aria-hidden="true"
       >
         <span

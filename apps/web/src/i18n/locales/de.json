@@ -24,7 +24,8 @@
     "logo": "punchlinequiz",
     "logoAria": "punchlinequiz — Startseite",
     "signIn": "Anmelden",
-    "leaderboard": "Rangliste"
+    "leaderboard": "Rangliste",
+    "profile": "Profil"
   },
   "xp": {
     "suffix": "XP",
@@ -60,6 +61,21 @@
       "subtext": "Ohne Account zählt nix. Anmelden und vom Neuling zum OG werden.",
       "subtextWithNext": "Mit jedem richtigen Treffer XP sammeln — vom Neuling bis zum {{rank}}.",
       "cta": "Anmelden"
+    },
+    "public": {
+      "topArtistsTitle": "Top-Künstler",
+      "followers": "Follower",
+      "following": "Folgt",
+      "follow": "Folgen",
+      "followingBtn": "Folge ich",
+      "challenge": "Fordern",
+      "createChallenge": "Freund fordern",
+      "shareProfile": "Profil teilen",
+      "comingSoon": "Bald",
+      "barsShort": "Bars",
+      "notFoundTitle": "Kein:e Spieler:in",
+      "notFoundBody": "@{{handle}} ist (noch) nicht dabei.",
+      "submitBar": "Bar einreichen"
     }
   },
   "home": {
@@ -378,7 +394,8 @@
       "review": "Review",
       "daily": "Daily",
       "xp": "XP-Werte",
-      "levels": "Level"
+      "levels": "Level",
+      "submissions": "Einreichungen"
     },
     "xp": {
       "eyebrow": "/ XP",
@@ -425,6 +442,26 @@
         "nameEn": "Name (EN)",
         "accent": "Accent"
       }
+    },
+    "submissions": {
+      "title": "Einreichungen",
+      "empty": "Keine offenen Einreichungen.",
+      "by": "von @{{handle}}",
+      "artist": "Artist",
+      "song": "Song",
+      "line": "Die Bar",
+      "distractor1": "Distraktor 1",
+      "distractor2": "Distraktor 2",
+      "clozePrompt": "Lückentext (___)",
+      "answers": "Lücken-Antworten (Komma-getrennt)",
+      "note": "Notiz",
+      "approve": "Annehmen & anlegen",
+      "reject": "Ablehnen",
+      "approved": "Angelegt ✓",
+      "rejected": "Abgelehnt",
+      "error": "Aktion fehlgeschlagen.",
+      "remaining": "{{n}} offen",
+      "hint": "Hinweis"
     }
   },
   "share": {
@@ -465,12 +502,75 @@
     "title": "Die Bestenliste",
     "tabs": {
       "xp": "XP",
-      "completion": "Bars geknackt"
+      "completion": "Bars geknackt",
+      "friends": "Freunde",
+      "artists": "Künstler"
     },
     "window": {
       "weekly": "Diese Woche",
       "alltime": "Allzeit"
     },
-    "empty": "Noch niemand hier. Sei der Erste."
+    "empty": "Noch niemand hier. Sei der Erste.",
+    "friendsSignIn": "Melde dich an, um dich mit den Leuten zu messen, denen du folgst.",
+    "friendsEmpty": "Folge ein paar Spieler:innen, um dein Freunde-Board zu füllen.",
+    "pickArtist": "Künstler wählen"
+  },
+  "challenge": {
+    "eyebrow": "/ challenge",
+    "notFoundTitle": "Challenge nicht gefunden",
+    "notFoundBody": "Dieser Challenge-Link ist ungültig oder existiert nicht mehr.",
+    "progress": "Bar {{n}} / {{total}}",
+    "prompt": "Von wem ist diese Bar?",
+    "resultEyebrow": "/ dein Run",
+    "score": "{{correct}} / {{total}}",
+    "yourTime": "Deine Zeit",
+    "seconds": "{{s}}s",
+    "recapTitle": "Die Bars",
+    "correctLabel": "Richtig",
+    "wallTitle": "Sicher dir deinen Platz",
+    "wallBody": "Melde dich an, um deinen Score aufs Board zu setzen.",
+    "wallCta": "Anmelden & sichern",
+    "boardTitle": "Schlag meinen Score",
+    "creatorThrewDown": "@{{handle}} fordert dich",
+    "beatThem": "Schaffst du mehr als @{{handle}}?",
+    "beFirst": "Sei der oder die Erste, die diese 5 knackt.",
+    "playAgain": "Nochmal spielen",
+    "lockedNote": "Dein erster Run legt deinen Board-Score fest.",
+    "alreadyLocked": "Dein Board-Score bleibt {{correct}}/{{total}}.",
+    "share": "Challenge teilen",
+    "creating": "Wird erstellt…",
+    "startError": "Challenge konnte nicht gestartet werden.",
+    "viewBoard": "Board ansehen",
+    "you": "Du"
+  },
+  "submit": {
+    "eyebrow": "/ bar einreichen",
+    "title": "Bar einreichen",
+    "subtitle": "Wirf eine Punchline rein. Nur die Zeile ist Pflicht — den Rest ergänzen wir.",
+    "lineLabel": "Die Bar",
+    "linePlaceholder": "Zeile einfügen… / für Bar-Umbrüche",
+    "optionalToggle": "Details hinzufügen (optional)",
+    "artistHint": "Artist",
+    "songHint": "Song",
+    "answer": "Die Antwort (für Lückentext)",
+    "clozePrompt": "Zeile mit markierter Lücke (___ benutzen)",
+    "note": "Notiz für den Reviewer",
+    "cta": "Bar einreichen",
+    "submitting": "Wird gesendet…",
+    "successTitle": "Eingereicht ✊",
+    "successBody": "Wir schauen drüber und nehmen sie auf, wenn sie sitzt. Verfolge sie in deinem Profil.",
+    "another": "Noch eine einreichen",
+    "viewMine": "Meine Einreichungen",
+    "anonTitle": "Zum Einreichen anmelden",
+    "anonBody": "Zum Einreichen brauchst du ein Konto, damit wir dich nennen können.",
+    "error": "Konnte nicht gesendet werden — versuch's nochmal."
+  },
+  "mySubmissions": {
+    "title": "Meine Einreichungen",
+    "empty": "Noch keine Einreichungen.",
+    "pending": "In Prüfung",
+    "approved": "Live",
+    "rejected": "Abgelehnt",
+    "play": "Spielen"
   }
 }
