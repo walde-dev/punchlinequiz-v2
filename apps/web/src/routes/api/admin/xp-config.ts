@@ -26,6 +26,9 @@ const NUMERIC_FIELDS = [
   "streakIdleResetMinutes",
   "minSecondsBetweenAttempts",
   "xpSubmissionAccepted",
+  "xpReferralReferrer",
+  "xpReferralReferee",
+  "referralDailyCap",
 ] as const
 
 type ConfigField = (typeof NUMERIC_FIELDS)[number]

@@ -18,6 +18,7 @@ import {
 } from "../lib/profile"
 import { createChallengeFn } from "../lib/challenge"
 import type { ContributorProfile, ContributorTier } from "../lib/contributor"
+import { getMyReferralsFn, markReferralsSeenFn, type MyReferralsResult } from "../lib/referral"
 import { getMySubmissionsFn, markAcceptanceSeenFn, type MySubmission } from "../lib/submissions"
 import { logEvent } from "../lib/track"
 
@@ -170,9 +171,117 @@ function ProfileView({ data }: { data: Extract<PublicProfileResult, { found: tru
           </section>
         )}
 
+        {data.isOwner && <InviteCard handle={data.handle} />}
         {data.isOwner && <MySubmissions />}
       </main>
     </div>
+  )
+}
+
+/** Owner-only: highlighted invite card — shareable link, referral count, confirmed list + payoff (PUN-74/75). */
+function InviteCard({ handle }: { handle: string }) {
+  const { t } = useTranslation()
+  const [data, setData] = useState<MyReferralsResult | null>(null)
+  const [copied, setCopied] = useState(false)
+  const [celebrated, setCelebrated] = useState<{ handle: string; xp: number }[]>([])
+  const [confettiKey, setConfettiKey] = useState(0)
+
+  const link =
+    typeof window !== "undefined" ? `${window.location.origin}/i/${handle}` : `/i/${handle}`
+
+  useEffect(() => {
+    getMyReferralsFn()
+      .then((d) => {
+        setData(d)
+        if (d.newlyConfirmed.length > 0) {
+          setCelebrated(d.newlyConfirmed)
+          setConfettiKey((k) => k + 1)
+          logEvent("referral_confirmed_seen", { count: d.newlyConfirmed.length })
+          markReferralsSeenFn().catch(() => {})
+        }
+      })
+      .catch(() => setData({ confirmed: 0, pending: 0, items: [], newlyConfirmed: [] }))
+  }, [])
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(link)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+      logEvent("referral_link_copied", {})
+    } catch {
+      /* clipboard blocked */
+    }
+  }
+
+  async function share() {
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({ url: link, text: t("invite.shareText") })
+        logEvent("referral_link_shared", { channel: "native" })
+      } catch {
+        /* user dismissed */
+      }
+    } else {
+      copy()
+    }
+  }
+
+  if (data === null) return null
+  const celebratedXp = celebrated.reduce((a, c) => a + c.xp, 0)
+
+  return (
+    <section
+      className="relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-primary/40 bg-primary/5 p-5"
+      style={{ animation: `pq-fade-up 0.55s ${ease} 0.28s both` }}
+    >
+      <Confetti trigger={confettiKey} />
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary/80">{t("invite.cardTitle")}</h2>
+        {data.confirmed > 0 && (
+          <span className="text-xs font-bold text-primary">{t("invite.count", { count: data.confirmed })}</span>
+        )}
+      </div>
+
+      {celebrated.length > 0 && (
+        <p className="text-sm font-extrabold text-primary">
+          {celebrated.length === 1
+            ? t("invite.payoffOne", { handle: celebrated[0].handle })
+            : t("invite.payoffMany", { count: celebrated.length })}
+          {celebratedXp > 0 && <span className="text-foreground"> +{celebratedXp} XP</span>}
+        </p>
+      )}
+
+      <p className="text-sm text-muted-foreground text-balance">{t("invite.cardSubtitle")}</p>
+
+      <div className="flex items-center gap-2 rounded-full border border-border/60 bg-background/60 px-4 py-2">
+        <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground/90">{link.replace(/^https?:\/\//, "")}</span>
+        <button
+          type="button"
+          onClick={copy}
+          className="shrink-0 text-xs font-bold uppercase tracking-wide text-primary hover:underline"
+        >
+          {copied ? t("common.linkCopied") : t("invite.copy")}
+        </button>
+      </div>
+
+      <Button onClick={share} className="cta-glow min-h-11 text-sm font-bold">
+        {t("invite.share")}
+      </Button>
+
+      {data.items.length > 0 && (
+        <ul className="flex flex-col gap-1.5 pt-1">
+          {data.items.slice(0, 5).map((r, i) => (
+            <li key={`${r.handle}-${i}`} className="flex items-center justify-between gap-3 text-sm">
+              <Link to="/u/$handle" params={{ handle: r.handle }} className="font-semibold text-foreground/90 hover:text-primary">
+                @{r.handle}
+              </Link>
+              {r.xp > 0 && <span className="shrink-0 text-xs font-bold tabular-nums text-primary">+{r.xp} XP</span>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   )
 }
 

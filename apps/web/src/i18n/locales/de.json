@@ -122,6 +122,22 @@
   "bar": {
     "submittedBy": "eingereicht von"
   },
+  "invite": {
+    "eyebrow": "/ einladung",
+    "title": "@{{handle}} hat dich eingeladen",
+    "fallbackTitle": "Kennst du die Bars?",
+    "subtitle": "Errate den Artist hinter der Punchline. Beweis, dass du die Kultur kennst.",
+    "ctaPlay": "Loslegen",
+    "ctaDaily": "Daily spielen",
+    "cardTitle": "Lade Freunde ein",
+    "cardSubtitle": "Teile deinen Link. Wenn ein Homie loslegt, kassiert ihr beide XP.",
+    "count": "{{count}} geworben",
+    "copy": "Kopieren",
+    "share": "Link teilen",
+    "shareText": "Kennst du die Bars? Spiel punchlinequiz mit mir.",
+    "payoffOne": "@{{handle}} ist deinem Link gefolgt!",
+    "payoffMany": "{{count}} Leute sind deinem Link gefolgt!"
+  },
   "play": {
     "barEyebrow": "/ die bar",
     "questionCloze": "Welches Wort fehlt?",
@@ -430,7 +446,10 @@
         "streakMax": "Max. Streak-Bonus",
         "streakIdle": "Streak-Reset (Min.)",
         "minCooldown": "Cooldown (Sek.)",
-        "submissionAccepted": "Bar angenommen"
+        "submissionAccepted": "Bar angenommen",
+        "referralReferrer": "Referral (Werber)",
+        "referralReferee": "Referral (Neuer)",
+        "referralDailyCap": "Referral-Limit/Tag"
       },
       "hints": {
         "artist": "Basis-XP für eine richtige Artist-Antwort.",
@@ -443,7 +462,10 @@
         "streakMax": "Hartes Maximum für den Streak-Bonus.",
         "streakIdle": "Streak zerfällt nach so viel Inaktivität (Minuten).",
         "minCooldown": "Mindest-Abstand zwischen zwei Submits in Sekunden — blockt Autofarming.",
-        "submissionAccepted": "XP für den Contributor, wenn seine eingereichte Bar angenommen wird."
+        "submissionAccepted": "XP für den Contributor, wenn seine eingereichte Bar angenommen wird.",
+        "referralReferrer": "XP für den Werber, wenn ein geworbener Spieler aktiviert wird.",
+        "referralReferee": "Willkommens-XP für den geworbenen Spieler bei Bestätigung.",
+        "referralDailyCap": "Max. belohnte Referrals pro Werber und Tag — Anti-Farming."
       }
     },
     "levels": {

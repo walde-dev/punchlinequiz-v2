@@ -29,6 +29,9 @@ type XpConfigRow = {
   streakIdleResetMinutes: number
   minSecondsBetweenAttempts: number
   xpSubmissionAccepted: number
+  xpReferralReferrer: number
+  xpReferralReferee: number
+  referralDailyCap: number
 }
 
 const FIELDS: Array<{
@@ -47,6 +50,9 @@ const FIELDS: Array<{
   { key: "streakIdleResetMinutes", labelKey: "admin.xp.fields.streakIdle", hintKey: "admin.xp.hints.streakIdle" },
   { key: "minSecondsBetweenAttempts", labelKey: "admin.xp.fields.minCooldown", hintKey: "admin.xp.hints.minCooldown" },
   { key: "xpSubmissionAccepted", labelKey: "admin.xp.fields.submissionAccepted", hintKey: "admin.xp.hints.submissionAccepted" },
+  { key: "xpReferralReferrer", labelKey: "admin.xp.fields.referralReferrer", hintKey: "admin.xp.hints.referralReferrer" },
+  { key: "xpReferralReferee", labelKey: "admin.xp.fields.referralReferee", hintKey: "admin.xp.hints.referralReferee" },
+  { key: "referralDailyCap", labelKey: "admin.xp.fields.referralDailyCap", hintKey: "admin.xp.hints.referralDailyCap" },
 ]
 
 function AdminXpPage() {

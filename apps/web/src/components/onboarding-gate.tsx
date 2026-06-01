@@ -7,6 +7,7 @@ import { cn } from "@workspace/ui/lib/utils"
 
 import { HANDLE_MAX, HANDLE_MIN, validateHandle } from "../lib/handle"
 import { checkHandleFn, claimHandleFn, getOnboardingStatusFn } from "../lib/onboarding"
+import { clearReferralToken, getReferralToken } from "../lib/referral-client"
 import { logEvent } from "../lib/track"
 
 const ease = "cubic-bezier(0.16, 1, 0.3, 1)"
@@ -77,9 +78,13 @@ function OnboardingFlow() {
     if (!canSubmit) return
     setSubmitting(true)
     try {
-      const res = await claimHandleFn({ data: { handle: value } })
+      // Pass the first-touch referral token (if any) so the new account is
+      // attributed at onboarding, then clear it (PUN-73).
+      const referral = getReferralToken() ?? undefined
+      const res = await claimHandleFn({ data: { handle: value, referral } })
       if (res.ok) {
-        logEvent("handle_claimed", { handle: res.handle })
+        logEvent("handle_claimed", { handle: res.handle, referred: !!referral })
+        clearReferralToken()
         setPhase("hidden")
       } else {
         setAvailability({ state: "bad", reason: res.reason })

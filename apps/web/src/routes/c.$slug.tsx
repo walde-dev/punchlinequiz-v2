@@ -20,6 +20,7 @@ import {
   type ChallengeView,
 } from "../lib/challenge"
 import { renderChallengeCard } from "../lib/share-card"
+import { setReferralToken } from "../lib/referral-client"
 import { logEvent } from "../lib/track"
 
 export const Route = createFileRoute("/c/$slug")({
@@ -96,6 +97,9 @@ function ChallengeRunner({ data }: { data: Extract<ChallengeView, { found: true 
 
   useEffect(() => {
     logEvent("play_challenge_start", { slug: data.slug })
+    // Capture the challenge as a first-touch referral source — if this visitor
+    // signs up, the challenge creator gets credited (PUN-73).
+    setReferralToken({ source: "challenge", value: data.slug })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

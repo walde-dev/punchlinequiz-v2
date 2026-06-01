@@ -122,6 +122,22 @@
   "bar": {
     "submittedBy": "submitted by"
   },
+  "invite": {
+    "eyebrow": "/ invite",
+    "title": "@{{handle}} invited you",
+    "fallbackTitle": "Know your bars?",
+    "subtitle": "Guess the artist behind the punchline. Prove you know the culture.",
+    "ctaPlay": "Start playing",
+    "ctaDaily": "Play the daily",
+    "cardTitle": "Invite friends",
+    "cardSubtitle": "Share your link. When a homie starts playing, you both bag XP.",
+    "count": "{{count}} invited",
+    "copy": "Copy",
+    "share": "Share link",
+    "shareText": "Know your bars? Play punchlinequiz with me.",
+    "payoffOne": "@{{handle}} followed your link!",
+    "payoffMany": "{{count}} people followed your link!"
+  },
   "play": {
     "barEyebrow": "/ the bar",
     "questionCloze": "What's the missing word?",
@@ -430,7 +446,10 @@
         "streakMax": "Max streak bonus",
         "streakIdle": "Streak reset (min.)",
         "minCooldown": "Cooldown (sec.)",
-        "submissionAccepted": "Bar accepted"
+        "submissionAccepted": "Bar accepted",
+        "referralReferrer": "Referral (referrer)",
+        "referralReferee": "Referral (new user)",
+        "referralDailyCap": "Referral cap/day"
       },
       "hints": {
         "artist": "Base XP for a correct artist guess.",
@@ -443,7 +462,10 @@
         "streakMax": "Hard cap on the streak bonus.",
         "streakIdle": "Streak resets after this many idle minutes.",
         "minCooldown": "Minimum seconds between submissions — blocks autofarming.",
-        "submissionAccepted": "XP granted to the contributor when their submitted bar is accepted."
+        "submissionAccepted": "XP granted to the contributor when their submitted bar is accepted.",
+        "referralReferrer": "XP for the referrer when a referred player activates.",
+        "referralReferee": "Welcome XP for the referred player on confirmation.",
+        "referralDailyCap": "Max rewarded referrals per referrer per day — anti-farming."
       }
     },
     "levels": {

@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Implementation notes — Contributor Rewards</title>
+<style>
+  body { font: 14px/1.5 -apple-system, system-ui, sans-serif; max-width: 820px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }
+  h1 { font-size: 1.4rem; }
+  h2 { font-size: 1.1rem; margin-top: 2rem; border-bottom: 1px solid #ddd; padding-bottom: 0.25rem; }
+  h3 { font-size: 0.95rem; margin-top: 1.5rem; color: #444; }
+  .entry { margin: 0.75rem 0 1.25rem; padding-left: 0.75rem; border-left: 3px solid #ddd; }
+  .entry.open { border-left-color: #d97706; }
+  .entry.deviation { border-left-color: #dc2626; }
+  .entry.decision { border-left-color: #2563eb; }
+  .entry.tradeoff { border-left-color: #7c3aed; }
+  .meta { color: #666; font-size: 0.85rem; }
+  code { background: #f3f3f3; padding: 0 0.25rem; border-radius: 3px; }
+  .phase { display: inline-block; font-size: 0.72rem; background: #fbbf24; color: #1a1a1a; border-radius: 9999px; padding: 0 0.5rem; margin-right: 0.4rem; font-weight: 600; }
+</style>
+</head>
+<body>
+<h1>Implementation notes — Contributor Rewards</h1>
+<p class="meta">Project: PUN Contributor Rewards (PUN-65..70) · Started: 2026-06-01 · 4 phases ·
+Prior project's notes archived in <code>implementation-notes-profiles.html</code></p>
+
+<p class="meta">Settled design (grilling): contributor_grants ledger; flat 500 XP (tunable);
+attribution on play+reveal (not share card); auto-publish DEFERRED; 3 tiers (5/25, 60%/80%);
+tier-scaled pending-slot cap anti-abuse; contributor leaderboard accepted-count all-time;
+profile stats + tier chip (badges deferred); in-app pull acceptance feedback (push deferred);
+weekly submission streak; contributor XP → totalXp/rank/all-time only (not weekly board).</p>
+
+<h2>Design decisions</h2>
+
+<div class="entry decision">
+  <strong><span class="phase">P1</span>contributor_grants ledger table</strong>
+  <p>New table, unique on <code>submission_id</code> → idempotent (one grant per accepted submission).
+  Adds to <code>users.total_xp</code> via SQL math. Deliberately NOT reusing <code>user_punchline_xp</code>
+  (its unique <code>(clerk_id, punchline_id)</code> would collide if a contributor later solves their own minted bar).</p>
+</div>
+
+<div class="entry decision">
+  <strong><span class="phase">P1</span>Flat 500 XP, tunable</strong>
+  <p>New <code>xp_config.xp_submission_accepted</code> column, default 500. Surfaced in the admin XP tuner
+  (<code>routes/admin/xp.tsx</code> + <code>api/admin/xp-config.ts</code> whitelist).</p>
+</div>
+
+<div class="entry decision">
+  <strong><span class="phase">P1</span>Tier computed on-read, constants in lib/contributor.ts</strong>
+  <p>3 tiers (Neuling → Vertraut ≥5/≥60% → Verifiziert ≥25/≥80%; min 5 resolved before rate gate).
+  No stored tier column — computed from submission counts. Tier-up moments detected by comparing before/after at acceptance.</p>
+</div>
+
+<h2>Deviations from spec</h2>
+
+<div class="entry deviation">
+  <strong><span class="phase">P1/P3</span>Auto-publish deferred (PUN-66 re-scoped)</strong>
+  <p>Project's headline "top tier auto-publishes" is not buildable: submissions carry only <code>line</code> + free-text
+  hints, but minting a playable bar needs <code>song_id</code> + two distractor artist FKs (NOT NULL) supplied only by the
+  admin today. Auto-publish needs a structured submission form → later phase. Audit-sampling / takedown / revocation were
+  guardrails for auto-published bars → defer with it. PUN-66 now = tier compute + review-queue prioritization + anti-abuse.</p>
+</div>
+
+<div class="entry deviation">
+  <strong><span class="phase">P4</span>Acceptance push notification deferred to PUN-22</strong>
+  <p>Notification dispatch core (Resend) doesn't exist (PUN-22 Backlog, separate project). Acceptance payoff is in-app
+  pull (unseen-acceptance flag → celebration on next visit). Push is a clean hook for when PUN-22 lands.</p>
+</div>
+
+<div class="entry deviation">
+  <strong><span class="phase">P3</span>Milestone badges deferred to Achievements &amp; Badges</strong>
+  <p>That project is unscoped/empty; building milestone badges here = the parallel system PUN-68 warns against.
+  Tier prestige chip (surfacing computed state) ships; 10/50/100 badges hand off.</p>
+</div>
+
+<div class="entry deviation">
+  <strong><span class="phase">P2</span>Contributor XP excluded from weekly XP board</strong>
+  <p>Per decision: contributor grants feed <code>total_xp</code> (rank + all-time board) but NOT the weekly board
+  (which stays pure play-activity). No change to the weekly UNION queries in <code>lib/leaderboard.ts</code>.</p>
+</div>
+
+<div class="entry decision">
+  <strong><span class="phase">P2</span>Attribution rendered via shared BarCredit in the bar header</strong>
+  <p>New <code>components/bar-credit.tsx</code> links to <code>/u/$handle</code>. Threaded as <code>submittedByHandle</code>
+  through <code>Round</code> (game.ts), <code>DailyChallenge</code> (daily.ts), <code>ChallengeRound</code> + <code>ChallengeRecapBar</code>
+  (challenge.ts) via a <code>leftJoin(users)</code> on <code>punchlines.submitted_by_clerk_id</code>. Placed beside the
+  question prompt in each route's BarDisplay so it shows during play AND through reveal (same component persists).</p>
+</div>
+
+<div class="entry deviation">
+  <strong><span class="phase">P2</span>Challenge recap row omits per-bar credit</strong>
+  <p>The decision was "reveal/result + during play". Attribution shows during each challenge round, but the post-run
+  <em>recap</em> row (<code>c.$slug.tsx</code>) is a dense, truncated one-line list (✓/✗ + line + artist) — adding @handle
+  per row clutters it. Credit is already seen while playing each bar, so the recap stays clean. Play + daily show it on
+  reveal as specced (the bar stays on screen).</p>
+</div>
+
+<div class="entry decision">
+  <strong><span class="phase">P3</span>Submission streak built in Phase 3, reused in Phase 4</strong>
+  <p><code>getSubmissionStreak</code> (contributor.ts) — consecutive Mon-anchored UTC weeks with ≥1 submission, alive only
+  if the latest active week is this/last week. Built now because PUN-68's profile stat needs it; Phase 4 reuses it for
+  the nudge. Verified: [0,1,2]→3, [1,2]→2 (alive via last wk), [2,3]→0 (dead), [0,2]→1.</p>
+</div>
+
+<div class="entry decision">
+  <strong><span class="phase">P3</span>Review-queue tier priority sorted in JS, not SQL</strong>
+  <p>Tier is computed (no column), so <code>api/admin/submissions.ts</code> fetches pending rows, resolves tiers via
+  <code>getTiersFor</code>, then sorts: tier DESC, then createdAt ASC (oldest-first within a tier so nothing rots).
+  Admin-only + capped at 100 rows, so JS sorting is fine and avoids a correlated count subquery in ORDER BY. Tier badge
+  surfaced on the admin card.</p>
+</div>
+
+<div class="entry decision">
+  <strong><span class="phase">P3</span>Profile contributor section only shows when submitted &gt; 0</strong>
+  <p>Non-contributors don't see an empty contributor block. Tier chip + accepted/submitted/rate/streak tiles render via
+  <code>getContributorProfile</code> on <code>/u/$handle</code>.</p>
+</div>
+
+<div class="entry decision">
+  <strong><span class="phase">P4</span>Acceptance celebration = pull on My submissions, marked-seen once</strong>
+  <p>New nullable <code>punchline_submissions.acceptance_seen_at</code>. <code>getMySubmissionsFn</code> returns
+  <code>newlyAccepted</code> (approved &amp;&amp; unseen) + <code>xpAwarded</code> (joined from <code>contributor_grants</code>).
+  On load, <code>u.$handle.tsx</code> shows a confetti celebration for fresh acceptances, logs <code>acceptance_seen</code>,
+  then calls <code>markAcceptanceSeenFn</code> (idempotent UPDATE … WHERE seen IS NULL) so it fires once. Deep-links to
+  play the live bar via its artist slug.</p>
+</div>
+
+<div class="entry decision">
+  <strong><span class="phase">P4</span>Progress-to-next-tier + funnel logging</strong>
+  <p><code>nextTierProgress</code> (contributor.ts) drives a "noch N bis Vertraut/Verifiziert" line on the profile (uses the
+  accepted-count gap — the legible number). Funnel events: <code>submission_created</code> (submit.tsx, alongside legacy
+  <code>submit_bar</code>), <code>submission_rate_limited</code>, <code>acceptance_seen</code>, <code>view_contributor_leaderboard</code>;
+  acceptance + XP grant are logged server-side via the admin <code>review_submission</code> audit (xpGranted/tierUp).</p>
+</div>
+
+<h2>Tradeoffs considered</h2>
+
+<div class="entry tradeoff">
+  <strong><span class="phase">P1</span>Anti-abuse: pending-slot cap vs daily quota</strong>
+  <p>Chose tier-scaled cap on outstanding PENDING submissions (Neuling 5 / Vertraut 15 / Verifiziert ~uncapped),
+  rate &lt;30% over ≥10 resolved → 1 slot, +30s cooldown. Self-regulating: accept/reject frees slots, so productive
+  contributors flow while spammers jam their own queue. Rejected a flat daily quota (a spammer can still dump a day's junk).</p>
+</div>
+
+<h2>Open questions</h2>
+
+<div class="entry open">
+  <strong>Auto-publish + structured submission form (next phase)</strong>
+  <p>Deferred from this project. To let the top tier truly bypass review, the submission form must capture mint-ready
+  artist/song/2-distractors, and we then need the audit-sampling / instant-takedown / trust-revocation guardrails. Wants
+  its own scoping/grilling pass. The tier system + grant path are already in place to hang it off.</p>
+</div>
+
+<div class="entry open">
+  <strong>Acceptance push notification (PUN-22)</strong>
+  <p>In-app pull ships now; the email/realtime push ("dein Bar ist live!") is a clean hook for when the Notifications
+  project lands. Wire it into the admin approve path next to the existing in-app flag.</p>
+</div>
+
+<div class="entry open">
+  <strong>Contributor milestone badges (Achievements &amp; Badges)</strong>
+  <p>10/50/100-accepted + "Verified Contributor" badges intentionally NOT built here. Hand off to that project so there's
+  one badge system. The tier chip + stats are live to build on.</p>
+</div>
+
+<div class="entry open">
+  <strong>Tier thresholds are code constants, not DB-tunable</strong>
+  <p>5/25 + 60%/80% live in <code>contributor.ts</code>. If you want to retune them live like XP, they'd move into a config
+  table. Flagged during grilling; left as constants for now. Confirm that's acceptable.</p>
+</div>
+
+</body>
+</html>

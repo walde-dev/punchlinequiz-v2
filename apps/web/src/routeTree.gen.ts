@@ -18,6 +18,7 @@ import { Route as DailyRouteImport } from './routes/daily'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as UHandleRouteImport } from './routes/u.$handle'
+import { Route as IHandleRouteImport } from './routes/i.$handle'
 import { Route as CSlugRouteImport } from './routes/c.$slug'
 import { Route as AdminXpRouteImport } from './routes/admin/xp'
 import { Route as AdminSubmissionsRouteImport } from './routes/admin/submissions'
@@ -86,6 +87,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
 const UHandleRoute = UHandleRouteImport.update({
   id: '/u/$handle',
   path: '/u/$handle',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IHandleRoute = IHandleRouteImport.update({
+  id: '/i/$handle',
+  path: '/i/$handle',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CSlugRoute = CSlugRouteImport.update({
@@ -224,6 +230,7 @@ export interface FileRoutesByFullPath {
   '/admin/submissions': typeof AdminSubmissionsRoute
   '/admin/xp': typeof AdminXpRoute
   '/c/$slug': typeof CSlugRoute
+  '/i/$handle': typeof IHandleRoute
   '/u/$handle': typeof UHandleRoute
   '/admin/': typeof AdminIndexRoute
   '/api/admin/artists': typeof ApiAdminArtistsRouteWithChildren
@@ -259,6 +266,7 @@ export interface FileRoutesByTo {
   '/admin/submissions': typeof AdminSubmissionsRoute
   '/admin/xp': typeof AdminXpRoute
   '/c/$slug': typeof CSlugRoute
+  '/i/$handle': typeof IHandleRoute
   '/u/$handle': typeof UHandleRoute
   '/admin': typeof AdminIndexRoute
   '/api/admin/artists': typeof ApiAdminArtistsRouteWithChildren
@@ -295,6 +303,7 @@ export interface FileRoutesById {
   '/admin/submissions': typeof AdminSubmissionsRoute
   '/admin/xp': typeof AdminXpRoute
   '/c/$slug': typeof CSlugRoute
+  '/i/$handle': typeof IHandleRoute
   '/u/$handle': typeof UHandleRoute
   '/admin/': typeof AdminIndexRoute
   '/api/admin/artists': typeof ApiAdminArtistsRouteWithChildren
@@ -332,6 +341,7 @@ export interface FileRouteTypes {
     | '/admin/submissions'
     | '/admin/xp'
     | '/c/$slug'
+    | '/i/$handle'
     | '/u/$handle'
     | '/admin/'
     | '/api/admin/artists'
@@ -367,6 +377,7 @@ export interface FileRouteTypes {
     | '/admin/submissions'
     | '/admin/xp'
     | '/c/$slug'
+    | '/i/$handle'
     | '/u/$handle'
     | '/admin'
     | '/api/admin/artists'
@@ -402,6 +413,7 @@ export interface FileRouteTypes {
     | '/admin/submissions'
     | '/admin/xp'
     | '/c/$slug'
+    | '/i/$handle'
     | '/u/$handle'
     | '/admin/'
     | '/api/admin/artists'
@@ -438,6 +450,7 @@ export interface RootRouteChildren {
   AdminSubmissionsRoute: typeof AdminSubmissionsRoute
   AdminXpRoute: typeof AdminXpRoute
   CSlugRoute: typeof CSlugRoute
+  IHandleRoute: typeof IHandleRoute
   UHandleRoute: typeof UHandleRoute
   AdminIndexRoute: typeof AdminIndexRoute
   ApiAdminArtistsRoute: typeof ApiAdminArtistsRouteWithChildren
@@ -517,6 +530,13 @@ declare module '@tanstack/react-router' {
       path: '/u/$handle'
       fullPath: '/u/$handle'
       preLoaderRoute: typeof UHandleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/i/$handle': {
+      id: '/i/$handle'
+      path: '/i/$handle'
+      fullPath: '/i/$handle'
+      preLoaderRoute: typeof IHandleRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/c/$slug': {
@@ -763,6 +783,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminSubmissionsRoute: AdminSubmissionsRoute,
   AdminXpRoute: AdminXpRoute,
   CSlugRoute: CSlugRoute,
+  IHandleRoute: IHandleRoute,
   UHandleRoute: UHandleRoute,
   AdminIndexRoute: AdminIndexRoute,
   ApiAdminArtistsRoute: ApiAdminArtistsRouteWithChildren,

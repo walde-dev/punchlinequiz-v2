@@ -11,6 +11,7 @@ import {
 } from "@workspace/db"
 
 import { db } from "./db"
+import { confirmReferralOnActivation } from "./referral"
 
 export type GrantMode = "artist" | "cloze" | "song_bonus"
 
@@ -199,6 +200,10 @@ export async function grantPrimary(input: {
     })
     .where(eq(users.clerkId, clerkId))
 
+  // Confirm a pending referral on the referee's first correct answer (PUN-72).
+  // No-op (one indexed lookup) once confirmed or for non-referred users.
+  await confirmReferralOnActivation(clerkId, cfg).catch(() => {})
+
   const prev = levelFor(userRow.totalXp, sortedLevels)
   const after = levelFor(userRow.totalXp + total, sortedLevels)
 
@@ -364,6 +369,9 @@ export async function grantDailyArtist(input: {
       lastAttemptAt: now,
     })
     .where(eq(users.clerkId, clerkId))
+
+  // First correct daily answer also confirms a pending referral (PUN-72).
+  if (isCorrect) await confirmReferralOnActivation(clerkId, cfg).catch(() => {})
 
   const prev = levelFor(userRow.totalXp, sortedLevels)
   const after = levelFor(userRow.totalXp + total, sortedLevels)

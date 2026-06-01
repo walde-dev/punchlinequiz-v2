@@ -265,6 +265,12 @@ export const xpConfig = pgTable(
     minSecondsBetweenAttempts: integer("min_seconds_between_attempts").notNull().default(2),
     /** Flat XP granted to a contributor when their submission is accepted (PUN-65). */
     xpSubmissionAccepted: integer("xp_submission_accepted").notNull().default(500),
+    /** XP to the referrer when a referral is confirmed (PUN-72). */
+    xpReferralReferrer: integer("xp_referral_referrer").notNull().default(300),
+    /** Welcome XP to the referred user on confirmation (PUN-72). */
+    xpReferralReferee: integer("xp_referral_referee").notNull().default(150),
+    /** Max referrer-rewarded referrals per UTC day — anti-farm ceiling (PUN-72). */
+    referralDailyCap: integer("referral_daily_cap").notNull().default(10),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (t) => ({
@@ -447,3 +453,44 @@ export const contributorGrants = pgTable(
 
 export type ContributorGrant = typeof contributorGrants.$inferSelect
 export type NewContributorGrant = typeof contributorGrants.$inferInsert
+
+/**
+ * Referral edges + reward ledger (PUN-71/72). One row per referred user — the
+ * UNIQUE on referee_clerk_id enforces one referrer per user (first-touch wins;
+ * attribution insert is onConflictDoNothing). The row IS the ledger:
+ * `status` flips pending → confirmed when the referee earns their first correct
+ * answer; `referrer_xp`/`referee_xp` snapshot what was actually granted at that
+ * moment (referrer_xp = 0 if the referrer was over their daily cap). `seen_at`
+ * drives the referrer's in-app "@x joined! +XP" payoff. GDPR: clerkId→clerkId
+ * only, no extra PII.
+ */
+export const referrals = pgTable(
+  "referrals",
+  {
+    id: serial("id").primaryKey(),
+    referrerClerkId: varchar("referrer_clerk_id", { length: 64 })
+      .notNull()
+      .references(() => users.clerkId, { onDelete: "cascade" }),
+    refereeClerkId: varchar("referee_clerk_id", { length: 64 })
+      .notNull()
+      .references(() => users.clerkId, { onDelete: "cascade" }),
+    /** 'invite' (personal /i/$handle link) | 'challenge' (signed up via a challenge link). */
+    source: varchar("source", { length: 16 }).notNull(),
+    /** 'pending' (edge recorded at onboarding) | 'confirmed' (referee activated). */
+    status: varchar("status", { length: 16 }).notNull().default("pending"),
+    /** XP actually granted at confirmation (snapshot; referrer_xp=0 if cap-blocked). */
+    referrerXp: integer("referrer_xp").notNull().default(0),
+    refereeXp: integer("referee_xp").notNull().default(0),
+    /** Referrer has seen the confirmation celebration for this referral. */
+    seenAt: timestamp("seen_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    confirmedAt: timestamp("confirmed_at"),
+  },
+  (t) => ({
+    refereeUq: uniqueIndex("referrals_referee_uq").on(t.refereeClerkId),
+    byReferrer: index("referrals_by_referrer").on(t.referrerClerkId, t.status),
+  }),
+)
+
+export type Referral = typeof referrals.$inferSelect
+export type NewReferral = typeof referrals.$inferInsert

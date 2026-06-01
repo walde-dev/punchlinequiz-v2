@@ -5,6 +5,7 @@ import { users } from "@workspace/db"
 
 import { getActor } from "./auth"
 import { db } from "./db"
+import { recordPendingReferral, type ReferralToken } from "./referral"
 import { ensureUser } from "./xp"
 import { validateHandle } from "./handle"
 import type { HandleRejection } from "./handle"
@@ -92,7 +93,7 @@ function isUniqueViolation(err: unknown): boolean {
  *   value), so double-tap never reports a false "taken".
  */
 export const claimHandleFn = createServerFn({ method: "POST" })
-  .inputValidator((d: { handle: string }) => d)
+  .inputValidator((d: { handle: string; referral?: ReferralToken }) => d)
   .handler(async ({ data }): Promise<ClaimHandleResult> => {
     const req = getRequest()
     const result = await getActor(req)
@@ -103,6 +104,15 @@ export const claimHandleFn = createServerFn({ method: "POST" })
     if (!check.ok) return { ok: false, reason: check.reason }
 
     await ensureUser(clerkId)
+
+    // Whether this claim is the user's FIRST onboarding — referral attribution
+    // only applies to brand-new users, never a returning re-claim.
+    const [before] = await db
+      .select({ onboardedAt: users.onboardedAt })
+      .from(users)
+      .where(eq(users.clerkId, clerkId))
+      .limit(1)
+    const isFirstOnboarding = !before?.onboardedAt
 
     // Store the trimmed display form; uniqueness is enforced on lower(handle).
     const display = data.handle.trim()
@@ -120,6 +130,12 @@ export const claimHandleFn = createServerFn({ method: "POST" })
         return { ok: false, reason: "taken" }
       }
       throw err
+    }
+
+    // Attribute a referral (first-touch) for genuinely new users only. Never let
+    // a referral hiccup fail the handle claim.
+    if (isFirstOnboarding && data.referral) {
+      await recordPendingReferral({ refereeClerkId: clerkId, token: data.referral }).catch(() => {})
     }
 
     return { ok: true, handle: display }
