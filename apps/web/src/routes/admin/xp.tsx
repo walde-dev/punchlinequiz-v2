@@ -28,6 +28,7 @@ type XpConfigRow = {
   streakMaxBonus: number
   streakIdleResetMinutes: number
   minSecondsBetweenAttempts: number
+  xpSubmissionAccepted: number
 }
 
 const FIELDS: Array<{
@@ -45,6 +46,7 @@ const FIELDS: Array<{
   { key: "streakMaxBonus", labelKey: "admin.xp.fields.streakMax", hintKey: "admin.xp.hints.streakMax" },
   { key: "streakIdleResetMinutes", labelKey: "admin.xp.fields.streakIdle", hintKey: "admin.xp.hints.streakIdle" },
   { key: "minSecondsBetweenAttempts", labelKey: "admin.xp.fields.minCooldown", hintKey: "admin.xp.hints.minCooldown" },
+  { key: "xpSubmissionAccepted", labelKey: "admin.xp.fields.submissionAccepted", hintKey: "admin.xp.hints.submissionAccepted" },
 ]
 
 function AdminXpPage() {

@@ -8,6 +8,7 @@ import { cn } from "@workspace/ui/lib/utils"
 
 import { AnonymousXpCta } from "../components/anonymous-xp-cta"
 import { AppHeader } from "../components/app-header"
+import { BarCredit } from "../components/bar-credit"
 import { Confetti } from "../components/confetti"
 import { EditBarDrawer } from "../components/edit-bar-drawer"
 import { LevelUpModal } from "../components/level-up-modal"
@@ -446,6 +447,7 @@ function PlayInner({
                 : null
             }
             shakeKey={wrongShake}
+            submittedByHandle={round.submittedByHandle}
             adminBadge={
               isAdmin ? (
                 <button
@@ -529,6 +531,7 @@ function BarDisplay({
   filledAnswer,
   shakeKey,
   adminBadge,
+  submittedByHandle,
 }: {
   line: string
   mode: Round["mode"]
@@ -536,6 +539,7 @@ function BarDisplay({
   filledAnswer?: string | null
   shakeKey: number
   adminBadge?: React.ReactNode
+  submittedByHandle?: string | null
 }) {
   const { t } = useTranslation()
   return (
@@ -561,9 +565,12 @@ function BarDisplay({
         {renderBarLines(line, filledAnswer ?? null)}
         <span className="text-primary/40 select-none ml-1">"</span>
       </blockquote>
-      <p className="text-sm text-muted-foreground">
-        {mode === "cloze" ? t("play.questionCloze") : t("play.questionArtist")}
-      </p>
+      <div className="flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <p className="text-sm text-muted-foreground">
+          {mode === "cloze" ? t("play.questionCloze") : t("play.questionArtist")}
+        </p>
+        <BarCredit handle={submittedByHandle} />
+      </div>
     </div>
   )
 }

@@ -7,6 +7,7 @@ import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { AppHeader } from "../components/app-header"
+import { BarCredit } from "../components/bar-credit"
 import { rankIconPath } from "../lib/rank-icon"
 import {
   getChallengeFn,
@@ -270,7 +271,10 @@ function ChallengePlay({
             ))}
             <span className="ml-1 select-none text-primary/40">"</span>
           </blockquote>
-          <p className="text-sm text-muted-foreground">{t("challenge.prompt")}</p>
+          <div className="flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-1">
+            <p className="text-sm text-muted-foreground">{t("challenge.prompt")}</p>
+            <BarCredit handle={round.submittedByHandle} />
+          </div>
         </div>
 
         <div className="flex flex-col gap-3" style={{ animation: `pq-fade-up 0.55s ${ease} 0.12s both` }}>
@@ -384,7 +388,7 @@ function ResultView({
 
       <div className="flex flex-col gap-2">
         <ShareButton slug={slug} correctCount={persisted && locked ? locked.correctCount : result.correctCount} size={size} creatorHandle={creatorHandle} />
-        <Button type="button" variant="ghost" onClick={onViewBoard} className="min-h-11 rounded-full text-sm font-bold text-muted-foreground hover:text-foreground">
+        <Button type="button" variant="ghost" onClick={onViewBoard} className="min-h-11 text-sm font-bold text-muted-foreground hover:text-foreground">
           {t("challenge.viewBoard")}
         </Button>
       </div>
@@ -399,7 +403,7 @@ function SignupWall() {
       <h2 className="text-lg font-extrabold tracking-tight">{t("challenge.wallTitle")}</h2>
       <p className="max-w-xs text-sm text-muted-foreground text-balance">{t("challenge.wallBody")}</p>
       <SignInButton mode="modal">
-        <Button className="cta-glow min-h-11 rounded-full bg-primary px-6 text-sm font-bold text-primary-foreground hover:bg-primary/90">
+        <Button className="cta-glow min-h-11 bg-primary px-6 text-sm font-bold text-primary-foreground hover:bg-primary/90">
           {t("challenge.wallCta")}
         </Button>
       </SignInButton>
@@ -441,7 +445,7 @@ function BoardScreen({
 
       <div className="flex flex-col gap-2">
         <ShareButton slug={slug} correctCount={locked?.correctCount ?? null} size={size} creatorHandle={creatorHandle} />
-        <Button type="button" variant="ghost" onClick={onPlayAgain} className="min-h-11 rounded-full border border-border/60 text-sm font-bold">
+        <Button type="button" variant="ghost" onClick={onPlayAgain} className="min-h-11 border border-border/60 text-sm font-bold">
           {t("challenge.playAgain")}
         </Button>
       </div>
@@ -554,7 +558,7 @@ function ShareButton({
   }
 
   return (
-    <Button onClick={share} className="cta-glow min-h-12 w-full rounded-full text-base font-bold">
+    <Button onClick={share} className="cta-glow min-h-12 w-full text-base font-bold">
       {copied ? t("common.linkCopied") : t("challenge.share")}
     </Button>
   )

@@ -14,6 +14,7 @@ import {
   requireString,
 } from "../../../lib/admin"
 import { requireAdmin } from "../../../lib/auth"
+import { grantContributorXp } from "../../../lib/contributor"
 import { upsertBar } from "../../../lib/upsert"
 
 /**
@@ -69,12 +70,14 @@ export const Route = createFileRoute("/api/admin/submissions/$id")({
             perfectSolution: optionalStringArray(body.perfectSolution, "perfectSolution"),
           })
 
-          // Flip to reviewed (admin completion IS the review) + optional cloze.
+          // Flip to reviewed (admin completion IS the review) + optional cloze,
+          // and credit the contributor on the bar itself (PUN-67 attribution).
           const clozePrompt = optionalString(body.clozePrompt, "clozePrompt", { max: 1000 })
           await db
             .update(punchlines)
             .set({
               reviewed: true,
+              submittedByClerkId: submission.submitterClerkId,
               ...(clozePrompt ? { clozePrompt, clozeEnabled: true } : {}),
             })
             .where(eq(punchlines.id, minted.punchlineId))
@@ -84,12 +87,32 @@ export const Route = createFileRoute("/api/admin/submissions/$id")({
             .set({ status: "approved", createdPunchlineId: minted.punchlineId })
             .where(eq(punchlineSubmissions.id, id))
 
+          // Grant contributor XP (idempotent; after the status flip so counts
+          // include this acceptance). Feeds total_xp / rank / all-time board.
+          const grant = await grantContributorXp({
+            submissionId: id,
+            clerkId: submission.submitterClerkId,
+          })
+
           audit(
             "review_submission",
-            { submissionId: id, action: "approve", createdPunchlineId: minted.punchlineId },
+            {
+              submissionId: id,
+              action: "approve",
+              createdPunchlineId: minted.punchlineId,
+              xpGranted: grant.awarded ? grant.xp : 0,
+              tierUp: grant.awarded ? grant.tierUp : false,
+              newTier: grant.awarded ? grant.newTier : null,
+            },
             actor,
           )
-          return json({ ok: true, action: "approve", punchlineId: minted.punchlineId })
+          return json({
+            ok: true,
+            action: "approve",
+            punchlineId: minted.punchlineId,
+            xpGranted: grant.awarded ? grant.xp : 0,
+            tierUp: grant.awarded ? grant.tierUp : false,
+          })
         } catch (err) {
           return handleError(err)
         }

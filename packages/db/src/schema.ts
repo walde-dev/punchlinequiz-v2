@@ -80,6 +80,13 @@ export const punchlines = pgTable("punchlines", {
   distractor2Id: integer("distractor2_id")
     .notNull()
     .references(() => artists.id),
+  /**
+   * The contributor whose accepted submission minted this bar (PUN-67). Null
+   * for admin-authored bars. Drives the public "eingereicht von @handle" credit.
+   * Set at mint time in the admin approve path; no FK action on user delete —
+   * the bar outlives the account (credit just stops resolving a handle).
+   */
+  submittedByClerkId: varchar("submitted_by_clerk_id", { length: 64 }),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 })
@@ -256,6 +263,8 @@ export const xpConfig = pgTable(
     streakIdleResetMinutes: integer("streak_idle_reset_minutes").notNull().default(1440),
     /** Server-enforced minimum delay between answer submissions. Blocks autofarm. */
     minSecondsBetweenAttempts: integer("min_seconds_between_attempts").notNull().default(2),
+    /** Flat XP granted to a contributor when their submission is accepted (PUN-65). */
+    xpSubmissionAccepted: integer("xp_submission_accepted").notNull().default(500),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (t) => ({
@@ -389,6 +398,12 @@ export const punchlineSubmissions = pgTable(
     /** Set on approval — the minted, playable punchline. */
     createdPunchlineId: integer("created_punchline_id").references(() => punchlines.id),
     rejectionReason: text("rejection_reason"),
+    /**
+     * When the contributor has seen the "your bar is live! +XP" celebration for
+     * this acceptance (PUN-70). Null while approved-but-unseen → drives the
+     * in-app pull payoff. Push notification deferred to PUN-22.
+     */
+    acceptanceSeenAt: timestamp("acceptance_seen_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (t) => ({
@@ -399,3 +414,36 @@ export const punchlineSubmissions = pgTable(
 
 export type PunchlineSubmission = typeof punchlineSubmissions.$inferSelect
 export type NewPunchlineSubmission = typeof punchlineSubmissions.$inferInsert
+
+/**
+ * Contributor XP ledger (PUN-65). One row per ACCEPTED submission — the UNIQUE
+ * on submission_id makes the grant idempotent (admin approve can only fire once
+ * on a pending row, but the unique index is the hard guarantee, mirroring the
+ * user_punchline_xp pattern). Deliberately separate from user_punchline_xp:
+ * that table's (clerk_id, punchline_id) unique would collide if a contributor
+ * later solves their own minted bar. Grant adds to users.total_xp via SQL math,
+ * so contributor XP feeds rank + the all-time XP board (NOT the weekly board,
+ * which unions only the play-activity tables).
+ */
+export const contributorGrants = pgTable(
+  "contributor_grants",
+  {
+    id: serial("id").primaryKey(),
+    submissionId: integer("submission_id")
+      .notNull()
+      .references(() => punchlineSubmissions.id, { onDelete: "cascade" }),
+    clerkId: varchar("clerk_id", { length: 64 })
+      .notNull()
+      .references(() => users.clerkId, { onDelete: "cascade" }),
+    /** XP awarded at acceptance (snapshot of xp_config.xp_submission_accepted). */
+    xpAwarded: integer("xp_awarded").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    uq: uniqueIndex("contributor_grants_submission_uq").on(t.submissionId),
+    byUser: index("contributor_grants_by_user").on(t.clerkId, t.createdAt),
+  }),
+)
+
+export type ContributorGrant = typeof contributorGrants.$inferSelect
+export type NewContributorGrant = typeof contributorGrants.$inferInsert

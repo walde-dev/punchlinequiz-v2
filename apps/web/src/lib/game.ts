@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start"
 import { getRequest } from "@tanstack/react-start/server"
 import { and, eq, inArray, isNotNull, ne, sql } from "drizzle-orm"
-import { artists, dailyChallenges, punchlines, songs } from "@workspace/db"
+import { artists, dailyChallenges, punchlines, songs, users } from "@workspace/db"
 import { db } from "./db"
 import { getActor } from "./auth"
 import { grantPrimary, grantSongBonus, type XpGrantResult } from "./xp"
@@ -85,12 +85,15 @@ export type Round =
       punchlineId: number
       line: string
       choices: ArtistChoice[]
+      /** Contributor handle if this bar came from a submission (PUN-67); null = admin-authored. */
+      submittedByHandle: string | null
     }
   | {
       mode: "cloze"
       punchlineId: number
       line: string // the cloze prompt (with ___)
       artist: ArtistChoice
+      submittedByHandle: string | null
     }
 
 export type ArtistContext = {
@@ -323,10 +326,12 @@ export const getRound = createServerFn({ method: "GET" })
         artistId: songs.artistId,
         distractor1Id: punchlines.distractor1Id,
         distractor2Id: punchlines.distractor2Id,
+        submittedByHandle: users.handle,
       })
       .from(punchlines)
       .innerJoin(songs, eq(songs.id, punchlines.songId))
       .innerJoin(artists, eq(artists.id, songs.artistId))
+      .leftJoin(users, eq(users.clerkId, punchlines.submittedByClerkId))
       .where(and(...conds))
       .orderBy(sql`random()`)
       .limit(1)
@@ -351,6 +356,7 @@ export const getRound = createServerFn({ method: "GET" })
         punchlineId: row.punchlineId,
         line: row.clozePrompt,
         artist: artistRow[0] ?? { id: row.artistId, name: "", imageUrl: null },
+        submittedByHandle: row.submittedByHandle ?? null,
       }
     }
 
@@ -368,6 +374,7 @@ export const getRound = createServerFn({ method: "GET" })
       punchlineId: row.punchlineId,
       line: row.line,
       choices: shuffle(ordered),
+      submittedByHandle: row.submittedByHandle ?? null,
     }
   })
 

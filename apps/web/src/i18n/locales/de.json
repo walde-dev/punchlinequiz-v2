@@ -25,7 +25,8 @@
     "logoAria": "punchlinequiz — Startseite",
     "signIn": "Anmelden",
     "leaderboard": "Rangliste",
-    "profile": "Profil"
+    "profile": "Profil",
+    "submit": "Bar einreichen"
   },
   "xp": {
     "suffix": "XP",
@@ -55,6 +56,19 @@
       "linesConquered": "Bars geknackt",
       "daysCompleted": "Daily Tage"
     },
+    "contributor": {
+      "title": "Contributor",
+      "accepted": "Angenommen",
+      "submitted": "Eingereicht",
+      "rate": "Quote %",
+      "streak": "Wochen-Streak",
+      "nextTier": "Noch {{count}} angenommene Bars bis {{tier}}.",
+      "tier": {
+        "neuling": "Neuling",
+        "vertraut": "Vertraut",
+        "verifiziert": "Verifiziert"
+      }
+    },
     "anon": {
       "eyebrow": "/ profil",
       "headline": "Anmelden, um XP zu sammeln.",
@@ -74,8 +88,7 @@
       "comingSoon": "Bald",
       "barsShort": "Bars",
       "notFoundTitle": "Kein:e Spieler:in",
-      "notFoundBody": "@{{handle}} ist (noch) nicht dabei.",
-      "submitBar": "Bar einreichen"
+      "notFoundBody": "@{{handle}} ist (noch) nicht dabei."
     }
   },
   "home": {
@@ -105,6 +118,9 @@
       "clozeAria": "Finishing-Lines-Modus — Vervollständige die Bar ({{count}} Bars, {{artists}} Artists)",
       "perArtist": "Pro Artist spielen"
     }
+  },
+  "bar": {
+    "submittedBy": "eingereicht von"
   },
   "play": {
     "barEyebrow": "/ die bar",
@@ -413,7 +429,8 @@
         "streakStep": "Streak-Bonus pro Stufe",
         "streakMax": "Max. Streak-Bonus",
         "streakIdle": "Streak-Reset (Min.)",
-        "minCooldown": "Cooldown (Sek.)"
+        "minCooldown": "Cooldown (Sek.)",
+        "submissionAccepted": "Bar angenommen"
       },
       "hints": {
         "artist": "Basis-XP für eine richtige Artist-Antwort.",
@@ -425,7 +442,8 @@
         "streakStep": "XP-Bonus pro aktueller Streak-Stufe.",
         "streakMax": "Hartes Maximum für den Streak-Bonus.",
         "streakIdle": "Streak zerfällt nach so viel Inaktivität (Minuten).",
-        "minCooldown": "Mindest-Abstand zwischen zwei Submits in Sekunden — blockt Autofarming."
+        "minCooldown": "Mindest-Abstand zwischen zwei Submits in Sekunden — blockt Autofarming.",
+        "submissionAccepted": "XP für den Contributor, wenn seine eingereichte Bar angenommen wird."
       }
     },
     "levels": {
@@ -504,13 +522,16 @@
       "xp": "XP",
       "completion": "Bars geknackt",
       "friends": "Freunde",
-      "artists": "Künstler"
+      "artists": "Künstler",
+      "contributor": "Contributor"
     },
     "window": {
       "weekly": "Diese Woche",
       "alltime": "Allzeit"
     },
     "empty": "Noch niemand hier. Sei der Erste.",
+    "contributorEmpty": "Noch keine angenommenen Bars. Reiche eine ein und sei der Erste.",
+    "barsCount": "{{count}} Bars",
     "friendsSignIn": "Melde dich an, um dich mit den Leuten zu messen, denen du folgst.",
     "friendsEmpty": "Folge ein paar Spieler:innen, um dein Freunde-Board zu füllen.",
     "pickArtist": "Künstler wählen"
@@ -563,7 +584,9 @@
     "viewMine": "Meine Einreichungen",
     "anonTitle": "Zum Einreichen anmelden",
     "anonBody": "Zum Einreichen brauchst du ein Konto, damit wir dich nennen können.",
-    "error": "Konnte nicht gesendet werden — versuch's nochmal."
+    "error": "Konnte nicht gesendet werden — versuch's nochmal.",
+    "cooldown": "Kurz durchatmen — warte noch {{seconds}}s, bevor du die nächste Bar einreichst.",
+    "pendingCap": "Du hast {{cap}} Bars in der Warteschlange. Warte, bis welche reviewt sind, bevor du nachlegst."
   },
   "mySubmissions": {
     "title": "Meine Einreichungen",
@@ -571,6 +594,9 @@
     "pending": "In Prüfung",
     "approved": "Live",
     "rejected": "Abgelehnt",
-    "play": "Spielen"
+    "play": "Spielen",
+    "celebrateOne": "Deine Bar ist live! ✊",
+    "celebrateMany": "{{count}} deiner Bars sind live! ✊",
+    "playLive": "Jetzt spielen"
   }
 }

@@ -86,16 +86,23 @@ function SubmitForm() {
         },
       })
       if (res.ok) {
-        logEvent("submit_bar", {
-          filled: {
-            artist: !!artistHint.trim(),
-            song: !!songHint.trim(),
-            answer: !!answer.trim(),
-            cloze: !!clozePrompt.trim(),
-            note: !!note.trim(),
-          },
-        })
+        // submit_bar = legacy event; submission_created = contributor funnel (PUN-70).
+        const filled = {
+          artist: !!artistHint.trim(),
+          song: !!songHint.trim(),
+          answer: !!answer.trim(),
+          cloze: !!clozePrompt.trim(),
+          note: !!note.trim(),
+        }
+        logEvent("submit_bar", { filled })
+        logEvent("submission_created", { id: res.id, filled })
         setDone(true)
+      } else if (res.reason === "cooldown") {
+        logEvent("submission_rate_limited", { reason: "cooldown" })
+        setError(t("submit.cooldown", { seconds: res.retryAfterSeconds }))
+      } else if (res.reason === "pending_cap") {
+        logEvent("submission_rate_limited", { reason: "pending_cap", cap: res.cap, tier: res.tier })
+        setError(t("submit.pendingCap", { cap: res.cap }))
       } else {
         setError(t("submit.error"))
       }
@@ -112,7 +119,7 @@ function SubmitForm() {
         <h1 className="text-3xl font-extrabold tracking-tight">{t("submit.successTitle")}</h1>
         <p className="max-w-xs text-sm text-muted-foreground text-balance">{t("submit.successBody")}</p>
         <div className="flex flex-col items-center gap-2">
-          <Button onClick={reset} className="cta-glow min-h-11 rounded-full px-6 font-bold">{t("submit.another")}</Button>
+          <Button onClick={reset} className="cta-glow min-h-11 px-6 font-bold">{t("submit.another")}</Button>
           <Link to="/profile" className="text-xs text-muted-foreground hover:text-foreground">{t("submit.viewMine")}</Link>
         </div>
       </main>

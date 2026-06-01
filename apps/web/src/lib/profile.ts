@@ -4,6 +4,7 @@ import { desc, eq, sql } from "drizzle-orm"
 import { artists, punchlines, songs, userPunchlineXp, users } from "@workspace/db"
 
 import { getActor } from "./auth"
+import { getContributorProfile, type ContributorProfile } from "./contributor"
 import { db } from "./db"
 import { doFollow, doUnfollow, getFollowCounts, getIsFollowing, type FollowResult } from "./follow"
 import { ensureUser, getProfileSnapshot, type ProfileSnapshot } from "./xp"
@@ -83,6 +84,7 @@ export type PublicProfileResult =
       following: number
       profile: ProfileSnapshot
       topArtists: TopArtist[]
+      contributor: ContributorProfile
     }
 
 /** Load a public profile by handle. No auth required (logged-out viewable). */
@@ -95,11 +97,12 @@ export const getPublicProfileFn = createServerFn({ method: "GET" })
     const viewerId = await callerClerkId()
     const isOwner = viewerId === target.clerkId
 
-    const [profile, topArtists, counts, isFollowing] = await Promise.all([
+    const [profile, topArtists, counts, isFollowing, contributor] = await Promise.all([
       getProfileSnapshot(target.clerkId),
       getTopArtists(target.clerkId),
       getFollowCounts(target.clerkId),
       viewerId && !isOwner ? getIsFollowing(viewerId, target.clerkId) : Promise.resolve(false),
+      getContributorProfile(target.clerkId),
     ])
 
     return {
@@ -114,6 +117,7 @@ export const getPublicProfileFn = createServerFn({ method: "GET" })
       following: counts.following,
       profile,
       topArtists,
+      contributor,
     }
   })
 

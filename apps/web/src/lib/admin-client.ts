@@ -325,6 +325,8 @@ export type SubmissionRow = {
   status: string
   createdAt: string
   submitterHandle: string | null
+  /** Computed contributor tier of the submitter — drives review-queue priority (PUN-66). */
+  submitterTier: "neuling" | "vertraut" | "verifiziert"
 }
 
 export async function fetchSubmissions(status = "pending"): Promise<{ items: SubmissionRow[] }> {

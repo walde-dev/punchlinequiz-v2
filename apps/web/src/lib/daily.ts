@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start"
 import { getRequest } from "@tanstack/react-start/server"
 import { eq, inArray, lte } from "drizzle-orm"
-import { artists, dailyChallenges, punchlines, songs } from "@workspace/db"
+import { artists, dailyChallenges, punchlines, songs, users } from "@workspace/db"
 
 import { db } from "./db"
 import { getActor } from "./auth"
@@ -38,6 +38,8 @@ export type DailyChallenge = {
   albumArtUrl: string | null
   releaseYear: number | null
   artistImageUrl: string | null
+  /** Contributor handle if this bar came from a submission (PUN-67); null = admin-authored. */
+  submittedByHandle: string | null
 }
 
 export type DailyArtistGuessResult = {
@@ -100,11 +102,13 @@ export const getDailyChallenge = createServerFn({ method: "GET" })
         artistImageUrl: artists.imageUrl,
         distractor1Id: punchlines.distractor1Id,
         distractor2Id: punchlines.distractor2Id,
+        submittedByHandle: users.handle,
       })
       .from(dailyChallenges)
       .innerJoin(punchlines, eq(punchlines.id, dailyChallenges.punchlineId))
       .innerJoin(songs, eq(songs.id, punchlines.songId))
       .innerJoin(artists, eq(artists.id, songs.artistId))
+      .leftJoin(users, eq(users.clerkId, punchlines.submittedByClerkId))
       .where(eq(dailyChallenges.date, date))
       .limit(1)
 
@@ -137,6 +141,7 @@ export const getDailyChallenge = createServerFn({ method: "GET" })
       albumArtUrl: row.albumArtUrl,
       releaseYear: row.releaseYear,
       artistImageUrl: row.artistImageUrl,
+      submittedByHandle: row.submittedByHandle ?? null,
     }
   })
 

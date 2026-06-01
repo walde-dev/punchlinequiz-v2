@@ -267,7 +267,7 @@ export function SessionSummary({
             type="button"
             variant="ghost"
             onClick={onCopyLink}
-            className="min-h-11 rounded-full border border-border/60 text-sm font-bold"
+            className="min-h-11 border border-border/60 text-sm font-bold"
           >
             {copied ? `${t("common.linkCopied")} ✓` : t("common.copyLink")}
           </Button>
@@ -277,7 +277,7 @@ export function SessionSummary({
               variant="ghost"
               onClick={onDownload}
               disabled={!blob}
-              className="min-h-11 rounded-full border border-border/60 text-sm font-bold"
+              className="min-h-11 border border-border/60 text-sm font-bold"
             >
               {t("common.saveCard")}
             </Button>
@@ -287,7 +287,7 @@ export function SessionSummary({
               type="button"
               variant="ghost"
               onClick={onCopyLink}
-              className="min-h-11 rounded-full border border-border/60 text-sm font-bold"
+              className="min-h-11 border border-border/60 text-sm font-bold"
             >
               {copied ? `${t("common.linkCopied")} ✓` : t("common.copyLink")}
             </Button>
@@ -301,7 +301,7 @@ export function SessionSummary({
             variant="ghost"
             onClick={createChallenge}
             disabled={creatingChallenge}
-            className="min-h-12 w-full rounded-full border border-primary/50 text-base font-bold text-primary hover:bg-primary/10"
+            className="min-h-12 w-full border border-primary/50 text-base font-bold text-primary hover:bg-primary/10"
           >
             {creatingChallenge ? t("challenge.creating") : t("profile.public.createChallenge")}
           </Button>
@@ -310,7 +310,7 @@ export function SessionSummary({
             <Button
               type="button"
               variant="ghost"
-              className="min-h-12 w-full rounded-full border border-primary/50 text-base font-bold text-primary hover:bg-primary/10"
+              className="min-h-12 w-full border border-primary/50 text-base font-bold text-primary hover:bg-primary/10"
             >
               {t("profile.public.createChallenge")}
             </Button>
@@ -321,7 +321,7 @@ export function SessionSummary({
           type="button"
           variant="ghost"
           onClick={onRestart}
-          className="min-h-12 w-full rounded-full text-base font-bold text-muted-foreground hover:text-foreground"
+          className="min-h-12 w-full text-base font-bold text-muted-foreground hover:text-foreground"
         >
           {t("session.restart")}
         </Button>

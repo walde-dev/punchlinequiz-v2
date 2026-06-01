@@ -1,0 +1,1 @@
+ALTER TABLE "punchline_submissions" ADD COLUMN "acceptance_seen_at" timestamp;

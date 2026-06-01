@@ -6,6 +6,7 @@ import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { AnonymousXpCta } from "../components/anonymous-xp-cta"
+import { BarCredit } from "../components/bar-credit"
 import { Confetti } from "../components/confetti"
 import { LangToggle } from "../components/lang-toggle"
 import { LevelUpModal } from "../components/level-up-modal"
@@ -231,7 +232,7 @@ function DailyInner({ daily }: { daily: DailyChallenge }) {
 
       <main className="relative flex flex-1 flex-col px-5 pt-20 pb-8 md:px-8">
         <div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-between gap-8">
-          <BarDisplay line={daily.line} shakeKey={wrongShake} dailyNumber={daily.number} />
+          <BarDisplay line={daily.line} shakeKey={wrongShake} dailyNumber={daily.number} submittedByHandle={daily.submittedByHandle} />
 
           <div className="relative">
             <Confetti trigger={confettiKey} />
@@ -301,10 +302,12 @@ function BarDisplay({
   line,
   shakeKey,
   dailyNumber,
+  submittedByHandle,
 }: {
   line: string
   shakeKey: number
   dailyNumber: number
+  submittedByHandle?: string | null
 }) {
   const { t } = useTranslation()
   return (
@@ -332,7 +335,10 @@ function BarDisplay({
         {renderBarLines(line)}
         <span className="text-primary/40 select-none ml-1">"</span>
       </blockquote>
-      <p className="text-sm text-muted-foreground">{t("daily.subtext")}</p>
+      <div className="flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <p className="text-sm text-muted-foreground">{t("daily.subtext")}</p>
+        <BarCredit handle={submittedByHandle} />
+      </div>
     </div>
   )
 }
@@ -500,7 +506,7 @@ function FreeTextStep({
             variant="ghost"
             onClick={onSkip}
             disabled={submitting}
-            className="flex-1 min-h-12 rounded-full text-sm font-bold text-muted-foreground hover:text-foreground"
+            className="flex-1 min-h-12 text-sm font-bold text-muted-foreground hover:text-foreground"
           >
             {t("common.skip")}
           </Button>

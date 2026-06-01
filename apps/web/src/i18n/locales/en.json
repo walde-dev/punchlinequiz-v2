@@ -25,7 +25,8 @@
     "logoAria": "punchlinequiz — Home",
     "signIn": "Sign in",
     "leaderboard": "Leaderboard",
-    "profile": "Profile"
+    "profile": "Profile",
+    "submit": "Submit a bar"
   },
   "xp": {
     "suffix": "XP",
@@ -55,6 +56,19 @@
       "linesConquered": "Bars conquered",
       "daysCompleted": "Daily days"
     },
+    "contributor": {
+      "title": "Contributor",
+      "accepted": "Accepted",
+      "submitted": "Submitted",
+      "rate": "Rate %",
+      "streak": "Week streak",
+      "nextTier": "{{count}} more accepted bars to {{tier}}.",
+      "tier": {
+        "neuling": "Rookie",
+        "vertraut": "Trusted",
+        "verifiziert": "Verified"
+      }
+    },
     "anon": {
       "eyebrow": "/ profile",
       "headline": "Sign in to earn XP.",
@@ -74,8 +88,7 @@
       "comingSoon": "Soon",
       "barsShort": "bars",
       "notFoundTitle": "No such player",
-      "notFoundBody": "@{{handle}} isn't on the board (yet).",
-      "submitBar": "Submit a bar"
+      "notFoundBody": "@{{handle}} isn't on the board (yet)."
     }
   },
   "home": {
@@ -105,6 +118,9 @@
       "clozeAria": "Finishing-lines mode — Finish the bar ({{count}} bars, {{artists}} artists)",
       "perArtist": "Play by artist"
     }
+  },
+  "bar": {
+    "submittedBy": "submitted by"
   },
   "play": {
     "barEyebrow": "/ the bar",
@@ -413,7 +429,8 @@
         "streakStep": "Streak bonus per step",
         "streakMax": "Max streak bonus",
         "streakIdle": "Streak reset (min.)",
-        "minCooldown": "Cooldown (sec.)"
+        "minCooldown": "Cooldown (sec.)",
+        "submissionAccepted": "Bar accepted"
       },
       "hints": {
         "artist": "Base XP for a correct artist guess.",
@@ -425,7 +442,8 @@
         "streakStep": "XP bonus per current streak step.",
         "streakMax": "Hard cap on the streak bonus.",
         "streakIdle": "Streak resets after this many idle minutes.",
-        "minCooldown": "Minimum seconds between submissions — blocks autofarming."
+        "minCooldown": "Minimum seconds between submissions — blocks autofarming.",
+        "submissionAccepted": "XP granted to the contributor when their submitted bar is accepted."
       }
     },
     "levels": {
@@ -504,13 +522,16 @@
       "xp": "XP",
       "completion": "Bars solved",
       "friends": "Friends",
-      "artists": "Artists"
+      "artists": "Artists",
+      "contributor": "Contributor"
     },
     "window": {
       "weekly": "This week",
       "alltime": "All-time"
     },
     "empty": "Nobody here yet. Be the first.",
+    "contributorEmpty": "No accepted bars yet. Submit one and be the first.",
+    "barsCount": "{{count}} bars",
     "friendsSignIn": "Sign in to rank against the people you follow.",
     "friendsEmpty": "Follow some players to build your friends board.",
     "pickArtist": "Pick an artist"
@@ -563,7 +584,9 @@
     "viewMine": "My submissions",
     "anonTitle": "Sign in to submit",
     "anonBody": "Submitting a bar needs an account so we can credit you.",
-    "error": "Couldn't submit — try again."
+    "error": "Couldn't submit — try again.",
+    "cooldown": "Easy — wait {{seconds}}s before dropping the next bar.",
+    "pendingCap": "You've got {{cap}} bars in the queue. Wait for some to get reviewed before adding more."
   },
   "mySubmissions": {
     "title": "My submissions",
@@ -571,6 +594,9 @@
     "pending": "Pending",
     "approved": "Live",
     "rejected": "Passed",
-    "play": "Play"
+    "play": "Play",
+    "celebrateOne": "Your bar is live! ✊",
+    "celebrateMany": "{{count}} of your bars are live! ✊",
+    "playLive": "Play it now"
   }
 }

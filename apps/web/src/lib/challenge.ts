@@ -28,7 +28,13 @@ export const CHALLENGE_SIZE = 5
 const MAX_BAR_MS = 120_000
 
 export type ChallengeChoice = { id: number; name: string; imageUrl: string | null }
-export type ChallengeRound = { punchlineId: number; line: string; choices: ChallengeChoice[] }
+export type ChallengeRound = {
+  punchlineId: number
+  line: string
+  choices: ChallengeChoice[]
+  /** Contributor handle if this bar came from a submission (PUN-67); null = admin-authored. */
+  submittedByHandle: string | null
+}
 
 export type ChallengeBoardEntry = {
   rank: number
@@ -49,6 +55,8 @@ export type ChallengeRecapBar = {
   correctArtistName: string
   chosenArtistId: number | null
   correct: boolean
+  /** Contributor handle if this bar came from a submission (PUN-67); null = admin-authored. */
+  submittedByHandle: string | null
 }
 
 async function callerClerkId(): Promise<string | null> {
@@ -122,9 +130,11 @@ async function buildRounds(barIds: number[]): Promise<ChallengeRound[]> {
       artistId: songs.artistId,
       distractor1Id: punchlines.distractor1Id,
       distractor2Id: punchlines.distractor2Id,
+      submittedByHandle: users.handle,
     })
     .from(punchlines)
     .innerJoin(songs, eq(songs.id, punchlines.songId))
+    .leftJoin(users, eq(users.clerkId, punchlines.submittedByClerkId))
     .where(inArray(punchlines.id, barIds))
 
   const byId = new Map(bars.map((b) => [b.punchlineId, b]))
@@ -151,7 +161,12 @@ async function buildRounds(barIds: number[]): Promise<ChallengeRound[]> {
         .map((aid) => artistById.get(aid))
         .filter((a): a is ChallengeChoice => Boolean(a)),
     )
-    rounds.push({ punchlineId: b.punchlineId, line: b.line, choices })
+    rounds.push({
+      punchlineId: b.punchlineId,
+      line: b.line,
+      choices,
+      submittedByHandle: b.submittedByHandle ?? null,
+    })
   }
   return rounds
 }
@@ -296,10 +311,12 @@ export const submitChallengeAttemptFn = createServerFn({ method: "POST" })
         line: punchlines.line,
         artistId: songs.artistId,
         artistName: artists.name,
+        submittedByHandle: users.handle,
       })
       .from(punchlines)
       .innerJoin(songs, eq(songs.id, punchlines.songId))
       .innerJoin(artists, eq(artists.id, songs.artistId))
+      .leftJoin(users, eq(users.clerkId, punchlines.submittedByClerkId))
       .where(inArray(punchlines.id, challenge.barIds))
     const barById = new Map(bars.map((b) => [b.punchlineId, b]))
     const answerById = new Map(data.answers.map((a) => [a.punchlineId, a]))
@@ -322,6 +339,7 @@ export const submitChallengeAttemptFn = createServerFn({ method: "POST" })
         correctArtistName: bar.artistName,
         chosenArtistId,
         correct,
+        submittedByHandle: bar.submittedByHandle ?? null,
       })
     }
 

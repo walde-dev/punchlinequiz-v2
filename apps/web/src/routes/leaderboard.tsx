@@ -85,6 +85,7 @@ function LeaderboardPage() {
     if (next === board) return
     setBoard(next)
     logEvent("view_leaderboard", { board: next, ...(next === "artist" && artistId ? { artistId } : {}) })
+    if (next === "contributor") logEvent("view_contributor_leaderboard", {})
   }
 
   const showSignIn = board === "friends" && !isSignedIn
@@ -109,6 +110,7 @@ function LeaderboardPage() {
           <TabButton active={board === "completion"} onClick={() => switchBoard("completion")}>{t("leaderboard.tabs.completion")}</TabButton>
           <TabButton active={board === "friends"} onClick={() => switchBoard("friends")}>{t("leaderboard.tabs.friends")}</TabButton>
           <TabButton active={board === "artist"} onClick={() => switchBoard("artist")}>{t("leaderboard.tabs.artists")}</TabButton>
+          <TabButton active={board === "contributor"} onClick={() => switchBoard("contributor")}>{t("leaderboard.tabs.contributor")}</TabButton>
         </div>
 
         {/* Window toggle (XP only) */}
@@ -143,7 +145,11 @@ function LeaderboardPage() {
           >
             {data.top.length === 0 ? (
               <p className="py-12 text-center text-sm text-muted-foreground">
-                {board === "friends" ? t("leaderboard.friendsEmpty") : t("leaderboard.empty")}
+                {board === "friends"
+                  ? t("leaderboard.friendsEmpty")
+                  : board === "contributor"
+                    ? t("leaderboard.contributorEmpty")
+                    : t("leaderboard.empty")}
               </p>
             ) : (
               data.top.map((entry) => (
@@ -230,7 +236,7 @@ function SignInPrompt({ message, cta }: { message: string; cta: string }) {
     <div className="flex flex-col items-center gap-4 py-12 text-center">
       <p className="max-w-xs text-sm text-muted-foreground text-balance">{message}</p>
       <SignInButton mode="modal">
-        <Button className="cta-glow min-h-11 rounded-full bg-primary px-6 text-sm font-bold text-primary-foreground hover:bg-primary/90">
+        <Button className="cta-glow min-h-11 bg-primary px-6 text-sm font-bold text-primary-foreground hover:bg-primary/90">
           {cta}
         </Button>
       </SignInButton>
@@ -281,15 +287,19 @@ function Row({
   totalLines: number | null
   highlight?: boolean
 }) {
-  const { i18n } = useTranslation()
+  const { t, i18n } = useTranslation()
   const isDe = i18n.language.startsWith("de")
   const locale = isDe ? "de-DE" : "en-US"
 
-  // completion + artist rank by solved-count; xp + friends by XP.
+  // completion + artist rank by solved-count; contributor by accepted bars;
+  // xp + friends by XP.
   const isCount = board === "completion" || board === "artist"
-  const metricLabel = isCount
-    ? `${entry.metric}${totalLines ? ` / ${totalLines}` : ""}`
-    : `${entry.metric.toLocaleString(locale)} XP`
+  const metricLabel =
+    board === "contributor"
+      ? t("leaderboard.barsCount", { count: entry.metric })
+      : isCount
+        ? `${entry.metric}${totalLines ? ` / ${totalLines}` : ""}`
+        : `${entry.metric.toLocaleString(locale)} XP`
   const subLabel =
     isCount && totalLines ? `${Math.round((entry.metric / totalLines) * 100)}%` : null
 

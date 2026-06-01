@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start"
 import { getRequest } from "@tanstack/react-start/server"
 import {  and, desc, eq, gt, isNotNull, sql } from "drizzle-orm"
-import { follows, punchlines, songs, userPunchlineXp, users } from "@workspace/db"
+import { follows, punchlineSubmissions, punchlines, songs, userPunchlineXp, users } from "@workspace/db"
 
 import { getActor } from "./auth"
 import { db } from "./db"
@@ -14,7 +14,7 @@ import type {LevelInfo} from "./xp";
  * bars-solved, all-time), friends (weekly XP among the followed set + self),
  * artist (bars-solved for one artist). friends/artist were added in PUN-13.
  */
-export type LeaderboardBoard = "xp" | "completion" | "friends" | "artist"
+export type LeaderboardBoard = "xp" | "completion" | "friends" | "artist" | "contributor"
 export type LeaderboardWindow = "weekly" | "alltime"
 
 export type LeaderboardEntry = {
@@ -103,7 +103,7 @@ async function getLeaderboard(input: {
   // Only the XP board honors a weekly/all-time toggle. completion + artist are
   // all-time bars-solved; friends is always the weekly window.
   const window: LeaderboardWindow =
-    board === "completion" || board === "artist"
+    board === "completion" || board === "artist" || board === "contributor"
       ? "alltime"
       : board === "friends"
         ? "weekly"
@@ -163,6 +163,23 @@ async function getLeaderboard(input: {
       LIMIT ${TOP_N}
     `)
     me = meFromTop(callerId, topRows, levels)
+  } else if (board === "contributor") {
+    // Rank by accepted-bar count (all-time). Tiebreak: acceptance rate, then
+    // most-recent acceptance. Only contributors with ≥1 accepted bar appear.
+    topRows = await rawRows<Row>(sql`
+      SELECT u.clerk_id, u.handle, u.avatar_key, u.total_xp,
+        count(*) FILTER (WHERE ps.status = 'approved')::int AS metric
+      FROM ${punchlineSubmissions} ps
+      JOIN ${users} u ON u.clerk_id = ps.submitter_clerk_id AND u.handle IS NOT NULL
+      GROUP BY u.clerk_id, u.handle, u.avatar_key, u.total_xp
+      HAVING count(*) FILTER (WHERE ps.status = 'approved') > 0
+      ORDER BY metric DESC,
+        (count(*) FILTER (WHERE ps.status = 'approved')::float
+          / NULLIF(count(*) FILTER (WHERE ps.status IN ('approved','rejected')), 0)) DESC NULLS LAST,
+        max(ps.created_at) FILTER (WHERE ps.status = 'approved') DESC
+      LIMIT ${TOP_N}
+    `)
+    me = await computeMe({ board, window, callerId, levels, topRows })
   } else if (board === "completion") {
     const [{ count: total }] = await db
       .select({ count: sql<number>`count(*)::int` })
@@ -260,7 +277,24 @@ async function computeMe(args: {
   let metric: number
   let rank: number
 
-  if (board === "completion") {
+  if (board === "contributor") {
+    const rows = await rawRows<{ metric: number; rank: number }>(sql`
+      WITH cnt AS (
+        SELECT ps.submitter_clerk_id AS clerk_id,
+          count(*) FILTER (WHERE ps.status = 'approved')::int AS c
+        FROM ${punchlineSubmissions} ps
+        JOIN ${users} u ON u.clerk_id = ps.submitter_clerk_id AND u.handle IS NOT NULL
+        GROUP BY ps.submitter_clerk_id
+        HAVING count(*) FILTER (WHERE ps.status = 'approved') > 0
+      )
+      SELECT me.c AS metric, (SELECT count(*) FROM cnt WHERE cnt.c > me.c)::int + 1 AS rank
+      FROM cnt me WHERE me.clerk_id = ${callerId}
+    `)
+    // No accepted bars yet → not ranked on the contributor board.
+    if (rows.length === 0) return null
+    metric = Number(rows[0].metric)
+    rank = Number(rows[0].rank)
+  } else if (board === "completion") {
     const rows = await rawRows<{ metric: number; rank: number }>(sql`
       WITH cnt AS (
         SELECT up.clerk_id, count(*)::int AS c

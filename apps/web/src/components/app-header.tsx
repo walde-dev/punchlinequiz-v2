@@ -3,6 +3,8 @@ import { Link } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
+import { Button } from "@workspace/ui/components/button"
+
 import { clerkDarkAppearance } from "../lib/clerk-theme"
 import { syncProfileImageFn } from "../lib/profile"
 import { LangToggle } from "./lang-toggle"
@@ -10,6 +12,30 @@ import { XpHeaderChip } from "./xp-header-chip"
 import type { ArtistContext } from "../lib/game"
 
 type ArtistChoice = { id: number; name: string; imageUrl?: string | null }
+
+/** Plus glyph for the "Submit a bar" header CTA. */
+function PlusIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  )
+}
+
+/**
+ * "Submit a bar" CTA — the primary contributor growth action, surfaced in the
+ * header for signed-in users. Reuses the Button component (gold default variant)
+ * rendered as a Link; label collapses to the icon on mobile to stay compact.
+ */
+function SubmitBarCta() {
+  const { t } = useTranslation()
+  return (
+    <Button size="sm" aria-label={t("nav.submit")} render={<Link to="/submit" />}>
+      <PlusIcon />
+      <span className="hidden sm:inline">{t("nav.submit")}</span>
+    </Button>
+  )
+}
 
 /** Small icon for the custom "Profile" item in the Clerk account menu. */
 function ProfileMenuIcon() {
@@ -181,6 +207,7 @@ function AuthSlot({ xpRefreshKey }: { xpRefreshKey?: number }) {
 
   return (
     <>
+      {signedIn === true && <SubmitBarCta />}
       {signedIn === true && <XpHeaderChip refreshKey={xpRefreshKey} />}
       <LangToggle />
       {signedIn === true && (

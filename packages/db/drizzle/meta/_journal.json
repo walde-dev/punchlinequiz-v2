@@ -106,6 +106,20 @@
       "when": 1780319767712,
       "tag": "0014_breezy_sabretooth",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1780328577032,
+      "tag": "0015_lush_the_executioner",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1780329633690,
+      "tag": "0016_motionless_psylocke",
+      "breakpoints": true
     }
   ]
 }

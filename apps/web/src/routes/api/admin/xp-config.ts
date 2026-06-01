@@ -25,6 +25,7 @@ const NUMERIC_FIELDS = [
   "streakMaxBonus",
   "streakIdleResetMinutes",
   "minSecondsBetweenAttempts",
+  "xpSubmissionAccepted",
 ] as const
 
 type ConfigField = (typeof NUMERIC_FIELDS)[number]

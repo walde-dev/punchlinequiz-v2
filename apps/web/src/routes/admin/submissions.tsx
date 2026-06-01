@@ -129,7 +129,14 @@ function SubmissionCard({ submission, onResolved }: { submission: SubmissionRow;
     <div className="flex flex-col gap-3 rounded-3xl border border-border/60 bg-card/70 p-5 shadow-xl">
       <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
         <span>#{submission.id}</span>
-        {submission.submitterHandle && <span>{t("admin.submissions.by", { handle: submission.submitterHandle })}</span>}
+        <span className="flex items-center gap-2">
+          {submission.submitterTier !== "neuling" && (
+            <span className="rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-primary">
+              {t(`profile.contributor.tier.${submission.submitterTier}`)}
+            </span>
+          )}
+          {submission.submitterHandle && <span>{t("admin.submissions.by", { handle: submission.submitterHandle })}</span>}
+        </span>
       </div>
 
       <Field label={t("admin.submissions.line")}>

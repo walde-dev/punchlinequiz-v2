@@ -7,6 +7,7 @@ import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { AppHeader } from "../components/app-header"
+import { Confetti } from "../components/confetti"
 import { rankIconPath } from "../lib/rank-icon"
 import {
   followByHandleFn,
@@ -16,7 +17,8 @@ import {
   type TopArtist,
 } from "../lib/profile"
 import { createChallengeFn } from "../lib/challenge"
-import { getMySubmissionsFn, type MySubmission } from "../lib/submissions"
+import type { ContributorProfile, ContributorTier } from "../lib/contributor"
+import { getMySubmissionsFn, markAcceptanceSeenFn, type MySubmission } from "../lib/submissions"
 import { logEvent } from "../lib/track"
 
 export const Route = createFileRoute("/u/$handle")({
@@ -140,6 +142,9 @@ function ProfileView({ data }: { data: Extract<PublicProfileResult, { found: tru
           </section>
         )}
 
+        {/* Contributor stats (only when the user has submitted at least one bar) */}
+        {data.contributor.submitted > 0 && <ContributorSection contributor={data.contributor} />}
+
         {/* Sparkline */}
         <section className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card/40 p-5" style={{ animation: `pq-fade-up 0.55s ${ease} 0.16s both` }}>
           <h2 className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary/80">{t("profile.sparklineTitle")}</h2>
@@ -175,17 +180,32 @@ function ProfileView({ data }: { data: Extract<PublicProfileResult, { found: tru
 function MySubmissions() {
   const { t } = useTranslation()
   const [items, setItems] = useState<MySubmission[] | null>(null)
+  const [celebrated, setCelebrated] = useState<MySubmission[]>([])
+  const [confettiKey, setConfettiKey] = useState(0)
 
   useEffect(() => {
     logEvent("view_my_submissions", {})
     getMySubmissionsFn()
-      .then(setItems)
+      .then((list) => {
+        setItems(list)
+        // PUN-70 in-app pull payoff: celebrate any approved-but-unseen bars, then
+        // mark them seen so the celebration fires exactly once.
+        const fresh = list.filter((s) => s.newlyAccepted)
+        if (fresh.length > 0) {
+          setCelebrated(fresh)
+          setConfettiKey((k) => k + 1)
+          const xp = fresh.reduce((a, s) => a + (s.xpAwarded ?? 0), 0)
+          logEvent("acceptance_seen", { count: fresh.length, xp })
+          markAcceptanceSeenFn().catch(() => {})
+        }
+      })
       .catch(() => setItems([]))
   }, [])
 
   if (items === null) return null
   return (
     <section className="flex flex-col gap-3" style={{ animation: `pq-fade-up 0.55s ${ease} 0.3s both` }}>
+      {celebrated.length > 0 && <AcceptanceCelebration items={celebrated} confettiKey={confettiKey} />}
       <h2 className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary/80">{t("mySubmissions.title")}</h2>
       {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t("mySubmissions.empty")}</p>
@@ -207,6 +227,32 @@ function MySubmissions() {
         </ul>
       )}
     </section>
+  )
+}
+
+/** The "dein Bar ist live! +XP" celebration for newly-accepted submissions (PUN-70). */
+function AcceptanceCelebration({ items, confettiKey }: { items: MySubmission[]; confettiKey: number }) {
+  const { t } = useTranslation()
+  const xp = items.reduce((a, s) => a + (s.xpAwarded ?? 0), 0)
+  const playable = items.find((s) => s.artistSlug)
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-primary/50 bg-primary/10 p-5 text-center" style={{ animation: `pq-fade-up 0.5s ${ease} both` }}>
+      <Confetti trigger={confettiKey} />
+      <p className="text-lg font-extrabold tracking-tight text-primary">
+        {items.length === 1 ? t("mySubmissions.celebrateOne") : t("mySubmissions.celebrateMany", { count: items.length })}
+      </p>
+      {xp > 0 && (
+        <p className="mt-1 text-2xl font-extrabold tabular-nums text-foreground">+{xp.toLocaleString()} XP</p>
+      )}
+      {playable?.artistSlug && (
+        <Button
+          className="mt-3 text-sm font-bold"
+          render={<Link to="/play" search={{ artist: playable.artistSlug }} />}
+        >
+          {t("mySubmissions.playLive")}
+        </Button>
+      )}
+    </div>
   )
 }
 
@@ -240,7 +286,7 @@ function Actions({
       <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
         <Button
           variant="ghost"
-          className="min-h-11 rounded-full border border-border/60 px-5 text-sm font-bold"
+          className="min-h-11 border border-border/60 px-5 text-sm font-bold"
           onClick={async () => {
             const url = `${window.location.origin}/u/${data.handle}`
             try {
@@ -258,12 +304,6 @@ function Actions({
           {copied ? t("common.linkCopied") : t("profile.public.shareProfile")}
         </Button>
         <CreateChallengeButton label={t("profile.public.createChallenge")} signedIn />
-        <Link
-          to="/submit"
-          className="inline-flex min-h-11 items-center rounded-full border border-border/60 px-5 text-sm font-bold text-foreground/80 transition-colors hover:border-primary/50 hover:text-foreground"
-        >
-          {t("profile.public.submitBar")}
-        </Link>
       </div>
     )
   }
@@ -293,7 +333,7 @@ function Actions({
           disabled={busy}
           variant={following ? "ghost" : "default"}
           className={cn(
-            "min-h-11 rounded-full px-6 text-sm font-bold",
+            "min-h-11 px-6 text-sm font-bold",
             following
               ? "border border-primary/50 text-primary hover:bg-primary/10"
               : "cta-glow bg-primary text-primary-foreground hover:bg-primary/90",
@@ -303,7 +343,7 @@ function Actions({
         </Button>
       ) : (
         <SignInButton mode="modal">
-          <Button className="cta-glow min-h-11 rounded-full bg-primary px-6 text-sm font-bold text-primary-foreground hover:bg-primary/90">
+          <Button className="cta-glow min-h-11 bg-primary px-6 text-sm font-bold text-primary-foreground hover:bg-primary/90">
             {t("profile.public.follow")}
           </Button>
         </SignInButton>
@@ -334,7 +374,7 @@ function CreateChallengeButton({ label, signedIn }: { label: string; signedIn: b
   if (!signedIn) {
     return (
       <SignInButton mode="modal">
-        <Button variant="ghost" className="min-h-11 rounded-full border border-primary/50 px-5 text-sm font-bold text-primary hover:bg-primary/10">
+        <Button variant="ghost" className="min-h-11 border border-primary/50 px-5 text-sm font-bold text-primary hover:bg-primary/10">
           {label}
         </Button>
       </SignInButton>
@@ -345,7 +385,7 @@ function CreateChallengeButton({ label, signedIn }: { label: string; signedIn: b
       onClick={create}
       disabled={busy}
       variant="ghost"
-      className="min-h-11 rounded-full border border-primary/50 px-5 text-sm font-bold text-primary hover:bg-primary/10"
+      className="min-h-11 border border-primary/50 px-5 text-sm font-bold text-primary hover:bg-primary/10"
     >
       {busy ? "…" : label}
     </Button>
@@ -421,6 +461,43 @@ function StatTile({ label, value, icon }: { label: string; value: number; icon?:
       </span>
       <span className="text-center text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">{label}</span>
     </div>
+  )
+}
+
+/** Contributor stats block + tier prestige chip (PUN-68). */
+function ContributorSection({ contributor }: { contributor: ContributorProfile }) {
+  const { t } = useTranslation()
+  const ratePct = contributor.resolved > 0 ? Math.round(contributor.acceptanceRate * 100) : 0
+  return (
+    <section className="flex flex-col gap-3" style={{ animation: `pq-fade-up 0.55s ${ease} 0.14s both` }}>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary/80">{t("profile.contributor.title")}</h2>
+        <TierChip tier={contributor.tier} />
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatTile label={t("profile.contributor.accepted")} value={contributor.accepted} icon="✊" />
+        <StatTile label={t("profile.contributor.submitted")} value={contributor.submitted} />
+        <StatTile label={t("profile.contributor.rate")} value={ratePct} />
+        <StatTile label={t("profile.contributor.streak")} value={contributor.streak} icon="🔥" />
+      </div>
+      {contributor.nextTier && (
+        <p className="text-center text-xs font-semibold text-muted-foreground">
+          {t("profile.contributor.nextTier", {
+            count: contributor.nextTier.acceptedNeeded,
+            tier: t(`profile.contributor.tier.${contributor.nextTier.nextTier}`),
+          })}
+        </p>
+      )}
+    </section>
+  )
+}
+
+function TierChip({ tier }: { tier: ContributorTier }) {
+  const { t } = useTranslation()
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-primary">
+      {t(`profile.contributor.tier.${tier}`)}
+    </span>
   )
 }
 
