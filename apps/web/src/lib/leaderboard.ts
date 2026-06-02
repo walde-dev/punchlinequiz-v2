@@ -93,7 +93,7 @@ function meFromTop(
   return { ...toEntry(topRows[idx], idx + 1, levels), inTop: true }
 }
 
-async function getLeaderboard(input: {
+export async function getLeaderboard(input: {
   board: LeaderboardBoard
   window: LeaderboardWindow
   artistId?: number

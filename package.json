@@ -12,7 +12,10 @@
     "lyrics:extract": "tsx scripts/lyrics/extract.ts",
     "lyrics:curate": "tsx scripts/lyrics/curate.ts",
     "lyrics:auto-curate": "tsx scripts/lyrics/auto-curate.ts",
-    "lyrics:insert": "tsx scripts/lyrics/insert.ts"
+    "lyrics:insert": "tsx scripts/lyrics/insert.ts",
+    "discord:setup": "tsx scripts/discord/setup.ts",
+    "discord:register": "tsx scripts/discord/register-commands.ts",
+    "discord:post-welcome": "tsx scripts/discord/post-welcome.ts"
   },
   "devDependencies": {
     "prettier": "^3.8.1",
