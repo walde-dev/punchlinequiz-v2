@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Implementation notes — SEO & Link Surface</title>
+<title>Implementation notes — Error Tracking & Observability</title>
 <style>
   body { font: 14px/1.5 -apple-system, system-ui, sans-serif; max-width: 820px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }
   h1 { font-size: 1.4rem; }
@@ -14,109 +14,108 @@
   .entry.tradeoff { border-left-color: #7c3aed; }
   .meta { color: #666; font-size: 0.85rem; }
   code { background: #f3f3f3; padding: 0 0.25rem; border-radius: 3px; }
-  .phase { display: inline-block; font-size: 0.72rem; background: #fbbf24; color: #1a1a1a; border-radius: 9999px; padding: 0 0.5rem; margin-right: 0.4rem; font-weight: 600; }
 </style>
 </head>
 <body>
-<h1>Implementation notes — SEO & Link Surface</h1>
-<p class="meta">Project: PUN SEO &amp; Link Surface (PUN-76..79) · Started: 2026-06-01 · 2 phases ·
-Prior notes archived: implementation-notes-{referral,contributor,profiles}.html</p>
+<h1>Implementation notes — Error Tracking & Observability</h1>
+<p class="meta">Spec: Linear PUN-46..50 (project "Error Tracking &amp; Observability") · Started: 2026-06-02 ·
+Prior notes archived: implementation-notes-referral.html</p>
 
-<p class="meta">Settled (grilling): .de canonical (.com 301→.de, platform-level); indexable = /artist/$slug catalog pages + SEO infra;
-NO lyric text on public pages (quiz integrity + copyright); index /, /artist/$slug, /play, /daily, /leaderboard, noindex the rest,
-Disallow /admin+/api; artist OG = artist photo, default banner elsewhere; MusicGroup+BreadcrumbList on artist, WebSite/Organization on home;
-dynamic /sitemap.xml. 2 phases: infra → artist pages + sitemap.</p>
+<p class="meta">Stack: TanStack Start + Nitro on Vercel, Clerk auth, Node ≥20, pnpm workspace.
+Done-bar (from grill): infra-ready + <strong>synthetic-verified</strong> pre-launch; real-traffic threshold tuning is a post-launch follow-up.
+No real Sentry DSN / Axiom token / Discord webhook / MCP connection can be provisioned from this environment, so all runtime code is
+<strong>env-gated to no-op when its credential is absent</strong> (mirroring the existing <code>track.ts</code> Axiom pattern). The verification
+gate for code is <code>pnpm typecheck</code> + <code>pnpm build</code>; the remaining account/dashboard steps are listed under Open questions.</p>
 
 <h2>Design decisions</h2>
-
 <div class="entry decision">
-  <strong><span class="phase">P1</span>seo() helper + default OG in root, per-route override via meta dedup</strong>
-  <p><code>lib/seo.ts</code> <code>seo({title,description,path,image,type,noindex})</code> returns the TanStack
-  <code>head()</code> <code>{meta,links}</code>. Root route carries default OG/Twitter; child routes call <code>seo()</code> to
-  override — TanStack dedupes meta by <code>name</code>/<code>property</code>/<code>title</code> (deepest wins). Verified in SSR:
-  home shows the home description override + canonical/og:url to <code>https://punchlinequiz.de/</code>.</p>
+  <strong>Env-gated, no-op-without-credentials everywhere</strong>
+  <p>Client Sentry inits only when <code>VITE_SENTRY_DSN</code> is set (<code>lib/sentry.client.ts</code>); server only when
+  <code>SENTRY_DSN</code> is set (<code>instrument.server.ts</code>); the logger direct-forwards to Axiom only when
+  <code>AXIOM_TOKEN</code>/<code>AXIOM_DATASET</code> are set (<code>lib/axiom.ts</code>, same gate as <code>track.ts</code>).
+  Local dev and the Vercel preview run with zero observability credentials; the feature ships dark until accounts exist.</p>
 </div>
-
 <div class="entry decision">
-  <strong><span class="phase">P1</span>Canonical emitted only when a path is given</strong>
-  <p><code>seo()</code> adds <code>&lt;link rel=canonical&gt;</code> + <code>og:url</code> only when <code>path</code> is set, so the
-  root default never emits a canonical that would collide with a child's. Indexable routes (/, /play, /daily, /leaderboard,
-  later /artist) pass <code>path</code>; utility routes use <code>noindexSeo()</code> (no path, adds robots noindex,follow).</p>
+  <strong>session_id propagated via the <code>pq_sid</code> cookie (PUN-47)</strong>
+  <p><code>getSessionId()</code> in <code>lib/track.ts:30</code> mirrors the localStorage id into a 1-year <code>pq_sid</code> cookie.
+  Server side reads it: <code>getServerSessionId()</code> in <code>lib/log.ts</code> for logs, and
+  <code>sentryScopeMiddleware</code> in <code>lib/sentry-scope.ts</code> for the Sentry <code>session_id</code> tag. This is the join key
+  across Sentry + Axiom + the <code>gameEvents</code> DB. Clerk <code>userId</code> set as Sentry user when signed in.</p>
 </div>
-
 <div class="entry decision">
-  <strong><span class="phase">P1</span>JSON-LD via head() scripts</strong>
-  <p><code>jsonLd(obj)</code> → <code>{type:"application/ld+json", children: JSON.stringify(obj)}</code> in the route's
-  <code>head().scripts</code>. Home emits <code>WebSite</code> + <code>Organization</code> (verified: two ld+json blocks SSR'd).
-  Artist pages will add <code>MusicGroup</code> + <code>BreadcrumbList</code>.</p>
+  <strong>"Tag key flows" done centrally, not per-route (PUN-47)</strong>
+  <p>Rather than touching every route, <code>flowForPath()</code> in <code>lib/sentry-scope.ts</code> derives a <code>flow</code> tag
+  (<code>challenge_play</code> / <code>daily_submit</code> / <code>admin</code>) from the request path in the global middleware. One
+  place, covers all requests including server fns and API routes.</p>
 </div>
-
 <div class="entry decision">
-  <strong><span class="phase">P1</span>noindex applied per-route, not via robots Disallow</strong>
-  <p>/profile, /submit, /i/$handle, /c/$slug, /u/$handle use <code>head:()=&gt;noindexSeo()</code> (meta robots noindex,follow —
-  verified on /submit). robots.txt only <code>Disallow</code>s /admin + /api (server-only) and adds the Sitemap line; app
-  pages are crawlable-but-noindex via meta so link equity still flows (follow).</p>
-</div>
-
-<div class="entry decision">
-  <strong><span class="phase">P2</span>Artist SEO-eligibility = active + ≥1 active bar</strong>
-  <p><code>lib/artist.ts</code>: <code>listSeoArtists</code> + <code>getArtistPageFn</code> only surface artists with an active
-  playable bar, so no thin/empty pages get indexed or sitemapped. Page content is metadata-only (name, photo, bar count,
-  tags, related artists, play CTA) — verified zero lyric text in the SSR output. <code>MusicGroup</code> +
-  <code>BreadcrumbList</code> JSON-LD + canonical/og:url to <code>.de/artist/$slug</code> all confirmed.</p>
-</div>
-
-<div class="entry decision">
-  <strong><span class="phase">P2</span>Crawl graph: /artists hub + related links + sitemap</strong>
-  <p><code>/artists</code> hub lists every eligible artist → <code>/artist/$slug</code>; each artist page links to related
-  artists (shared tag); home footer links to <code>/artists</code>, <code>/leaderboard</code>, <code>/daily</code>. Dynamic
-  <code>/sitemap.xml</code> (escaped-dot route file <code>sitemap[.]xml.ts</code>) lists home + static indexable + all
-  eligible artists (verified: 28 URLs, <code>application/xml</code>, absolute <code>.de</code>).</p>
-</div>
-
-<div class="entry decision">
-  <strong><span class="phase">P2</span>Artist meta in German, UI i18n</strong>
-  <p>The <code>head()</code> title/description for artist pages are hardcoded German (canonical audience + <code>.de</code>),
-  while the visible component text uses i18n (DE/EN). Meta lang matches the de-default document.</p>
+  <strong>Sentry server SDK loaded via custom entries; errors-only config</strong>
+  <p><code>src/server.ts</code> overrides the default TanStack entry: imports <code>./instrument.server</code> first (init before any
+  request), then wraps the fetch handler with <code>wrapFetchWithSentry</code>. <code>start.ts</code> registers the two global Sentry
+  middlewares + our scope middleware (order documented inline). <code>tracesSampleRate: 0</code> + browser-noise filters keep the
+  free-tier quota for real errors. Source-map upload (<code>vite.config.ts</code>) is gated on <code>SENTRY_AUTH_TOKEN</code> so only
+  the Vercel build uploads.</p>
 </div>
 
 <h2>Deviations from spec</h2>
+<div class="entry deviation">
+  <strong>Sentry packages externalized from the Nitro server bundle</strong>
+  <p>The build (<code>nitro@3-beta</code> + rollup@4) crashed with
+  <code>Cannot read properties of null (reading 'getVariableForExportName')</code> while rendering the server chunk that pulls in
+  <code>@sentry/tanstackstart-react</code> (its <code>export *</code> namespace re-exports). Fix: externalize <code>@sentry/*</code>,
+  <code>@opentelemetry/*</code>, and <code>import/require-in-the-middle</code> from the server bundle via
+  <code>nitro({ rollupConfig/rolldownConfig: { external } })</code> in <code>vite.config.ts</code>. They resolve at runtime from the
+  traced <code>node_modules</code>. This is also Sentry's recommended state (its Node instrumentation works unbundled). Only affects
+  the server build — the client bundle still bundles <code>@sentry/react</code> normally. Build now green; verified the externalized
+  imports + <code>wrapFetchWithSentry</code> + instrument init are present in <code>.output/server</code>.</p>
+</div>
+<div class="entry deviation">
+  <strong>Alert rules (PUN-49) are config, documented not coded</strong>
+  <p>Sentry alert rules (new-issue / spike / regression) live in the Sentry dashboard, not the repo. Documented in
+  <code>docs/logging-observability.md</code> → Alerting and <code>docs/observability-runbook.md</code>. No code artifact possible.</p>
+</div>
 
 <div class="entry deviation">
-  <strong><span class="phase">P2</span>Unknown artist = soft 404 (HTTP 200 + noindex), not a 404 status</strong>
-  <p>An unknown/inactive/empty <code>/artist/$slug</code> renders a "not found" component with <code>noindex</code> but still
-  returns HTTP 200 (TanStack route components always 200). Acceptable for SEO (noindex keeps it out of the index). If a true
-  404 status is wanted, the loader can <code>throw notFound()</code> — flagged as an open question.</p>
+  <strong>Axiom ingest URL + path changed for EU region (post-setup)</strong>
+  <p>The Sentry + Axiom orgs were created in the <strong>EU</strong> region. Two code/config consequences, both verified against the
+  live APIs: (1) <code>lib/axiom.ts</code> now builds <code>{AXIOM_URL}/v1/ingest/{dataset}</code> (was the deprecated
+  <code>api.axiom.co/v1/datasets/{name}/ingest</code>, which 404s on the edge); <code>AXIOM_URL</code> defaults to
+  <code>https://api.axiom.co</code> and is set to <code>https://eu-central-1.aws.edge.axiom.co</code> in <code>.env</code>. A live test
+  ingest returned <code>{"ingested":1}</code>. (2) Sentry source-map upload must target the EU host via the
+  <code>SENTRY_URL=https://de.sentry.io</code> env var — the plugin's <code>url</code> option isn't on its public type, so env is the
+  supported lever. The app's Axiom token is <strong>ingest-only</strong>; the MCP/runbook query path needs a query-capable token.</p>
 </div>
 
 <h2>Tradeoffs considered</h2>
-<p class="meta">None — followed the settled design.</p>
+<div class="entry tradeoff">
+  <strong>Client Sentry init via side-effect import vs a custom <code>src/client.tsx</code></strong>
+  <p>Sentry's docs put client init in a custom <code>src/client.tsx</code> entry. This app has no custom client entry (framework
+  default). Rather than introduce one and risk breaking hydration, init is a guarded side-effect import in <code>router.tsx</code>
+  (<code>import "./lib/sentry.client"</code>), client- and DSN-gated. Browser-tracing/replay integrations are omitted (we run
+  <code>tracesSampleRate 0</code>), so the router reference those wrappers need isn't required — keeping the override unnecessary.</p>
+</div>
 
 <h2>Open questions</h2>
-
 <div class="entry open">
-  <strong>.com → .de 301 is a platform config (not in code)</strong>
-  <p>This build emits <code>rel=canonical</code> + OG <code>url</code> to absolute <code>.de</code> URLs from every page, but the
-  actual <code>.com → .de</code> 301 redirect must be set in the Vercel project's domain settings / DNS. Action item for the user.</p>
+  <strong>Ops steps remaining before this is live (need credentials I can't provision)</strong>
+  <p>(1) Create the <strong>Sentry</strong> project → set <code>SENTRY_DSN</code> + <code>VITE_SENTRY_DSN</code> (runtime) and
+  <code>SENTRY_AUTH_TOKEN</code>/<code>SENTRY_ORG</code>/<code>SENTRY_PROJECT</code> (Vercel build env, for source maps).
+  (2) Create the <strong>Axiom</strong> account + <code>punchlinequiz</code> dataset → set <code>AXIOM_TOKEN</code>/<code>AXIOM_DATASET</code>;
+  enable the <strong>Vercel → Axiom log drain</strong>. (3) Wire the <strong>Discord</strong> webhook into the Sentry alert rules.
+  (4) Connect <strong>Sentry MCP + Axiom MCP</strong> for the runbook workflow.</p>
 </div>
-
 <div class="entry open">
-  <strong>SITE_URL is hardcoded to https://punchlinequiz.de</strong>
-  <p>In <code>lib/seo.ts</code>. If the canonical host changes, or you want per-environment base URLs (preview deploys),
-  switch it to an env var. Fine as a constant for now.</p>
+  <strong>Synthetic verification (the spec's "done" bar) needs the above</strong>
+  <p>Code is typecheck-clean and builds green, but the spec's acceptance — "throw a test error → it reaches Sentry with a
+  source-mapped stack + correct <code>session_id</code> → an alert fires → MCP finds the timeline" — can only be exercised once a DSN
+  and the accounts exist. The worktree also has no <code>.env</code>, so even a local boot needs Clerk/DB env. Recommend running the
+  synthetic check in a Vercel preview deploy with the env set.</p>
 </div>
-
 <div class="entry open">
-  <strong>Default OG image = /banner-chains.png</strong>
-  <p>Used as the site-wide share image (artist pages use the artist photo). Confirm it works as a ~1200×630 share card; a
-  purpose-built default OG image + dynamic per-page OG cards are the Daily Share Card &amp; Dynamic Link Unfurl project.</p>
+  <strong>Verify <code>@sentry/tanstackstart-react@10.55.0</code> middlewares behave on this exact runtime</strong>
+  <p>Wiring matches Sentry's v10 manual-setup docs and the installed type surface, but the SDK + <code>nitro@3-beta</code> combo is new.
+  Confirm in a preview deploy that server exceptions actually land in Sentry (not just that the build/typecheck pass). The manual-init
+  fallback (<code>@sentry/node</code> + <code>@sentry/react</code>) noted in PUN-46 remains the escape hatch if not.</p>
 </div>
-
-<div class="entry open">
-  <strong>Soft 404 on unknown artists</strong>
-  <p>Returns HTTP 200 + noindex rather than a 404 status (see deviation). Say the word if you want a true 404 via
-  <code>throw notFound()</code> in the loader.</p>
-</div>
-
 </body>
 </html>

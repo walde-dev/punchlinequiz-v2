@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Implementation notes — SEO & Link Surface</title>
+<style>
+  body { font: 14px/1.5 -apple-system, system-ui, sans-serif; max-width: 820px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }
+  h1 { font-size: 1.4rem; }
+  h2 { font-size: 1.1rem; margin-top: 2rem; border-bottom: 1px solid #ddd; padding-bottom: 0.25rem; }
+  .entry { margin: 0.75rem 0 1.25rem; padding-left: 0.75rem; border-left: 3px solid #ddd; }
+  .entry.open { border-left-color: #d97706; }
+  .entry.deviation { border-left-color: #dc2626; }
+  .entry.decision { border-left-color: #2563eb; }
+  .entry.tradeoff { border-left-color: #7c3aed; }
+  .meta { color: #666; font-size: 0.85rem; }
+  code { background: #f3f3f3; padding: 0 0.25rem; border-radius: 3px; }
+  .phase { display: inline-block; font-size: 0.72rem; background: #fbbf24; color: #1a1a1a; border-radius: 9999px; padding: 0 0.5rem; margin-right: 0.4rem; font-weight: 600; }
+</style>
+</head>
+<body>
+<h1>Implementation notes — SEO & Link Surface</h1>
+<p class="meta">Project: PUN SEO &amp; Link Surface (PUN-76..79) · Started: 2026-06-01 · 2 phases ·
+Prior notes archived: implementation-notes-{referral,contributor,profiles}.html</p>
+
+<p class="meta">Settled (grilling): .de canonical (.com 301→.de, platform-level); indexable = /artist/$slug catalog pages + SEO infra;
+NO lyric text on public pages (quiz integrity + copyright); index /, /artist/$slug, /play, /daily, /leaderboard, noindex the rest,
+Disallow /admin+/api; artist OG = artist photo, default banner elsewhere; MusicGroup+BreadcrumbList on artist, WebSite/Organization on home;
+dynamic /sitemap.xml. 2 phases: infra → artist pages + sitemap.</p>
+
+<h2>Design decisions</h2>
+
+<div class="entry decision">
+  <strong><span class="phase">P1</span>seo() helper + default OG in root, per-route override via meta dedup</strong>
+  <p><code>lib/seo.ts</code> <code>seo({title,description,path,image,type,noindex})</code> returns the TanStack
+  <code>head()</code> <code>{meta,links}</code>. Root route carries default OG/Twitter; child routes call <code>seo()</code> to
+  override — TanStack dedupes meta by <code>name</code>/<code>property</code>/<code>title</code> (deepest wins). Verified in SSR:
+  home shows the home description override + canonical/og:url to <code>https://punchlinequiz.de/</code>.</p>
+</div>
+
+<div class="entry decision">
+  <strong><span class="phase">P1</span>Canonical emitted only when a path is given</strong>
+  <p><code>seo()</code> adds <code>&lt;link rel=canonical&gt;</code> + <code>og:url</code> only when <code>path</code> is set, so the
+  root default never emits a canonical that would collide with a child's. Indexable routes (/, /play, /daily, /leaderboard,
+  later /artist) pass <code>path</code>; utility routes use <code>noindexSeo()</code> (no path, adds robots noindex,follow).</p>
+</div>
+
+<div class="entry decision">
+  <strong><span class="phase">P1</span>JSON-LD via head() scripts</strong>
+  <p><code>jsonLd(obj)</code> → <code>{type:"application/ld+json", children: JSON.stringify(obj)}</code> in the route's
+  <code>head().scripts</code>. Home emits <code>WebSite</code> + <code>Organization</code> (verified: two ld+json blocks SSR'd).
+  Artist pages will add <code>MusicGroup</code> + <code>BreadcrumbList</code>.</p>
+</div>
+
+<div class="entry decision">
+  <strong><span class="phase">P1</span>noindex applied per-route, not via robots Disallow</strong>
+  <p>/profile, /submit, /i/$handle, /c/$slug, /u/$handle use <code>head:()=&gt;noindexSeo()</code> (meta robots noindex,follow —
+  verified on /submit). robots.txt only <code>Disallow</code>s /admin + /api (server-only) and adds the Sitemap line; app
+  pages are crawlable-but-noindex via meta so link equity still flows (follow).</p>
+</div>
+
+<div class="entry decision">
+  <strong><span class="phase">P2</span>Artist SEO-eligibility = active + ≥1 active bar</strong>
+  <p><code>lib/artist.ts</code>: <code>listSeoArtists</code> + <code>getArtistPageFn</code> only surface artists with an active
+  playable bar, so no thin/empty pages get indexed or sitemapped. Page content is metadata-only (name, photo, bar count,
+  tags, related artists, play CTA) — verified zero lyric text in the SSR output. <code>MusicGroup</code> +
+  <code>BreadcrumbList</code> JSON-LD + canonical/og:url to <code>.de/artist/$slug</code> all confirmed.</p>
+</div>
+
+<div class="entry decision">
+  <strong><span class="phase">P2</span>Crawl graph: /artists hub + related links + sitemap</strong>
+  <p><code>/artists</code> hub lists every eligible artist → <code>/artist/$slug</code>; each artist page links to related
+  artists (shared tag); home footer links to <code>/artists</code>, <code>/leaderboard</code>, <code>/daily</code>. Dynamic
+  <code>/sitemap.xml</code> (escaped-dot route file <code>sitemap[.]xml.ts</code>) lists home + static indexable + all
+  eligible artists (verified: 28 URLs, <code>application/xml</code>, absolute <code>.de</code>).</p>
+</div>
+
+<div class="entry decision">
+  <strong><span class="phase">P2</span>Artist meta in German, UI i18n</strong>
+  <p>The <code>head()</code> title/description for artist pages are hardcoded German (canonical audience + <code>.de</code>),
+  while the visible component text uses i18n (DE/EN). Meta lang matches the de-default document.</p>
+</div>
+
+<h2>Deviations from spec</h2>
+
+<div class="entry deviation">
+  <strong><span class="phase">P2</span>Unknown artist = soft 404 (HTTP 200 + noindex), not a 404 status</strong>
+  <p>An unknown/inactive/empty <code>/artist/$slug</code> renders a "not found" component with <code>noindex</code> but still
+  returns HTTP 200 (TanStack route components always 200). Acceptable for SEO (noindex keeps it out of the index). If a true
+  404 status is wanted, the loader can <code>throw notFound()</code> — flagged as an open question.</p>
+</div>
+
+<h2>Tradeoffs considered</h2>
+<p class="meta">None — followed the settled design.</p>
+
+<h2>Open questions</h2>
+
+<div class="entry open">
+  <strong>.com → .de 301 is a platform config (not in code)</strong>
+  <p>This build emits <code>rel=canonical</code> + OG <code>url</code> to absolute <code>.de</code> URLs from every page, but the
+  actual <code>.com → .de</code> 301 redirect must be set in the Vercel project's domain settings / DNS. Action item for the user.</p>
+</div>
+
+<div class="entry open">
+  <strong>SITE_URL is hardcoded to https://punchlinequiz.de</strong>
+  <p>In <code>lib/seo.ts</code>. If the canonical host changes, or you want per-environment base URLs (preview deploys),
+  switch it to an env var. Fine as a constant for now.</p>
+</div>
+
+<div class="entry open">
+  <strong>Default OG image = /banner-chains.png</strong>
+  <p>Used as the site-wide share image (artist pages use the artist photo). Confirm it works as a ~1200×630 share card; a
+  purpose-built default OG image + dynamic per-page OG cards are the Daily Share Card &amp; Dynamic Link Unfurl project.</p>
+</div>
+
+<div class="entry open">
+  <strong>Soft 404 on unknown artists</strong>
+  <p>Returns HTTP 200 + noindex rather than a 404 status (see deviation). Say the word if you want a true 404 via
+  <code>throw notFound()</code> in the loader.</p>
+</div>
+
+</body>
+</html>

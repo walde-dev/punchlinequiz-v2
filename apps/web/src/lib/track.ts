@@ -1,15 +1,23 @@
 import { createServerFn } from "@tanstack/react-start"
-import { db } from "./db"
 import { gameEvents } from "@workspace/db"
+import { db } from "./db"
+import { forwardToAxiom } from "./axiom"
 
 const SESSION_KEY = "pq.session_id"
+/** Cookie mirror of the session id, so server-side errors/logs can read it. */
+const SESSION_COOKIE = "pq_sid"
 
 function uuid(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID()
   return Math.random().toString(36).slice(2) + Date.now().toString(36)
 }
 
-/** Anonymous session id, persisted in localStorage. Client-only. */
+/**
+ * Anonymous session id, persisted in localStorage AND mirrored into the
+ * `pq_sid` cookie. Client-only. The cookie lets server functions, server logs,
+ * and Sentry scope (see `sentry-scope.ts`) attach the same id the client uses,
+ * so one session_id correlates across Sentry + Axiom + the gameEvents DB.
+ */
 export function getSessionId(): string {
   if (typeof window === "undefined") return "ssr"
   let id = window.localStorage.getItem(SESSION_KEY)
@@ -17,6 +25,8 @@ export function getSessionId(): string {
     id = uuid()
     window.localStorage.setItem(SESSION_KEY, id)
   }
+  // Mirror to a long-lived cookie (idempotent — cheap to re-set each read).
+  document.cookie = `${SESSION_COOKIE}=${encodeURIComponent(id)}; Max-Age=31536000; Path=/; SameSite=Lax`
   return id
 }
 
@@ -30,26 +40,14 @@ export const recordEvent = createServerFn({ method: "POST" })
       .values({ sessionId: data.sessionId, name: data.name, props })
       .catch((e) => console.error("[track] db insert failed", e))
 
-    const token = process.env.AXIOM_TOKEN
-    const dataset = process.env.AXIOM_DATASET
-    if (token && dataset) {
-      const payload = [
-        {
-          event: data.name,
-          session_id: data.sessionId,
-          timestamp: new Date().toISOString(),
-          ...props,
-        },
-      ]
-      fetch(`https://api.axiom.co/v1/datasets/${dataset}/ingest`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      }).catch((e) => console.error("[track] axiom forward failed", e))
-    }
+    forwardToAxiom([
+      {
+        event: data.name,
+        session_id: data.sessionId,
+        timestamp: new Date().toISOString(),
+        ...props,
+      },
+    ])
     return { ok: true }
   })
 

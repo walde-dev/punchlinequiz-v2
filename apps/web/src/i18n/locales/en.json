@@ -17,6 +17,8 @@
     "saveCard": "Save card",
     "shareCard": "Share card",
     "notFound": "Page not found.",
+    "errorTitle": "Glitch in the booth.",
+    "errorBody": "Something dropped. Reload — we're on it.",
     "switchToEnglish": "Switch to English",
     "switchToGerman": "Switch to German"
   },

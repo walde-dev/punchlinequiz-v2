@@ -6,12 +6,17 @@ Aggressive logging from day 1. Every user action is a discrete event. Over-log a
 
 Inspired by Brian Lovin's approach: OTel traces + manual event capture + Vercel log drain → Axiom → LLM via MCP.
 
+> **App stack:** TanStack Start + Nitro on Vercel (not Next.js — older drafts of
+> this doc used Next.js samples; the code below reflects the real implementation).
+
 ## Stack
 
+- **Sentry** — exception tracking (grouping, source-mapped stacks, releases, alerts). Errors-only at launch. See "Sentry" below and the agent runbook (`docs/observability-runbook.md`).
 - **Axiom** — log aggregation (free tier: 500MB/month, enough for months)
-- **Vercel Log Drain** — native integration, automatic server-side logs
-- **Axiom MCP** — connect LLM for debugging queries
-- **Manual event capture** — client-side events sent to a lightweight API route
+- **Vercel Log Drain** — native integration, automatic server-side logs → Axiom
+- **Axiom MCP + Sentry MCP** — connect an LLM for debugging queries
+- **gameEvents DB table** — every tracked event is also persisted to Postgres (the durable record; Axiom is the queryable log layer)
+- **Manual event capture** — client-side events sent via a TanStack **server function** (`recordEvent` in `lib/track.ts`), which persists to `gameEvents` and forwards to Axiom
 
 ## Setup
 
@@ -26,16 +31,19 @@ Inspired by Brian Lovin's approach: OTel traces + manual event capture + Vercel 
 - All server logs (API routes, server actions, errors) automatically flow to Axiom
 
 ### 3. Client-Side Event Logging
-- Create a lightweight API route: `POST /api/events`
-- Client sends structured events on key actions
-- API route forwards to Axiom via their ingest API
-- Non-blocking: fire-and-forget from client
+- Implemented in `apps/web/src/lib/track.ts` as a TanStack **server function** (`recordEvent`), not a REST route.
+- `logEvent(name, props)` (client) → `recordEvent` (server) → persists to the `gameEvents` table **and** forwards to Axiom via `forwardToAxiom` (`lib/axiom.ts`).
+- Non-blocking: fire-and-forget from the client; failures are swallowed so tracking never breaks gameplay.
 
-### 4. Axiom MCP (for LLM debugging)
-- Install Axiom MCP server
-- Connect to your LLM (Claude, Cursor, etc.)
-- Query pattern: "show me all events for session_id abc123 in the last 24 hours"
-- LLM replays user timeline and identifies issues
+### 4. Sentry (exceptions)
+- SDK: `@sentry/tanstackstart-react`. Client init in `lib/sentry.client.ts` (imported by `router.tsx`); server init in `instrument.server.ts` (imported first by `server.ts`).
+- Global middlewares + a scope middleware (`lib/sentry-scope.ts`) stamp `session_id` + Clerk user + a `flow` tag per request — see `start.ts`.
+- Errors-only at launch (`tracesSampleRate: 0`). Env: `SENTRY_DSN` (server), `VITE_SENTRY_DSN` (client), `SENTRY_AUTH_TOKEN`/`SENTRY_ORG`/`SENTRY_PROJECT` (build-time source maps).
+
+### 5. Axiom MCP + Sentry MCP (for LLM debugging)
+- Connect both MCP servers to your LLM (Claude, Cursor, etc.).
+- Query pattern: "show me all events for session_id abc123 in the last 24 hours".
+- LLM replays the user timeline across Sentry + Axiom + the DB and identifies issues. Full patterns in `docs/observability-runbook.md`.
 
 ## Events to Track
 
@@ -115,17 +123,28 @@ Inspired by Brian Lovin's approach: OTel traces + manual event capture + Vercel 
 
 ## Session ID Strategy
 
-- Generate a UUID on first visit, store in localStorage
-- Attach to every event (client-side and server-side)
-- No auth required — anonymous session tracking
-- If user later creates an account, link session_id to user_id
+- Generate a UUID on first visit, store in localStorage (`getSessionId`, `lib/track.ts`).
+- **Mirror it into the `pq_sid` cookie** so server functions, server logs, and Sentry scope read the same id — this is what makes server-side errors correlate to the client timeline.
+- Attach to every event (client + server); for Sentry it's set per-request in `lib/sentry-scope.ts`.
+- No auth required — anonymous. When signed in, the Clerk user id is also attached (as Sentry `user.id`); never email/name.
+
+## Alerting
+
+Sentry alert rules (high-signal only — tune thresholds against real traffic post-launch):
+- **New issue** — first occurrence of a never-seen error.
+- **Error-rate spike** — sudden jump vs baseline.
+- **Regression** — a resolved issue reoccurs.
+
+**Routing:** a Discord server will be wired later via Sentry's Discord/webhook integration. Until then, verify rules against Sentry's default channel (in-app/email); swapping in the Discord webhook is a routing change, not a code change.
 
 ## Debugging Workflow
 
+See `docs/observability-runbook.md` for the full MCP query cookbook. Quick version:
+
 ### Bug Report Comes In
-1. User says "the quiz is broken" (or you see an error in Axiom)
+1. User says "the quiz is broken" (or you see an error in Sentry/Axiom)
 2. Get their session_id (from URL param, support request, or error context)
-3. Open LLM with Axiom MCP connected
+3. Open LLM with Sentry MCP + Axiom MCP connected
 4. Query: "Show me all events for session_id [id] in the last 24 hours, ordered by timestamp"
 5. LLM replays the timeline:
    - "User selected Kollegah at 20:10"
@@ -211,6 +230,17 @@ async function logToAxiom(event: string, data: Record<string, unknown>) {
 ## Environment Variables
 
 ```
-AXIOM_TOKEN=your_axiom_api_token
+AXIOM_TOKEN=your_axiom_api_token          # ingest capability (app); add query for MCP
 AXIOM_DATASET=punchlinequiz
+AXIOM_URL=https://eu-central-1.aws.edge.axiom.co   # EU edge; omit for US (defaults to api.axiom.co)
 ```
+
+**Region gotcha:** ingest is pinned to the dataset's edge deployment and uses the
+`POST {AXIOM_URL}/v1/ingest/{dataset}` path. An EU-central dataset rejects the
+default US host (`api.axiom.co`) with HTTP 400 — set `AXIOM_URL` to the EU edge.
+The MCP/runbook query path additionally needs a token with **query** capability
+(the app's ingest-only token can't read).
+
+Sentry env (see also `.env.example`): `SENTRY_DSN` + `VITE_SENTRY_DSN` (runtime),
+and `SENTRY_AUTH_TOKEN`/`SENTRY_ORG`/`SENTRY_PROJECT`/`SENTRY_URL` (build-time
+source maps; `SENTRY_URL=https://de.sentry.io` for EU orgs).

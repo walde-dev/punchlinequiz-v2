@@ -1,5 +1,7 @@
 import { createRouter as createTanStackRouter } from "@tanstack/react-router"
 import { routeTree } from "./routeTree.gen"
+// Side-effect: client-side Sentry init (no-op unless VITE_SENTRY_DSN is set).
+import "./lib/sentry.client"
 
 export function getRouter() {
   const router = createTanStackRouter({

@@ -2,11 +2,12 @@ import { ClerkProvider } from "@clerk/tanstack-react-start"
 import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router"
 import { Suspense, useEffect } from "react"
 import { I18nextProvider, useTranslation } from "react-i18next"
+import * as Sentry from "@sentry/tanstackstart-react"
 
+import appCss from "@workspace/ui/globals.css?url"
 import i18n from "../i18n"
 import { OnboardingGate } from "../components/onboarding-gate"
 import { DEFAULT_DESCRIPTION, DEFAULT_OG_IMAGE, SITE_NAME, absoluteUrl } from "../lib/seo"
-import appCss from "@workspace/ui/globals.css?url"
 
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
@@ -44,8 +45,23 @@ export const Route = createRootRoute({
     ],
   }),
   notFoundComponent: () => <NotFound />,
+  errorComponent: ErrorPage,
   shellComponent: RootDocument,
 })
+
+/** Route-level error boundary: reports to Sentry, then shows a slick fallback. */
+function ErrorPage({ error }: { error: Error }) {
+  const { t } = useTranslation()
+  useEffect(() => {
+    Sentry.captureException(error)
+  }, [error])
+  return (
+    <main className="container mx-auto p-4 pt-16">
+      <h1>{t("common.errorTitle")}</h1>
+      <p>{t("common.errorBody")}</p>
+    </main>
+  )
+}
 
 /** Keeps <html lang="…"> in sync with the active i18n language client-side. */
 function LangSync() {

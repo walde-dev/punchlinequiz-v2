@@ -17,6 +17,8 @@
     "saveCard": "Karte speichern",
     "shareCard": "Karte teilen",
     "notFound": "Seite nicht gefunden.",
+    "errorTitle": "Aussetzer.",
+    "errorBody": "Kurz hat's gehakt. Lad neu — wir sind gleich zurück.",
     "switchToEnglish": "Zu Englisch wechseln",
     "switchToGerman": "Zu Deutsch wechseln"
   },
