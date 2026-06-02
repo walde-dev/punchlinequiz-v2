@@ -12,12 +12,13 @@ id). When a user is signed in, the **Clerk user id** is also attached.
 
 | Surface | What it holds | How `session_id` gets there |
 | --- | --- | --- |
-| **Sentry** | Exceptions, stack traces, breadcrumbs | `session_id` tag + Clerk `user.id`, set per-request in `lib/sentry-scope.ts`; a `flow` tag (`challenge_play` / `daily_submit` / `admin`) is derived from the path |
-| **Axiom** | Structured info/warn/error logs + game events | `session_id` field on every record (`lib/log.ts`, `lib/track.ts`) + Vercel server-log drain |
+| **Sentry (client-only)** | **Client** exceptions + stack traces | `session_id` tag set at client init (`lib/sentry.client.ts`). Server exceptions are NOT in Sentry — see below. |
+| **Axiom** | Structured info/warn/error logs (incl. **server** errors) + game events | `session_id` field on every record (`lib/log.ts` reads the `pq_sid` cookie, `lib/track.ts`) + optional Vercel log drain |
 | **`gameEvents` DB** | Durable event record (the source of truth) | `session_id` column, written by `recordEvent` |
 
-Because the id is identical across all three, you can pivot freely: a Sentry
-error → its `session_id` → the full Axiom/DB timeline around the failure.
+The id is identical across all three, so you can pivot freely. **Note:** Sentry
+holds *client* errors only (server-side Sentry is disabled — bundler constraint);
+for server-side failures, the timeline lives in **Axiom + the DB**, not Sentry.
 
 ## Connecting the MCP servers
 
@@ -52,15 +53,17 @@ order by created_at asc;
 1. *"Show the most recent events for Sentry issue `<ID>` and their `session_id` tag."*
 2. Take a `session_id`, run query #1 to see what the user did right before.
 
-### 5. Errors for a signed-in user (Sentry)
-*"Show Sentry events where `user.id` == `<CLERK_USER_ID>` in the last 7 days."*
-(Anonymous-only sessions won't have a user; pivot on `session_id` instead.)
+### 5. Errors for a specific session (Sentry → client errors)
+*"Show Sentry events with tag `session_id == <SID>` in the last 7 days."*
+Sentry holds **client** errors only; for server-side failures of that session,
+use Axiom (query #1). Clerk user / `flow` filtering aren't available while
+Sentry is client-only — segment in Axiom on the event props instead.
 
-### 6. A specific flow misbehaving (Sentry)
-*"Show errors tagged `flow:daily_submit` in the last 24h"* — fast triage of a single surface (challenge play, daily submit, admin).
+### 6. A specific flow misbehaving (Axiom)
+*"In the last 24h, show error-level logs where `endpoint` / `event` matches the daily-submit path"* — server-side flow triage lives in Axiom, not Sentry.
 
 ## Worked example
 1. Bug report: "the daily quiz won't submit." You have the user's `session_id` (from a support message / URL / error context).
-2. Run query #1 → timeline shows `guess_submitted` events, then an `error` log on the submit path.
-3. Cross-check Sentry filtered to `session_id:<SID>` (query #4) → the exception + source-mapped stack.
-4. Fix, ship, mark the Sentry issue resolved (a regression alert fires if it comes back — see `logging-observability.md` → Alerting).
+2. Run query #1 → timeline shows `guess_submitted` events, then an `error` log on the submit path (server error → Axiom).
+3. If the failure was client-side, cross-check Sentry filtered to `session_id:<SID>` (query #5) for the browser exception.
+4. Fix and ship.

@@ -30,44 +30,42 @@ gate for code is <code>pnpm typecheck</code> + <code>pnpm build</code>; the rema
 <h2>Design decisions</h2>
 <div class="entry decision">
   <strong>Env-gated, no-op-without-credentials everywhere</strong>
-  <p>Client Sentry inits only when <code>VITE_SENTRY_DSN</code> is set (<code>lib/sentry.client.ts</code>); server only when
-  <code>SENTRY_DSN</code> is set (<code>instrument.server.ts</code>); the logger direct-forwards to Axiom only when
-  <code>AXIOM_TOKEN</code>/<code>AXIOM_DATASET</code> are set (<code>lib/axiom.ts</code>, same gate as <code>track.ts</code>).
-  Local dev and the Vercel preview run with zero observability credentials; the feature ships dark until accounts exist.</p>
+  <p>Client Sentry inits only when <code>VITE_SENTRY_DSN</code> is set (<code>lib/sentry.client.ts</code>); the logger
+  direct-forwards to Axiom only when <code>AXIOM_TOKEN</code>/<code>AXIOM_DATASET</code> are set (<code>lib/axiom.ts</code>, same gate
+  as <code>track.ts</code>). Local dev and the Vercel preview run with zero observability credentials; the feature ships dark until
+  accounts exist.</p>
 </div>
 <div class="entry decision">
   <strong>session_id propagated via the <code>pq_sid</code> cookie (PUN-47)</strong>
-  <p><code>getSessionId()</code> in <code>lib/track.ts:30</code> mirrors the localStorage id into a 1-year <code>pq_sid</code> cookie.
-  Server side reads it: <code>getServerSessionId()</code> in <code>lib/log.ts</code> for logs, and
-  <code>sentryScopeMiddleware</code> in <code>lib/sentry-scope.ts</code> for the Sentry <code>session_id</code> tag. This is the join key
-  across Sentry + Axiom + the <code>gameEvents</code> DB. Clerk <code>userId</code> set as Sentry user when signed in.</p>
+  <p><code>getSessionId()</code> in <code>lib/track.ts</code> mirrors the localStorage id into a 1-year <code>pq_sid</code> cookie.
+  Server-side reads it via <code>getServerSessionId()</code> in <code>lib/log.ts</code> so server log records carry it. Client Sentry
+  sets it as a <code>session_id</code> tag at init. Join key across (client) Sentry + Axiom + the <code>gameEvents</code> DB.</p>
 </div>
 <div class="entry decision">
-  <strong>"Tag key flows" done centrally, not per-route (PUN-47)</strong>
-  <p>Rather than touching every route, <code>flowForPath()</code> in <code>lib/sentry-scope.ts</code> derives a <code>flow</code> tag
-  (<code>challenge_play</code> / <code>daily_submit</code> / <code>admin</code>) from the request path in the global middleware. One
-  place, covers all requests including server fns and API routes.</p>
-</div>
-<div class="entry decision">
-  <strong>Sentry server SDK loaded via custom entries; errors-only config</strong>
-  <p><code>src/server.ts</code> overrides the default TanStack entry: imports <code>./instrument.server</code> first (init before any
-  request), then wraps the fetch handler with <code>wrapFetchWithSentry</code>. <code>start.ts</code> registers the two global Sentry
-  middlewares + our scope middleware (order documented inline). <code>tracesSampleRate: 0</code> + browser-noise filters keep the
-  free-tier quota for real errors. Source-map upload (<code>vite.config.ts</code>) is gated on <code>SENTRY_AUTH_TOKEN</code> so only
-  the Vercel build uploads.</p>
+  <strong>Sentry is client-only; errors-only config (revised — see deviation)</strong>
+  <p>Client-only Sentry via an SSR-guarded dynamic import in <code>lib/sentry.client.ts</code> + the <code>__root.tsx</code>
+  <code>errorComponent</code>. <code>tracesSampleRate: 0</code> + browser-noise filters. The server SDK, custom server entry,
+  instrument file, and global/scope middlewares were removed — see the deviation below for why. Source-map upload is currently
+  deferred (plugin removed).</p>
 </div>
 
 <h2>Deviations from spec</h2>
 <div class="entry deviation">
-  <strong>Sentry packages externalized from the Nitro server bundle</strong>
-  <p>The build (<code>nitro@3-beta</code> + rollup@4) crashed with
-  <code>Cannot read properties of null (reading 'getVariableForExportName')</code> while rendering the server chunk that pulls in
-  <code>@sentry/tanstackstart-react</code> (its <code>export *</code> namespace re-exports). Fix: externalize <code>@sentry/*</code>,
-  <code>@opentelemetry/*</code>, and <code>import/require-in-the-middle</code> from the server bundle via
-  <code>nitro({ rollupConfig/rolldownConfig: { external } })</code> in <code>vite.config.ts</code>. They resolve at runtime from the
-  traced <code>node_modules</code>. This is also Sentry's recommended state (its Node instrumentation works unbundled). Only affects
-  the server build — the client bundle still bundles <code>@sentry/react</code> normally. Build now green; verified the externalized
-  imports + <code>wrapFetchWithSentry</code> + instrument init are present in <code>.output/server</code>.</p>
+  <strong>Server-side Sentry dropped → Sentry is client-only (caused a prod outage first)</strong>
+  <p><strong>Spec wanted client + server Sentry; shipped client-only.</strong> Chain of events: (1) bundling
+  <code>@sentry/node</code> crashes <code>nitro@3-beta</code> + rollup@4 with
+  <code>Cannot read properties of null (reading 'getVariableForExportName')</code> on its <code>export *</code> re-exports.
+  (2) Externalizing <code>@sentry/*</code> fixed the build — but this nitro setup <em>inlines all deps and ships no
+  <code>node_modules</code></em>, so the externalized packages were simply dropped from the Vercel function. (3) The deployed
+  function still <code>import</code>ed <code>@sentry/tanstackstart-react</code> → "module not found" → <strong>unhandled 500 on every
+  request in prod</strong>. <code>traceDeps</code> did not make Nitro include them.</p>
+  <p><strong>Fix:</strong> keep <code>@sentry</code> entirely out of the server bundle. Load it client-only via a dynamic
+  <code>import("@sentry/tanstackstart-react")</code> behind <code>import.meta.env.SSR</code> (Vite dead-code-eliminates it from the
+  server build). Removed <code>server.ts</code>, <code>instrument.server.ts</code>, <code>sentry-scope.ts</code>, the global
+  middlewares, the bundle externalization, and the source-map plugin. Verified: Vercel-preset build has <em>zero</em>
+  <code>@sentry</code> refs in <code>__server.func</code>; node-server build serves <code>/</code> with HTTP 200.
+  <strong>Consequence:</strong> server exceptions are not in Sentry (they're in Axiom logs). Re-enabling server Sentry needs a
+  bundler-compatible path (rolldown, or a Nitro that ships externalized <code>node_modules</code>).</p>
 </div>
 <div class="entry deviation">
   <strong>Alert rules (PUN-49) are config, documented not coded</strong>
@@ -105,17 +103,24 @@ gate for code is <code>pnpm typecheck</code> + <code>pnpm build</code>; the rema
   (4) Connect <strong>Sentry MCP + Axiom MCP</strong> for the runbook workflow.</p>
 </div>
 <div class="entry open">
-  <strong>Synthetic verification (the spec's "done" bar) needs the above</strong>
-  <p>Code is typecheck-clean and builds green, but the spec's acceptance — "throw a test error → it reaches Sentry with a
-  source-mapped stack + correct <code>session_id</code> → an alert fires → MCP finds the timeline" — can only be exercised once a DSN
-  and the accounts exist. The worktree also has no <code>.env</code>, so even a local boot needs Clerk/DB env. Recommend running the
-  synthetic check in a Vercel preview deploy with the env set.</p>
+  <strong>Re-enable server-side Sentry (deferred — bundler constraint)</strong>
+  <p>Server exceptions are currently only in Axiom, not Sentry. Re-enabling needs a path that doesn't bundle <code>@sentry/node</code>
+  into the Nitro output: candidates are rolldown-vite (no <code>export *</code> render bug), a Nitro version that ships externalized
+  <code>node_modules</code>, or loading the SDK via Node <code>--import</code> in the Vercel function. Own follow-up.</p>
 </div>
 <div class="entry open">
-  <strong>Verify <code>@sentry/tanstackstart-react@10.55.0</code> middlewares behave on this exact runtime</strong>
-  <p>Wiring matches Sentry's v10 manual-setup docs and the installed type surface, but the SDK + <code>nitro@3-beta</code> combo is new.
-  Confirm in a preview deploy that server exceptions actually land in Sentry (not just that the build/typecheck pass). The manual-init
-  fallback (<code>@sentry/node</code> + <code>@sentry/react</code>) noted in PUN-46 remains the escape hatch if not.</p>
+  <strong>Client source-map upload deferred</strong>
+  <p>The Sentry vite plugin was removed (it can inject server instrumentation, which would re-pollute the server bundle). So client
+  Sentry stacks are minified. Re-add deliberately with the generic <code>@sentry/vite-plugin</code> (add it as a direct dep,
+  build-time only) + <code>SENTRY_URL=https://de.sentry.io</code> for the EU org. <code>SENTRY_AUTH_TOKEN</code>/<code>ORG</code>/<code>PROJECT</code>
+  are set but currently unused.</p>
+</div>
+<div class="entry open">
+  <strong>Synthetic verification + remaining ops</strong>
+  <p>Done bar: client error → Sentry (with <code>session_id</code> tag); server error → Axiom log. Verify in a Vercel preview with env
+  set. Remaining ops: Vercel env vars (done by user), Discord alert routing, a <strong>query-capable</strong> Axiom token for the MCP
+  (the app token is ingest-only), and wiring <code>logServer()</code> calls into server paths (currently 0 call sites — Axiom only sees
+  client events + the existing console.error catches).</p>
 </div>
 </body>
 </html>

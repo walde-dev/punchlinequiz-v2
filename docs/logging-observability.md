@@ -35,10 +35,11 @@ Inspired by Brian Lovin's approach: OTel traces + manual event capture + Vercel 
 - `logEvent(name, props)` (client) → `recordEvent` (server) → persists to the `gameEvents` table **and** forwards to Axiom via `forwardToAxiom` (`lib/axiom.ts`).
 - Non-blocking: fire-and-forget from the client; failures are swallowed so tracking never breaks gameplay.
 
-### 4. Sentry (exceptions)
-- SDK: `@sentry/tanstackstart-react`. Client init in `lib/sentry.client.ts` (imported by `router.tsx`); server init in `instrument.server.ts` (imported first by `server.ts`).
-- Global middlewares + a scope middleware (`lib/sentry-scope.ts`) stamp `session_id` + Clerk user + a `flow` tag per request — see `start.ts`.
-- Errors-only at launch (`tracesSampleRate: 0`). Env: `SENTRY_DSN` (server), `VITE_SENTRY_DSN` (client), `SENTRY_AUTH_TOKEN`/`SENTRY_ORG`/`SENTRY_PROJECT` (build-time source maps).
+### 4. Sentry (exceptions) — **client-only**
+- SDK: `@sentry/tanstackstart-react`, loaded **only on the client** via a dynamic import behind `import.meta.env.SSR` in `lib/sentry.client.ts` (imported by `router.tsx`), plus the route `errorComponent` in `__root.tsx`.
+- **Why not server-side:** this nitro@3-beta setup inlines all deps (ships no `node_modules`), and `@sentry/node` can't be bundled (rollup `export *` crash). Any server-side `@sentry` import therefore breaks the deployed function. So **server exceptions are NOT in Sentry** — they're captured as structured Axiom logs instead (`logServer`, once wired). Re-introducing server Sentry needs a bundler-compatible approach (rolldown, or a nitro that ships externals).
+- Errors-only (`tracesSampleRate: 0`). Client init tags `session_id` so client errors correlate with Axiom + the gameEvents DB.
+- Env: `VITE_SENTRY_DSN` (client; `SENTRY_DSN` retained for a future server path). `SENTRY_AUTH_TOKEN`/`SENTRY_ORG`/`SENTRY_PROJECT`/`SENTRY_URL` are for source-map upload, which is **currently deferred** (plugin removed) — client stacks are minified until re-added.
 
 ### 5. Axiom MCP + Sentry MCP (for LLM debugging)
 - Connect both MCP servers to your LLM (Claude, Cursor, etc.).
@@ -125,8 +126,8 @@ Inspired by Brian Lovin's approach: OTel traces + manual event capture + Vercel 
 
 - Generate a UUID on first visit, store in localStorage (`getSessionId`, `lib/track.ts`).
 - **Mirror it into the `pq_sid` cookie** so server functions, server logs, and Sentry scope read the same id — this is what makes server-side errors correlate to the client timeline.
-- Attach to every event (client + server); for Sentry it's set per-request in `lib/sentry-scope.ts`.
-- No auth required — anonymous. When signed in, the Clerk user id is also attached (as Sentry `user.id`); never email/name.
+- Attach to every event (client + server logs). Sentry is client-only, so its `session_id` tag is set in `lib/sentry.client.ts` at init (covers client errors); server errors carry `session_id` via the Axiom log record (`logServer` reads the `pq_sid` cookie).
+- No auth required — anonymous. (Clerk user is not attached to Sentry while Sentry is client-only.)
 
 ## Alerting
 
