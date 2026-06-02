@@ -1,5 +1,3 @@
-import { getSessionId } from "./track"
-
 /**
  * Client-only Sentry init. Side-effect import from `router.tsx`.
  *
@@ -33,6 +31,14 @@ if (!import.meta.env.SSR && dsn) {
       ],
       denyUrls: [/extensions\//i, /^chrome-extension:\/\//i, /^moz-extension:\/\//i],
     })
-    Sentry.setTag("session_id", getSessionId())
+    // Read the session id inline (do NOT import from track.ts — that statically
+    // imports ./db, which would pull server-only code into the client bundle and
+    // throw "DATABASE_URL is required" at load).
+    try {
+      const sid = window.localStorage.getItem("pq.session_id")
+      if (sid) Sentry.setTag("session_id", sid)
+    } catch {
+      // localStorage unavailable — skip the tag.
+    }
   })
 }
