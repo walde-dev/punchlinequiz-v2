@@ -98,7 +98,7 @@ function ChallengeRunner({ data }: { data: Extract<ChallengeView, { found: true 
   const claimedRef = useRef(false)
 
   useEffect(() => {
-    logEvent("play_challenge_start", { slug: data.slug })
+    logEvent("challenge_play_started", { slug: data.slug })
     // Capture the challenge as a first-touch referral source — if this visitor
     // signs up, the challenge creator gets credited (PUN-73).
     setReferralToken({ source: "challenge", value: data.slug })
@@ -112,7 +112,7 @@ function ChallengeRunner({ data }: { data: Extract<ChallengeView, { found: true 
       if (!res.found) return
       setResult(res.result)
       setBoard(res.board)
-      logEvent("play_challenge_complete", {
+      logEvent("challenge_play_completed", {
         slug: data.slug,
         correct: res.result.correctCount,
         solve_ms: res.result.solveMs,
@@ -151,7 +151,7 @@ function ChallengeRunner({ data }: { data: Extract<ChallengeView, { found: true 
       setViewerHandle(res.viewerHandle)
       clearPending(data.slug)
       pendingRef.current = null
-      logEvent("challenge_signup_claim", { slug: data.slug, correct: res.result.correctCount })
+      logEvent("challenge_signup_claimed", { slug: data.slug, correct: res.result.correctCount })
       setPhase("result")
     })()
   }, [isSignedIn, data.slug])
@@ -436,7 +436,7 @@ function BoardScreen({
 }) {
   const { t } = useTranslation()
   useEffect(() => {
-    logEvent("view_challenge_board", { slug })
+    logEvent("challenge_board_viewed", { slug })
   }, [slug])
   return (
     <main className="relative mx-auto flex w-full max-w-xl flex-1 flex-col gap-6 px-5 pt-20 pb-12 md:px-8">
@@ -539,7 +539,7 @@ function ShareButton({
         : t("challenge.beFirst")
     const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean }
     const canNativeShare = typeof nav.share === "function"
-    logEvent("share_challenge", { slug, channel: canNativeShare ? "native" : "copy" })
+    logEvent("challenge_shared", { slug, channel: canNativeShare ? "native" : "copy" })
     try {
       if (!blobRef.current) {
         blobRef.current = await renderChallengeCard({ correctCount, size, creatorHandle })

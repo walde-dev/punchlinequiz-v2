@@ -95,7 +95,7 @@ function SubmitForm() {
           cloze: !!clozePrompt.trim(),
           note: !!note.trim(),
         }
-        logEvent("submit_bar", { filled })
+        logEvent("bar_submitted", { filled })
         logEvent("submission_created", { id: res.id, filled })
         setDone(true)
       } else if (res.reason === "cooldown") {

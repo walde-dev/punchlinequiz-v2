@@ -60,7 +60,7 @@ function LeaderboardPage() {
   useEffect(() => {
     if (first.current) {
       first.current = false
-      logEvent("view_leaderboard", { board, window })
+      logEvent("leaderboard_viewed", { board, window })
       return
     }
     // Friends requires sign-in; artist requires a selected artist. In those
@@ -86,8 +86,8 @@ function LeaderboardPage() {
   function switchBoard(next: LeaderboardBoard) {
     if (next === board) return
     setBoard(next)
-    logEvent("view_leaderboard", { board: next, ...(next === "artist" && artistId ? { artistId } : {}) })
-    if (next === "contributor") logEvent("view_contributor_leaderboard", {})
+    logEvent("leaderboard_viewed", { board: next, ...(next === "artist" && artistId ? { artist_id: artistId } : {}) })
+    if (next === "contributor") logEvent("contributor_leaderboard_viewed", {})
   }
 
   const showSignIn = board === "friends" && !isSignedIn
@@ -130,7 +130,7 @@ function LeaderboardPage() {
             value={artistId}
             onChange={(id) => {
               setArtistId(id)
-              logEvent("view_leaderboard", { board: "artist", artistId: id })
+              logEvent("leaderboard_viewed", { board: "artist", artist_id: id })
             }}
           />
         )}

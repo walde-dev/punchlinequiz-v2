@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start"
 import { gameEvents } from "@workspace/db"
 import { db } from "./db"
 import { forwardToAxiom } from "./axiom"
+import { capturePostHog } from "./posthog.client"
 
 const SESSION_KEY = "pq.session_id"
 /** Cookie mirror of the session id, so server-side errors/logs can read it. */
@@ -59,5 +60,10 @@ export const recordEvent = createServerFn({ method: "POST" })
 export function logEvent(name: string, props: Record<string, unknown> = {}): void {
   if (typeof window === "undefined") return
   const sessionId = getSessionId()
+  // Single choke point: every product event goes to BOTH sinks.
+  //  1) PostHog (client SDK) — product analytics: funnels, retention, replay.
+  //  2) recordEvent server fn — raw backup in the gameEvents DB + Axiom logs.
+  // recordEvent intentionally does NOT re-send to PostHog (would double-count).
+  capturePostHog(name, props)
   recordEvent({ data: { sessionId, name, props } }).catch(() => {})
 }

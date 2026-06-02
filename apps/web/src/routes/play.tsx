@@ -247,7 +247,7 @@ function PlayInner({
       }
     } catch (err) {
       console.error(err)
-      logEvent("answer_error", { punchline_id: round.punchlineId, message: String(err) })
+      logEvent("answer_failed", { punchline_id: round.punchlineId, message: String(err) })
       setSelectedId(null)
     }
   }
@@ -307,7 +307,7 @@ function PlayInner({
       setClozeOutcome(null)
     } catch (err) {
       console.error(err)
-      logEvent("cloze_error", { punchline_id: round.punchlineId, message: String(err) })
+      logEvent("cloze_failed", { punchline_id: round.punchlineId, message: String(err) })
     }
   }
 
@@ -342,7 +342,7 @@ function PlayInner({
       setPhase("revealing")
     } catch (err) {
       console.error(err)
-      logEvent("song_guess_error", { punchline_id: round.punchlineId, message: String(err) })
+      logEvent("song_guess_failed", { punchline_id: round.punchlineId, message: String(err) })
     }
   }
 
@@ -366,7 +366,7 @@ function PlayInner({
       resetRoundState()
     } catch (err) {
       console.error(err)
-      logEvent("next_error", { message: String(err) })
+      logEvent("next_failed", { message: String(err) })
       setPhase("revealing")
     }
   }
@@ -391,7 +391,7 @@ function PlayInner({
       resetRoundState()
     } catch (err) {
       console.error(err)
-      logEvent("session_restart_error", { message: String(err) })
+      logEvent("session_restart_failed", { message: String(err) })
       setPhase("session-complete")
     }
   }

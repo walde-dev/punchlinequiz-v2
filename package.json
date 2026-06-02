@@ -15,7 +15,8 @@
     "lyrics:insert": "tsx scripts/lyrics/insert.ts",
     "discord:setup": "tsx scripts/discord/setup.ts",
     "discord:register": "tsx scripts/discord/register-commands.ts",
-    "discord:post-welcome": "tsx scripts/discord/post-welcome.ts"
+    "discord:post-welcome": "tsx scripts/discord/post-welcome.ts",
+    "analytics:apply": "tsx scripts/posthog/apply.ts"
   },
   "devDependencies": {
     "prettier": "^3.8.1",

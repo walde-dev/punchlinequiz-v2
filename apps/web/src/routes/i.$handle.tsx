@@ -29,7 +29,7 @@ function InvitePage() {
   useEffect(() => {
     if (!inviter.found) return
     setReferralToken({ source: "invite", value: inviter.handle })
-    logEvent("referral_landing_view", { source: "invite", handle: inviter.handle })
+    logEvent("referral_landing_viewed", { source: "invite", handle: inviter.handle })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

@@ -37,7 +37,7 @@ function PublicProfilePage() {
   const { data } = Route.useLoaderData() as { data: PublicProfileResult }
   const { handle } = Route.useParams()
   useEffect(() => {
-    logEvent("view_profile", { handle })
+    logEvent("profile_viewed", { handle })
   }, [handle])
 
   if (!data.found) return <NotFound handle={handle} />
@@ -198,7 +198,7 @@ function InviteCard({ handle }: { handle: string }) {
         if (d.newlyConfirmed.length > 0) {
           setCelebrated(d.newlyConfirmed)
           setConfettiKey((k) => k + 1)
-          logEvent("referral_confirmed_seen", { count: d.newlyConfirmed.length })
+          logEvent("referral_confirmation_seen", { count: d.newlyConfirmed.length })
           markReferralsSeenFn().catch(() => {})
         }
       })
@@ -295,7 +295,7 @@ function MySubmissions() {
   const [confettiKey, setConfettiKey] = useState(0)
 
   useEffect(() => {
-    logEvent("view_my_submissions", {})
+    logEvent("submissions_viewed", {})
     getMySubmissionsFn()
       .then((list) => {
         setItems(list)
@@ -428,7 +428,7 @@ function Actions({
         : await followByHandleFn({ data: { handle: data.handle } })
       setFollowing(res.isFollowing)
       onFollowersChange(res.followerCount)
-      logEvent(res.isFollowing ? "follow_user" : "unfollow_user", { handle: data.handle })
+      logEvent(res.isFollowing ? "user_followed" : "user_unfollowed", { handle: data.handle })
     } catch (e) {
       console.error(e)
     } finally {
@@ -474,7 +474,7 @@ function CreateChallengeButton({ label, signedIn }: { label: string; signedIn: b
     setBusy(true)
     try {
       const { slug } = await createChallengeFn()
-      logEvent("create_challenge", { slug })
+      logEvent("challenge_created", { slug })
       navigate({ to: "/c/$slug", params: { slug } })
     } catch (e) {
       console.error(e)

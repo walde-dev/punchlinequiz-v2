@@ -26,7 +26,11 @@
         "SENTRY_URL",
         "AXIOM_TOKEN",
         "AXIOM_DATASET",
-        "AXIOM_URL"
+        "AXIOM_URL",
+        "VITE_PUBLIC_POSTHOG_KEY",
+        "VITE_PUBLIC_POSTHOG_HOST",
+        "POSTHOG_KEY",
+        "POSTHOG_HOST"
       ]
     },
     "lint": {

@@ -6,7 +6,10 @@ import { I18nextProvider, useTranslation } from "react-i18next"
 import appCss from "@workspace/ui/globals.css?url"
 import i18n from "../i18n"
 import { OnboardingGate } from "../components/onboarding-gate"
+import { AnalyticsIdentity } from "../components/analytics-identity"
+import { getBootstrapFlagsFn } from "../lib/flags"
 import { DEFAULT_DESCRIPTION, DEFAULT_OG_IMAGE, SITE_NAME, absoluteUrl } from "../lib/seo"
+import type { BootstrapFlags } from "../lib/flags"
 
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
@@ -15,6 +18,13 @@ if (!CLERK_PUBLISHABLE_KEY) {
 }
 
 export const Route = createRootRoute({
+  // Server-evaluate feature flags once per session for PostHog SSR bootstrap
+  // (PUN-44, no flag flicker). staleTime Infinity → runs during SSR, reused for
+  // the session so client navigations don't refetch. No-op until POSTHOG_KEY set.
+  loader: async (): Promise<{ phFlags: BootstrapFlags }> => ({
+    phFlags: await getBootstrapFlagsFn(),
+  }),
+  staleTime: Number.POSITIVE_INFINITY,
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -86,12 +96,16 @@ function NotFound() {
 }
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  const { phFlags } = Route.useLoaderData()
   return (
     <html lang="de" className="dark">
       <head>
         <HeadContent />
       </head>
       <body className="min-h-svh bg-background text-foreground antialiased">
+        {/* PostHog flag bootstrap (PUN-44): set before hydration so posthog-js
+            init reads the server-evaluated variants — no flicker. */}
+        <PostHogBootstrap flags={phFlags} />
         <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} afterSignOutUrl="/">
           <I18nextProvider i18n={i18n}>
             <LangSync />
@@ -99,10 +113,19 @@ function RootDocument({ children }: { children: React.ReactNode }) {
               {children}
             </Suspense>
             <OnboardingGate />
+            <AnalyticsIdentity />
           </I18nextProvider>
         </ClerkProvider>
         <Scripts />
       </body>
     </html>
   )
+}
+
+/** Inline script that publishes server-evaluated feature flags to the client
+ *  before posthog-js initialises. JSON is escaped to prevent </script> breakout. */
+function PostHogBootstrap({ flags }: { flags: BootstrapFlags }) {
+  if (Object.keys(flags).length === 0) return null
+  const json = JSON.stringify({ featureFlags: flags }).replace(/</g, "\\u003c")
+  return <script dangerouslySetInnerHTML={{ __html: `window.__PH_BOOTSTRAP__=${json}` }} />
 }

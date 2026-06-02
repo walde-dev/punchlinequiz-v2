@@ -80,7 +80,7 @@ export function SessionSummary({
     setCreatingChallenge(true)
     try {
       const { slug } = await createChallengeFn()
-      logEvent("create_challenge", { slug, from: "session" })
+      logEvent("challenge_created", { slug, from: "session" })
       navigate({ to: "/c/$slug", params: { slug } })
     } catch (e) {
       console.error(e)
