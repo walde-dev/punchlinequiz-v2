@@ -2,7 +2,6 @@ import { ClerkProvider } from "@clerk/tanstack-react-start"
 import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router"
 import { Suspense, useEffect } from "react"
 import { I18nextProvider, useTranslation } from "react-i18next"
-import * as Sentry from "@sentry/tanstackstart-react"
 
 import appCss from "@workspace/ui/globals.css?url"
 import i18n from "../i18n"
@@ -53,7 +52,11 @@ export const Route = createRootRoute({
 function ErrorPage({ error }: { error: Error }) {
   const { t } = useTranslation()
   useEffect(() => {
-    Sentry.captureException(error)
+    // Client-only Sentry capture; SSR-guarded so the server bundle stays free
+    // of @sentry (see sentry.client.ts for why).
+    if (!import.meta.env.SSR) {
+      void import("@sentry/tanstackstart-react").then((Sentry) => Sentry.captureException(error))
+    }
   }, [error])
   return (
     <main className="container mx-auto p-4 pt-16">
