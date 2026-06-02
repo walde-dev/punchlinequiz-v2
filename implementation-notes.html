@@ -84,6 +84,19 @@ gate for code is <code>pnpm typecheck</code> + <code>pnpm build</code>; the rema
   supported lever. The app's Axiom token is <strong>ingest-only</strong>; the MCP/runbook query path needs a query-capable token.</p>
 </div>
 
+<div class="entry deviation">
+  <strong>Pre-existing <code>db.ts</code> client leak — fixed with a lazy Proxy (out of original scope)</strong>
+  <p>Surfaced while validating the deploy: <code>apps/web/src/lib/db.ts</code> ran its <code>DATABASE_URL</code> check +
+  <code>createDb()</code> at <em>module top level</em>, so any client-reachable static import of <code>db</code> (a server-fn module
+  whose import the bundler couldn't tree-shake — modules with load-time side effects can't be dropped) executed that code in the
+  browser and threw <code>Uncaught (in promise) DATABASE_URL is required</code>. That unhandled rejection broke hydration of the
+  eagerly-loaded <code>onboarding-gate</code>/header → dead sign-in button + dead leaderboard buttons. <strong>Reproduced with the
+  original pre-observability <code>track.ts</code></strong>, so it predates this project; the re-chunking just made it bite.
+  <strong>Fix:</strong> wrap the connection in a lazy <code>Proxy</code> so importing <code>db.ts</code> has zero side effects — the
+  check + neon connection run on first property access (server-only). Verified: server DB routes still 200 (Proxy transparent to
+  drizzle); client chunk no longer executes the throw at load.</p>
+</div>
+
 <h2>Tradeoffs considered</h2>
 <div class="entry tradeoff">
   <strong>Client Sentry init via side-effect import vs a custom <code>src/client.tsx</code></strong>
@@ -94,13 +107,19 @@ gate for code is <code>pnpm typecheck</code> + <code>pnpm build</code>; the rema
 </div>
 
 <h2>Open questions</h2>
+<div class="entry decision">
+  <strong>LIVE on prod (2026-06-02)</strong>
+  <p>Sentry (client) + Axiom (EU edge) are deployed and verified: app hydrates/interactive, Axiom events flow to the
+  <code>punchlinequiz</code> dataset. Env (DSN, Axiom token/dataset/URL) set on Vercel Production+Preview. Sentry shows no events =
+  expected (no errors yet).</p>
+</div>
 <div class="entry open">
-  <strong>Ops steps remaining before this is live (need credentials I can't provision)</strong>
-  <p>(1) Create the <strong>Sentry</strong> project → set <code>SENTRY_DSN</code> + <code>VITE_SENTRY_DSN</code> (runtime) and
-  <code>SENTRY_AUTH_TOKEN</code>/<code>SENTRY_ORG</code>/<code>SENTRY_PROJECT</code> (Vercel build env, for source maps).
-  (2) Create the <strong>Axiom</strong> account + <code>punchlinequiz</code> dataset → set <code>AXIOM_TOKEN</code>/<code>AXIOM_DATASET</code>;
-  enable the <strong>Vercel → Axiom log drain</strong>. (3) Wire the <strong>Discord</strong> webhook into the Sentry alert rules.
-  (4) Connect <strong>Sentry MCP + Axiom MCP</strong> for the runbook workflow.</p>
+  <strong>Remaining follow-ups (not blockers)</strong>
+  <p>(1) <strong>PUN-49 alerts + Discord</strong> — Sentry dashboard config, not done. (2) <strong>MCP</strong> — needs a
+  <em>query-capable</em> Axiom token (current one is ingest-only) + connecting Sentry/Axiom MCP for the runbook. (3)
+  <strong>Source-map upload</strong> deferred (client stacks minified; <code>SENTRY_AUTH_TOKEN</code>/<code>ORG</code>/<code>PROJECT</code>
+  set but unused). (4) <strong>Vercel → Axiom log drain</strong> deferred (needs Vercel Pro). (5) Prove Sentry capture with a test
+  error.</p>
 </div>
 <div class="entry open">
   <strong>Re-enable server-side Sentry (deferred — bundler constraint)</strong>
