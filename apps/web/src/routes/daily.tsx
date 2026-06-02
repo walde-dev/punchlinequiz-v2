@@ -19,12 +19,14 @@ import {
   type DailyArtistChoice,
   type DailyChallenge,
 } from "../lib/daily"
+import { seo } from "../lib/seo"
 import { logEvent } from "../lib/track"
 
 type DailySearch = { date?: string }
 
 export const Route = createFileRoute("/daily")({
   component: DailyPage,
+  head: () => seo({ title: "Daily Bar", description: "Die tägliche Bar — errate Künstler und Song. Jeden Tag eine neue Punchline.", path: "/daily" }),
   validateSearch: (search: Record<string, unknown>): DailySearch => ({
     date: typeof search.date === "string" ? search.date : undefined,
   }),

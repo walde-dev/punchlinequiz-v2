@@ -7,10 +7,11 @@ import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { AppHeader } from "../components/app-header"
+import { noindexSeo } from "../lib/seo"
 import { submitBarFn } from "../lib/submissions"
 import { logEvent } from "../lib/track"
 
-export const Route = createFileRoute("/submit")({ component: SubmitPage })
+export const Route = createFileRoute("/submit")({ component: SubmitPage, head: () => noindexSeo() })
 
 const ease = "cubic-bezier(0.16, 1, 0.3, 1)"
 

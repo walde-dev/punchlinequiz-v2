@@ -35,6 +35,7 @@ import {
   type SongReveal,
 } from "../lib/game"
 import { isAdminFn } from "../lib/session"
+import { seo } from "../lib/seo"
 import { logEvent } from "../lib/track"
 
 type PlayMode = "artist" | "cloze"
@@ -42,6 +43,7 @@ type PlaySearch = { artist?: string; mode?: PlayMode }
 
 export const Route = createFileRoute("/play")({
   component: PlayPage,
+  head: () => seo({ title: "Bars erraten", description: "Errate den Künstler hinter jeder Punchline. Wie tief sitzt dein Rap-Wissen?", path: "/play" }),
   validateSearch: (search: Record<string, unknown>): PlaySearch => ({
     artist: typeof search.artist === "string" ? search.artist : undefined,
     mode: search.mode === "cloze" ? "cloze" : undefined,

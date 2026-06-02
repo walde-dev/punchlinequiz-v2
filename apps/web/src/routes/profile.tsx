@@ -9,10 +9,12 @@ import { cn } from "@workspace/ui/lib/utils"
 import { AppHeader } from "../components/app-header"
 import { rankIconPath } from "../lib/rank-icon"
 import { getMyHandleFn } from "../lib/profile"
+import { noindexSeo } from "../lib/seo"
 import { getProfileFn, type ProfileFnResult } from "../lib/session"
 
 export const Route = createFileRoute("/profile")({
   component: ProfilePage,
+  head: () => noindexSeo(),
   // Profiles are unified at /u/$handle. Onboarded users redirect to their
   // public page; un-onboarded + anonymous users fall through to the existing
   // self view / sign-in pitch (handle claiming is the parallel onboarding work).

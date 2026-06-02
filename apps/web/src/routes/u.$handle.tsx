@@ -19,11 +19,13 @@ import {
 import { createChallengeFn } from "../lib/challenge"
 import type { ContributorProfile, ContributorTier } from "../lib/contributor"
 import { getMyReferralsFn, markReferralsSeenFn, type MyReferralsResult } from "../lib/referral"
+import { noindexSeo } from "../lib/seo"
 import { getMySubmissionsFn, markAcceptanceSeenFn, type MySubmission } from "../lib/submissions"
 import { logEvent } from "../lib/track"
 
 export const Route = createFileRoute("/u/$handle")({
   component: PublicProfilePage,
+  head: () => noindexSeo(),
   loader: async ({ params }) => ({
     data: await getPublicProfileFn({ data: { handle: params.handle } }),
   }),

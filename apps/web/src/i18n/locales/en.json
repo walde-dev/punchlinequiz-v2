@@ -103,6 +103,8 @@
     "betaBadge": "Public Beta",
     "betaNotice": "The game is still in development. Feedback welcome.",
     "madeWith": "Made for the culture.",
+    "footerArtists": "All artists",
+    "footerDaily": "Daily",
     "dailyEyebrow": "/ daily #{{number}}",
     "dailyHeadline": "One bar. One try.",
     "dailySubtext": "Wordle-style. New every day.",
@@ -137,6 +139,20 @@
     "shareText": "Know your bars? Play punchlinequiz with me.",
     "payoffOne": "@{{handle}} followed your link!",
     "payoffMany": "{{count}} people followed your link!"
+  },
+  "artistPage": {
+    "title": "{{name}} Punchline Quiz",
+    "barsCount": "{{count}} bars to guess",
+    "playCta": "Play the {{name}} quiz",
+    "relatedTitle": "Similar artists",
+    "notFoundTitle": "Artist not found",
+    "allArtists": "Browse all artists"
+  },
+  "artistsHub": {
+    "eyebrow": "/ artists",
+    "title": "All artists",
+    "subtitle": "{{count}} artists with playable bars",
+    "barsShort": "{{count}} bars"
   },
   "play": {
     "barEyebrow": "/ the bar",

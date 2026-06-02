@@ -21,10 +21,12 @@ import {
 } from "../lib/challenge"
 import { renderChallengeCard } from "../lib/share-card"
 import { setReferralToken } from "../lib/referral-client"
+import { noindexSeo } from "../lib/seo"
 import { logEvent } from "../lib/track"
 
 export const Route = createFileRoute("/c/$slug")({
   component: ChallengePage,
+  head: () => noindexSeo(),
   loader: async ({ params }) => ({ data: await getChallengeFn({ data: { slug: params.slug } }) }),
 })
 

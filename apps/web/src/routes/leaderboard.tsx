@@ -9,6 +9,7 @@ import { cn } from "@workspace/ui/lib/utils"
 import { AppHeader } from "../components/app-header"
 import { rankIconPath } from "../lib/rank-icon"
 import { getLeaderboardFn } from "../lib/leaderboard"
+import { seo } from "../lib/seo"
 import { listPlayableArtists, type ArtistTile } from "../lib/game"
 import { logEvent } from "../lib/track"
 import type {
@@ -20,6 +21,7 @@ import type {
 
 export const Route = createFileRoute("/leaderboard")({
   component: LeaderboardPage,
+  head: () => seo({ title: "Rangliste", description: "Die besten Köpfe im deutschen Rap-Quiz. Wer kennt die meisten Bars?", path: "/leaderboard" }),
   loader: async () => ({
     initial: await getLeaderboardFn({ data: { board: "xp", window: "alltime" } }),
   }),

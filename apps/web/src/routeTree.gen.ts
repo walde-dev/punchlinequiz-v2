@@ -10,16 +10,19 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SubmitRouteImport } from './routes/submit'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PlayRouteImport } from './routes/play'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as FinishingRouteImport } from './routes/finishing'
 import { Route as DailyRouteImport } from './routes/daily'
+import { Route as ArtistsRouteImport } from './routes/artists'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as UHandleRouteImport } from './routes/u.$handle'
 import { Route as IHandleRouteImport } from './routes/i.$handle'
 import { Route as CSlugRouteImport } from './routes/c.$slug'
+import { Route as ArtistSlugRouteImport } from './routes/artist.$slug'
 import { Route as AdminXpRouteImport } from './routes/admin/xp'
 import { Route as AdminSubmissionsRouteImport } from './routes/admin/submissions'
 import { Route as AdminReviewRouteImport } from './routes/admin/review'
@@ -49,6 +52,11 @@ const SubmitRoute = SubmitRouteImport.update({
   path: '/submit',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -74,6 +82,11 @@ const DailyRoute = DailyRouteImport.update({
   path: '/daily',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ArtistsRoute = ArtistsRouteImport.update({
+  id: '/artists',
+  path: '/artists',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -97,6 +110,11 @@ const IHandleRoute = IHandleRouteImport.update({
 const CSlugRoute = CSlugRouteImport.update({
   id: '/c/$slug',
   path: '/c/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArtistSlugRoute = ArtistSlugRouteImport.update({
+  id: '/artist/$slug',
+  path: '/artist/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminXpRoute = AdminXpRouteImport.update({
@@ -217,11 +235,13 @@ const ApiAdminArtistsIdTagsRoute = ApiAdminArtistsIdTagsRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/artists': typeof ArtistsRoute
   '/daily': typeof DailyRoute
   '/finishing': typeof FinishingRoute
   '/leaderboard': typeof LeaderboardRoute
   '/play': typeof PlayRoute
   '/profile': typeof ProfileRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/submit': typeof SubmitRoute
   '/admin/daily': typeof AdminDailyRoute
   '/admin/levels': typeof AdminLevelsRoute
@@ -229,6 +249,7 @@ export interface FileRoutesByFullPath {
   '/admin/review': typeof AdminReviewRoute
   '/admin/submissions': typeof AdminSubmissionsRoute
   '/admin/xp': typeof AdminXpRoute
+  '/artist/$slug': typeof ArtistSlugRoute
   '/c/$slug': typeof CSlugRoute
   '/i/$handle': typeof IHandleRoute
   '/u/$handle': typeof UHandleRoute
@@ -253,11 +274,13 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/artists': typeof ArtistsRoute
   '/daily': typeof DailyRoute
   '/finishing': typeof FinishingRoute
   '/leaderboard': typeof LeaderboardRoute
   '/play': typeof PlayRoute
   '/profile': typeof ProfileRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/submit': typeof SubmitRoute
   '/admin/daily': typeof AdminDailyRoute
   '/admin/levels': typeof AdminLevelsRoute
@@ -265,6 +288,7 @@ export interface FileRoutesByTo {
   '/admin/review': typeof AdminReviewRoute
   '/admin/submissions': typeof AdminSubmissionsRoute
   '/admin/xp': typeof AdminXpRoute
+  '/artist/$slug': typeof ArtistSlugRoute
   '/c/$slug': typeof CSlugRoute
   '/i/$handle': typeof IHandleRoute
   '/u/$handle': typeof UHandleRoute
@@ -290,11 +314,13 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/artists': typeof ArtistsRoute
   '/daily': typeof DailyRoute
   '/finishing': typeof FinishingRoute
   '/leaderboard': typeof LeaderboardRoute
   '/play': typeof PlayRoute
   '/profile': typeof ProfileRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/submit': typeof SubmitRoute
   '/admin/daily': typeof AdminDailyRoute
   '/admin/levels': typeof AdminLevelsRoute
@@ -302,6 +328,7 @@ export interface FileRoutesById {
   '/admin/review': typeof AdminReviewRoute
   '/admin/submissions': typeof AdminSubmissionsRoute
   '/admin/xp': typeof AdminXpRoute
+  '/artist/$slug': typeof ArtistSlugRoute
   '/c/$slug': typeof CSlugRoute
   '/i/$handle': typeof IHandleRoute
   '/u/$handle': typeof UHandleRoute
@@ -328,11 +355,13 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/artists'
     | '/daily'
     | '/finishing'
     | '/leaderboard'
     | '/play'
     | '/profile'
+    | '/sitemap.xml'
     | '/submit'
     | '/admin/daily'
     | '/admin/levels'
@@ -340,6 +369,7 @@ export interface FileRouteTypes {
     | '/admin/review'
     | '/admin/submissions'
     | '/admin/xp'
+    | '/artist/$slug'
     | '/c/$slug'
     | '/i/$handle'
     | '/u/$handle'
@@ -364,11 +394,13 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/artists'
     | '/daily'
     | '/finishing'
     | '/leaderboard'
     | '/play'
     | '/profile'
+    | '/sitemap.xml'
     | '/submit'
     | '/admin/daily'
     | '/admin/levels'
@@ -376,6 +408,7 @@ export interface FileRouteTypes {
     | '/admin/review'
     | '/admin/submissions'
     | '/admin/xp'
+    | '/artist/$slug'
     | '/c/$slug'
     | '/i/$handle'
     | '/u/$handle'
@@ -400,11 +433,13 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/artists'
     | '/daily'
     | '/finishing'
     | '/leaderboard'
     | '/play'
     | '/profile'
+    | '/sitemap.xml'
     | '/submit'
     | '/admin/daily'
     | '/admin/levels'
@@ -412,6 +447,7 @@ export interface FileRouteTypes {
     | '/admin/review'
     | '/admin/submissions'
     | '/admin/xp'
+    | '/artist/$slug'
     | '/c/$slug'
     | '/i/$handle'
     | '/u/$handle'
@@ -437,11 +473,13 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ArtistsRoute: typeof ArtistsRoute
   DailyRoute: typeof DailyRoute
   FinishingRoute: typeof FinishingRoute
   LeaderboardRoute: typeof LeaderboardRoute
   PlayRoute: typeof PlayRoute
   ProfileRoute: typeof ProfileRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SubmitRoute: typeof SubmitRoute
   AdminDailyRoute: typeof AdminDailyRoute
   AdminLevelsRoute: typeof AdminLevelsRoute
@@ -449,6 +487,7 @@ export interface RootRouteChildren {
   AdminReviewRoute: typeof AdminReviewRoute
   AdminSubmissionsRoute: typeof AdminSubmissionsRoute
   AdminXpRoute: typeof AdminXpRoute
+  ArtistSlugRoute: typeof ArtistSlugRoute
   CSlugRoute: typeof CSlugRoute
   IHandleRoute: typeof IHandleRoute
   UHandleRoute: typeof UHandleRoute
@@ -474,6 +513,13 @@ declare module '@tanstack/react-router' {
       path: '/submit'
       fullPath: '/submit'
       preLoaderRoute: typeof SubmitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -511,6 +557,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DailyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/artists': {
+      id: '/artists'
+      path: '/artists'
+      fullPath: '/artists'
+      preLoaderRoute: typeof ArtistsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -544,6 +597,13 @@ declare module '@tanstack/react-router' {
       path: '/c/$slug'
       fullPath: '/c/$slug'
       preLoaderRoute: typeof CSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/artist/$slug': {
+      id: '/artist/$slug'
+      path: '/artist/$slug'
+      fullPath: '/artist/$slug'
+      preLoaderRoute: typeof ArtistSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/xp': {
@@ -770,11 +830,13 @@ const ApiAdminSubmissionsRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ArtistsRoute: ArtistsRoute,
   DailyRoute: DailyRoute,
   FinishingRoute: FinishingRoute,
   LeaderboardRoute: LeaderboardRoute,
   PlayRoute: PlayRoute,
   ProfileRoute: ProfileRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   SubmitRoute: SubmitRoute,
   AdminDailyRoute: AdminDailyRoute,
   AdminLevelsRoute: AdminLevelsRoute,
@@ -782,6 +844,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminReviewRoute: AdminReviewRoute,
   AdminSubmissionsRoute: AdminSubmissionsRoute,
   AdminXpRoute: AdminXpRoute,
+  ArtistSlugRoute: ArtistSlugRoute,
   CSlugRoute: CSlugRoute,
   IHandleRoute: IHandleRoute,
   UHandleRoute: UHandleRoute,

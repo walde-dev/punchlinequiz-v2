@@ -7,6 +7,7 @@ import { Button } from "@workspace/ui/components/button"
 import { AppHeader } from "../components/app-header"
 import { getInviterFn, type InviterResult } from "../lib/referral"
 import { setReferralToken } from "../lib/referral-client"
+import { noindexSeo } from "../lib/seo"
 import { logEvent } from "../lib/track"
 
 /**
@@ -16,6 +17,7 @@ import { logEvent } from "../lib/track"
  */
 export const Route = createFileRoute("/i/$handle")({
   component: InvitePage,
+  head: () => noindexSeo(),
   loader: async ({ params }) => getInviterFn({ data: { handle: params.handle } }),
 })
 

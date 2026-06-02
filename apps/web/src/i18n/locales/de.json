@@ -103,6 +103,8 @@
     "betaBadge": "Public Beta",
     "betaNotice": "Das Spiel ist noch in Entwicklung. Feedback ist willkommen.",
     "madeWith": "Made for the culture.",
+    "footerArtists": "Alle Artists",
+    "footerDaily": "Daily",
     "dailyEyebrow": "/ daily #{{number}}",
     "dailyHeadline": "Eine Bar. Ein Versuch.",
     "dailySubtext": "Wordle-Style. Jeden Tag neu.",
@@ -137,6 +139,20 @@
     "shareText": "Kennst du die Bars? Spiel punchlinequiz mit mir.",
     "payoffOne": "@{{handle}} ist deinem Link gefolgt!",
     "payoffMany": "{{count}} Leute sind deinem Link gefolgt!"
+  },
+  "artistPage": {
+    "title": "{{name}} Punchline-Quiz",
+    "barsCount": "{{count}} Bars zum Erraten",
+    "playCta": "{{name}}-Quiz spielen",
+    "relatedTitle": "Ähnliche Artists",
+    "notFoundTitle": "Artist nicht gefunden",
+    "allArtists": "Alle Artists ansehen"
+  },
+  "artistsHub": {
+    "eyebrow": "/ artists",
+    "title": "Alle Artists",
+    "subtitle": "{{count}} Künstler mit spielbaren Bars",
+    "barsShort": "{{count}} Bars"
   },
   "play": {
     "barEyebrow": "/ die bar",

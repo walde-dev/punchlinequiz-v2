@@ -7,9 +7,18 @@ import { AppHeader } from "../components/app-header"
 import { SignInBanner } from "../components/sign-in-banner"
 import { getDailyChallenge } from "../lib/daily"
 import { listPlayableArtists } from "../lib/game"
+import { jsonLd, organizationJsonLd, seo, websiteJsonLd } from "../lib/seo"
 
 export const Route = createFileRoute("/")({
   component: HomePage,
+  head: () => ({
+    ...seo({
+      description:
+        "Errate den Künstler hinter der Punchline. Das tägliche Quiz für deutschen Rap — spiel, sammle XP, fordere Freunde heraus.",
+      path: "/",
+    }),
+    scripts: [jsonLd(websiteJsonLd()), jsonLd(organizationJsonLd())],
+  }),
   loader: async () => {
     const [artistMode, clozeMode, daily] = await Promise.all([
       listPlayableArtists({ data: {} }),
@@ -81,6 +90,11 @@ function HomePage() {
           <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/60 animate-pulse" />
           <span>{t("home.betaNotice")}</span>
         </div>
+        <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs font-semibold text-muted-foreground/70 md:justify-start">
+          <Link to="/artists" className="hover:text-primary transition-colors">{t("home.footerArtists")}</Link>
+          <Link to="/leaderboard" className="hover:text-primary transition-colors">{t("nav.leaderboard")}</Link>
+          <Link to="/daily" className="hover:text-primary transition-colors">{t("home.footerDaily")}</Link>
+        </nav>
         <p className="text-xs text-muted-foreground/40">{t("home.madeWith")}</p>
       </footer>
     </div>

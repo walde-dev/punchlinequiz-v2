@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Implementation notes — Referral & Invite Rewards</title>
+<style>
+  body { font: 14px/1.5 -apple-system, system-ui, sans-serif; max-width: 820px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }
+  h1 { font-size: 1.4rem; }
+  h2 { font-size: 1.1rem; margin-top: 2rem; border-bottom: 1px solid #ddd; padding-bottom: 0.25rem; }
+  .entry { margin: 0.75rem 0 1.25rem; padding-left: 0.75rem; border-left: 3px solid #ddd; }
+  .entry.open { border-left-color: #d97706; }
+  .entry.deviation { border-left-color: #dc2626; }
+  .entry.decision { border-left-color: #2563eb; }
+  .entry.tradeoff { border-left-color: #7c3aed; }
+  .meta { color: #666; font-size: 0.85rem; }
+  code { background: #f3f3f3; padding: 0 0.25rem; border-radius: 3px; }
+  .phase { display: inline-block; font-size: 0.72rem; background: #fbbf24; color: #1a1a1a; border-radius: 9999px; padding: 0 0.5rem; margin-right: 0.4rem; font-weight: 600; }
+</style>
+</head>
+<body>
+<h1>Implementation notes — Referral & Invite Rewards</h1>
+<p class="meta">Project: PUN Referral &amp; Invite Rewards (PUN-71..75) · Started: 2026-06-01 · 3 phases ·
+Prior notes archived: implementation-notes-contributor.html, implementation-notes-profiles.html</p>
+
+<p class="meta">Settled (grilling): sources = invite link by @handle (/i/$handle) + challenge-link auto-credit;
+first-touch localStorage token; edge recorded at onboarding (claimHandleFn), reward on referee's first correct answer;
+two-sided asymmetric (+300 referrer / +150 referee, tunable); self-referral block + per-referrer daily cap;
+per-referral XP + profile count (milestones/streak-freeze/badges deferred); inline highlighted invite card on profile;
+single referrals table; payoff = in-app pull (unseen flag), push deferred to PUN-22.</p>
+
+<h2>Design decisions</h2>
+
+<div class="entry decision">
+  <strong><span class="phase">P1</span>Single <code>referrals</code> table as edge + ledger</strong>
+  <p><code>packages/db/src/schema.ts</code>: unique on <code>referee_clerk_id</code> (one referrer per user, first-touch via
+  <code>onConflictDoNothing</code>). Row holds status (pending→confirmed), snapshot <code>referrer_xp</code>/<code>referee_xp</code>,
+  <code>seen_at</code> (payoff), timestamps. No separate grant table needed — the status transition is the idempotency guard.</p>
+</div>
+
+<div class="entry decision">
+  <strong><span class="phase">P1</span>Confirmation hooked in grant path; cfg passed in to break the import cycle</strong>
+  <p><code>confirmReferralOnActivation(clerkId, cfg)</code> called from <code>grantPrimary</code> (artist+cloze) and
+  <code>grantDailyArtist</code> (correct answers only) in <code>lib/xp.ts</code>. <code>referral.ts</code> does NOT import
+  <code>xp.ts</code> — the grant caller passes the already-loaded <code>XpConfig</code> in, so there's no circular dependency.
+  Wrapped in <code>.catch(()=&gt;{})</code> so a referral hiccup never breaks a grant.</p>
+</div>
+
+<div class="entry decision">
+  <strong><span class="phase">P1</span>Attribution only on first onboarding</strong>
+  <p><code>claimHandleFn</code> reads <code>onboardedAt</code> before the claim; <code>recordPendingReferral</code> runs only when
+  this is the user's first onboarding (<code>!before.onboardedAt</code>) and a token is present — never a returning re-claim.</p>
+</div>
+
+<div class="entry decision">
+  <strong><span class="phase">P1</span>Daily cap zeroes the referrer reward, still confirms + pays referee</strong>
+  <p>When the referrer is at/over <code>referralDailyCap</code> confirmed-and-rewarded referrals for the UTC day, the edge is
+  still confirmed but <code>referrer_xp=0</code>; the referee's welcome bonus still pays (not farmable for the referrer's gain).
+  Verified: cap 0 → referrer +0, referee +150.</p>
+</div>
+
+<div class="entry decision">
+  <strong><span class="phase">P2</span>Client carrier uses a type-only import (no server leak)</strong>
+  <p><code>lib/referral-client.ts</code> imports <code>ReferralToken</code> with <code>import type</code> only, so the server-only
+  <code>referral.ts</code> (and its <code>db</code> import) never enters the client bundle. First-touch: <code>setReferralToken</code>
+  refuses to overwrite an existing token. Consumed + cleared in <code>OnboardingGate</code> at <code>claimHandleFn</code>.</p>
+</div>
+
+<div class="entry decision">
+  <strong><span class="phase">P2</span>Challenge token set unconditionally on /c/$slug mount</strong>
+  <p>Set on every challenge-page mount (first-touch wins), not gated on signed-out — a token is only ever *consumed* at a
+  brand-new user's onboarding, so setting it for an existing signed-in visitor is a harmless no-op. <code>/i/$handle</code>
+  uses a lightweight <code>getInviterFn</code> (handle → {handle, imageUrl}) for the hero, not the full profile fetch.</p>
+</div>
+
+<h2>Deviations from spec</h2>
+<p class="meta">None yet.</p>
+
+<div class="entry decision">
+  <strong><span class="phase">P3</span>Owner-only highlighted invite card + payoff mirrors contributor loop</strong>
+  <p><code>InviteCard</code> in <code>u.$handle.tsx</code> (rendered only when <code>data.isOwner</code>): bordered
+  <code>border-primary/40 bg-primary/5</code> card with the <code>/i/$handle</code> link (copy + native share), referral
+  count, and confirmed list. Fetches <code>getMyReferralsFn</code> on mount; newly-confirmed (unseen) referrals fire a
+  confetti '@x followed your link!' payoff then <code>markReferralsSeenFn</code> — same unseen-flag pattern as the
+  contributor 'your bar is live' celebration. Reward XP shown per row; omitted when 0 (daily-cap-blocked).</p>
+</div>
+
+<h2>Tradeoffs considered</h2>
+
+<div class="entry tradeoff">
+  <strong><span class="phase">P1</span>Confirmation check: unconditional lookup vs a users flag</strong>
+  <p>Chose an unconditional indexed lookup on <code>referrals(referee_clerk_id)</code> after each correct answer (no-op once
+  confirmed / for non-referred users) over adding a <code>users.pending_referral</code> flag to skip the query. The grant path
+  is a low-QPS quiz-answer path already doing several queries; one extra sub-ms indexed lookup is negligible and avoids
+  extra denormalized state to keep in sync. Revisit with a flag only if profiling shows it matters.</p>
+</div>
+
+<h2>Open questions</h2>
+
+<div class="entry open">
+  <strong>Referral confirmation push notification (PUN-22)</strong>
+  <p>The referrer only sees the '@x joined! +XP' payoff on their next profile visit (in-app pull). A push (email/realtime)
+  would close the loop faster — deferred to the Notifications project, same hook as the contributor acceptance push.</p>
+</div>
+
+<div class="entry open">
+  <strong>Milestones / streak freeze / referral badge deferred</strong>
+  <p>v1 is per-referral XP + a profile count only. Milestone bonuses, a streak-freeze reward, and a referral badge/flair
+  are out of scope (badges → Achievements &amp; Badges project; streak freeze = a new consumable mechanic).</p>
+</div>
+
+<div class="entry open">
+  <strong>Anti-abuse is self-referral + daily cap only</strong>
+  <p>No device/IP fingerprinting — a determined multi-account farmer (distinct Clerk emails, each playing one bar) can earn
+  up to the daily cap. Defaults: referrer +300, referee +150, cap 10/day (all tunable in the admin XP screen). Confirm the
+  values, and whether a device heuristic is wanted before launch (no live traffic to observe abuse yet).</p>
+</div>
+
+<div class="entry open">
+  <strong>Challenge token set for all /c/$slug visitors</strong>
+  <p>First-touch, only ever consumed at a brand-new user's onboarding (harmless no-op for existing/signed-in visitors), so
+  any anonymous visitor who later signs up credits the challenge creator. Flag if you'd rather only set it for
+  signed-out visitors.</p>
+</div>
+
+</body>
+</html>
