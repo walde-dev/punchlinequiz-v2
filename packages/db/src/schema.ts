@@ -125,8 +125,11 @@ export const artistTags = pgTable(
 
 export const dailyChallenges = pgTable("daily_challenges", {
   id: serial("id").primaryKey(),
-  /** ISO date (YYYY-MM-DD) the bar is featured on. Unique — one bar per day. */
-  date: date("date").notNull().unique(),
+  /** ISO date (YYYY-MM-DD) the bar is featured on. Unique — one bar per day.
+   *  `mode: "string"` keeps this a plain "YYYY-MM-DD" string at runtime — the
+   *  default mode wraps it in `new Date(...)`, which (a) crashes `/daily` when
+   *  rendered as a React child and (b) breaks date-keyed lookups. */
+  date: date("date", { mode: "string" }).notNull().unique(),
   punchlineId: integer("punchline_id")
     .notNull()
     .references(() => punchlines.id),
@@ -230,7 +233,9 @@ export const userDailyXp = pgTable(
     clerkId: varchar("clerk_id", { length: 64 })
       .notNull()
       .references(() => users.clerkId, { onDelete: "cascade" }),
-    date: date("date").notNull(),
+    // `mode: "string"` — keep as "YYYY-MM-DD"; the default Date mode breaks the
+    // (clerkId, date) lookups and the date-keyed XP sparkline map.
+    date: date("date", { mode: "string" }).notNull(),
     artistCorrect: boolean("artist_correct").notNull(),
     songCorrect: boolean("song_correct").notNull().default(false),
     songResolved: boolean("song_resolved").notNull().default(false),

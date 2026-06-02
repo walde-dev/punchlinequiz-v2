@@ -2,12 +2,15 @@
  * SEO helpers (PUN-76/77). Pure, SSR-safe builders for TanStack `head()`:
  * canonical + OG/Twitter meta, robots noindex, and JSON-LD structured data.
  *
- * Canonical host is .de (the .com → .de 301 is configured at the platform, not
- * here). Every absolute URL we emit (canonical, og:url, sitemap) is built from
- * SITE_URL so there's a single source of truth.
+ * Canonical host is www.punchlinequiz.de — the apex (punchlinequiz.de) and the
+ * .com both 308→www at the platform. SITE_URL MUST be the post-redirect host:
+ * social scrapers (WhatsApp/Twitter) often don't follow redirects, so an apex
+ * og:image resolved to a 308 (not the PNG) and link cards unfurled blank.
+ * Every absolute URL we emit (canonical, og:url, og:image, sitemap) is built
+ * from SITE_URL so there's a single source of truth.
  */
 
-export const SITE_URL = "https://punchlinequiz.de"
+export const SITE_URL = "https://www.punchlinequiz.de"
 export const SITE_NAME = "punchlinequiz"
 /** Static default share image until per-entity OG cards land (Daily Share Card project). */
 export const DEFAULT_OG_IMAGE = "/banner-chains.png"
