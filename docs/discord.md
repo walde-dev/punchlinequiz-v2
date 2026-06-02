@@ -39,8 +39,18 @@ The Admin role has Administrator, which bypasses channel overwrites — so admin
   is set; failures go to console, never back through `logServer`, so no recursion).
 - **`#review-queue`** ← each new user bar submission (`lib/submissions.ts` →
   `notifyNewSubmission`), with a link to `/admin/review`.
+- **`#alerts`** also receives **Sentry** issue alerts via a thin bridge:
+  Sentry → `POST /api/sentry/discord?key=<SENTRY_WEBHOOK_SECRET>` → our bot
+  formats + posts. This is how real exceptions reach Discord (the in-app
+  `logServer("error")` path only covers explicitly-instrumented server events,
+  which is currently just two Discord-integration failure cases). Setup is in
+  Sentry's UI — see the checklist below.
 - `#logs` and `#bot-status` exist but nothing auto-posts to them yet (left for
   later; full event stream lives in Axiom).
+
+> **Two `.env` files:** scripts (`pnpm discord:*`) read the repo-root `.env`;
+> the app at runtime reads `apps/web/.env`. The Discord/Sentry vars are mirrored
+> into both locally. In production only **Vercel env** matters.
 
 ## Daily post & DST
 
@@ -62,7 +72,21 @@ DISCORD_DAILY_CHANNEL_ID=  # #punchline-des-tages (from discord-ids.json)
 DISCORD_ALERTS_CHANNEL_ID= # #alerts (staff) — error forwarding
 DISCORD_REVIEW_CHANNEL_ID= # #review-queue (staff) — new submissions
 CRON_SECRET=               # any random string; Vercel sends it to the cron
+SENTRY_WEBHOOK_SECRET=     # gates POST /api/sentry/discord (in the webhook URL)
 ```
+
+## Sentry → #alerts (real exception alerts)
+
+1. Add `SENTRY_WEBHOOK_SECRET` (any random string) + `DISCORD_ALERTS_CHANNEL_ID`
+   to Vercel and deploy.
+2. In Sentry: **Settings → Developer Settings → Internal Integration** (or a
+   project **Issue Alert → action "Send a notification via webhook"**) with URL:
+   `https://www.punchlinequiz.de/api/sentry/discord?key=<SENTRY_WEBHOOK_SECRET>`
+3. Trigger a test error → it lands in `#alerts` as a formatted embed.
+
+The endpoint gates on `?key=` (Sentry's legacy webhooks are unsigned), parses
+both the legacy and internal-integration payload shapes, and posts via our bot
+(so it works even though `#alerts` is locked to admins).
 
 ## Deploy / handoff checklist
 

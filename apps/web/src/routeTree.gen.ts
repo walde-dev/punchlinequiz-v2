@@ -29,6 +29,7 @@ import { Route as AdminReviewRouteImport } from './routes/admin/review'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as AdminLevelsRouteImport } from './routes/admin/levels'
 import { Route as AdminDailyRouteImport } from './routes/admin/daily'
+import { Route as ApiSentryDiscordRouteImport } from './routes/api/sentry/discord'
 import { Route as ApiDiscordInteractionsRouteImport } from './routes/api/discord/interactions'
 import { Route as ApiCronDiscordDailyRouteImport } from './routes/api/cron/discord-daily'
 import { Route as ApiAdminXpConfigRouteImport } from './routes/api/admin/xp-config'
@@ -147,6 +148,11 @@ const AdminLevelsRoute = AdminLevelsRouteImport.update({
 const AdminDailyRoute = AdminDailyRouteImport.update({
   id: '/admin/daily',
   path: '/admin/daily',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSentryDiscordRoute = ApiSentryDiscordRouteImport.update({
+  id: '/api/sentry/discord',
+  path: '/api/sentry/discord',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiDiscordInteractionsRoute = ApiDiscordInteractionsRouteImport.update({
@@ -276,6 +282,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/xp-config': typeof ApiAdminXpConfigRoute
   '/api/cron/discord-daily': typeof ApiCronDiscordDailyRoute
   '/api/discord/interactions': typeof ApiDiscordInteractionsRoute
+  '/api/sentry/discord': typeof ApiSentryDiscordRoute
   '/api/admin/artists/$id': typeof ApiAdminArtistsIdRouteWithChildren
   '/api/admin/bars/$id': typeof ApiAdminBarsIdRoute
   '/api/admin/daily/$id': typeof ApiAdminDailyIdRoute
@@ -317,6 +324,7 @@ export interface FileRoutesByTo {
   '/api/admin/xp-config': typeof ApiAdminXpConfigRoute
   '/api/cron/discord-daily': typeof ApiCronDiscordDailyRoute
   '/api/discord/interactions': typeof ApiDiscordInteractionsRoute
+  '/api/sentry/discord': typeof ApiSentryDiscordRoute
   '/api/admin/artists/$id': typeof ApiAdminArtistsIdRouteWithChildren
   '/api/admin/bars/$id': typeof ApiAdminBarsIdRoute
   '/api/admin/daily/$id': typeof ApiAdminDailyIdRoute
@@ -359,6 +367,7 @@ export interface FileRoutesById {
   '/api/admin/xp-config': typeof ApiAdminXpConfigRoute
   '/api/cron/discord-daily': typeof ApiCronDiscordDailyRoute
   '/api/discord/interactions': typeof ApiDiscordInteractionsRoute
+  '/api/sentry/discord': typeof ApiSentryDiscordRoute
   '/api/admin/artists/$id': typeof ApiAdminArtistsIdRouteWithChildren
   '/api/admin/bars/$id': typeof ApiAdminBarsIdRoute
   '/api/admin/daily/$id': typeof ApiAdminDailyIdRoute
@@ -402,6 +411,7 @@ export interface FileRouteTypes {
     | '/api/admin/xp-config'
     | '/api/cron/discord-daily'
     | '/api/discord/interactions'
+    | '/api/sentry/discord'
     | '/api/admin/artists/$id'
     | '/api/admin/bars/$id'
     | '/api/admin/daily/$id'
@@ -443,6 +453,7 @@ export interface FileRouteTypes {
     | '/api/admin/xp-config'
     | '/api/cron/discord-daily'
     | '/api/discord/interactions'
+    | '/api/sentry/discord'
     | '/api/admin/artists/$id'
     | '/api/admin/bars/$id'
     | '/api/admin/daily/$id'
@@ -484,6 +495,7 @@ export interface FileRouteTypes {
     | '/api/admin/xp-config'
     | '/api/cron/discord-daily'
     | '/api/discord/interactions'
+    | '/api/sentry/discord'
     | '/api/admin/artists/$id'
     | '/api/admin/bars/$id'
     | '/api/admin/daily/$id'
@@ -526,6 +538,7 @@ export interface RootRouteChildren {
   ApiAdminXpConfigRoute: typeof ApiAdminXpConfigRoute
   ApiCronDiscordDailyRoute: typeof ApiCronDiscordDailyRoute
   ApiDiscordInteractionsRoute: typeof ApiDiscordInteractionsRoute
+  ApiSentryDiscordRoute: typeof ApiSentryDiscordRoute
   ApiAdminSearchArtistsRoute: typeof ApiAdminSearchArtistsRoute
   ApiAdminSearchTracksRoute: typeof ApiAdminSearchTracksRoute
   ApiAdminSongsIdRoute: typeof ApiAdminSongsIdRoute
@@ -672,6 +685,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/daily'
       fullPath: '/admin/daily'
       preLoaderRoute: typeof AdminDailyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/sentry/discord': {
+      id: '/api/sentry/discord'
+      path: '/api/sentry/discord'
+      fullPath: '/api/sentry/discord'
+      preLoaderRoute: typeof ApiSentryDiscordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/discord/interactions': {
@@ -899,6 +919,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminXpConfigRoute: ApiAdminXpConfigRoute,
   ApiCronDiscordDailyRoute: ApiCronDiscordDailyRoute,
   ApiDiscordInteractionsRoute: ApiDiscordInteractionsRoute,
+  ApiSentryDiscordRoute: ApiSentryDiscordRoute,
   ApiAdminSearchArtistsRoute: ApiAdminSearchArtistsRoute,
   ApiAdminSearchTracksRoute: ApiAdminSearchTracksRoute,
   ApiAdminSongsIdRoute: ApiAdminSongsIdRoute,
