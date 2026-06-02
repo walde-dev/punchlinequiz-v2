@@ -72,7 +72,8 @@ DISCORD_DAILY_CHANNEL_ID=  # #punchline-des-tages (from discord-ids.json)
 DISCORD_ALERTS_CHANNEL_ID= # #alerts (staff) — error forwarding
 DISCORD_REVIEW_CHANNEL_ID= # #review-queue (staff) — new submissions
 CRON_SECRET=               # any random string; Vercel sends it to the cron
-SENTRY_WEBHOOK_SECRET=     # gates POST /api/sentry/discord (in the webhook URL)
+SENTRY_WEBHOOK_SECRET=     # fallback ?key= gate for POST /api/sentry/discord
+SENTRY_CLIENT_SECRET=      # Sentry internal-integration Client Secret (HMAC verify)
 ```
 
 ## Sentry → #alerts (real exception alerts)

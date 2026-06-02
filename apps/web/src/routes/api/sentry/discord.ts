@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from "node:crypto"
 import { createFileRoute } from "@tanstack/react-router"
 
 import { json } from "../../../lib/admin"
@@ -7,6 +8,33 @@ import { postMessage } from "../../../lib/discord-rest"
 const RED = 0xef4444 // error
 const ORANGE = 0xf59e0b // warning
 const GOLD = 0xfbbf24 // info / fallback
+
+function safeEqual(a: string, b: string): boolean {
+  const ba = Buffer.from(a)
+  const bb = Buffer.from(b)
+  return ba.length === bb.length && timingSafeEqual(ba, bb)
+}
+
+/**
+ * Auth a Sentry webhook. Prefer the HMAC-SHA256 `Sentry-Hook-Signature` (signed
+ * with the integration's Client Secret); fall back to the `?key=` shared secret
+ * for manual/legacy posts. Returns true when no secret is configured (dev).
+ */
+function isAuthorized(request: Request, rawBody: string): boolean {
+  const clientSecret = process.env.SENTRY_CLIENT_SECRET
+  const sig = request.headers.get("sentry-hook-signature")
+  if (clientSecret && sig) {
+    const expected = createHmac("sha256", clientSecret)
+      .update(rawBody, "utf8")
+      .digest("hex")
+    return safeEqual(sig, expected)
+  }
+  const keySecret = process.env.SENTRY_WEBHOOK_SECRET
+  if (keySecret) {
+    return new URL(request.url).searchParams.get("key") === keySecret
+  }
+  return true
+}
 
 /**
  * Sentry → Discord #alerts bridge. Sentry posts an issue-alert webhook here; we
@@ -18,19 +46,17 @@ const GOLD = 0xfbbf24 // info / fallback
  * Internal Integration → Webhook URL), pointed at:
  *   https://www.punchlinequiz.de/api/sentry/discord?key=<SENTRY_WEBHOOK_SECRET>
  *
- * The `?key=` shared secret gates it (Sentry's legacy webhooks are unsigned).
- * Handles both the legacy webhook shape and the internal-integration
- * `{ data: { event } }` shape defensively.
+ * Auth prefers the HMAC `Sentry-Hook-Signature` (SENTRY_CLIENT_SECRET) and
+ * falls back to the `?key=` shared secret. Handles the legacy, alert-rule, and
+ * internal-integration resource payload shapes defensively.
  */
 export const Route = createFileRoute("/api/sentry/discord")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const secret = process.env.SENTRY_WEBHOOK_SECRET
-        if (secret) {
-          const key = new URL(request.url).searchParams.get("key")
-          if (key !== secret)
-            return new Response("unauthorized", { status: 401 })
+        const raw = await request.text()
+        if (!isAuthorized(request, raw)) {
+          return new Response("unauthorized", { status: 401 })
         }
 
         const channelId = process.env.DISCORD_ALERTS_CHANNEL_ID
@@ -41,7 +67,7 @@ export const Route = createFileRoute("/api/sentry/discord")({
 
         let body: any = {}
         try {
-          body = await request.json()
+          body = raw ? JSON.parse(raw) : {}
         } catch {
           return new Response("bad request", { status: 400 })
         }
