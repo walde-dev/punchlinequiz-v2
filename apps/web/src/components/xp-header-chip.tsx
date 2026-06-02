@@ -81,8 +81,8 @@ export function XpHeaderChip({ refreshKey = 0 }: { refreshKey?: number }) {
     <Link
       to="/profile"
       className={cn(
-        "group inline-flex items-center gap-2 rounded-full sm:gap-2.5",
-        "border border-primary/25 bg-primary/5 px-2.5 py-1.5 sm:px-3",
+        "group inline-flex items-center gap-1.5 rounded-full sm:gap-2.5",
+        "border border-primary/25 bg-primary/5 px-2 py-1.5 sm:px-3",
         "hover:border-primary/50 hover:bg-primary/10 active:scale-[0.97]",
         "transition-all duration-150",
       )}

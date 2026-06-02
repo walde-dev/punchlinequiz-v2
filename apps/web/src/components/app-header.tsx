@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@workspace/ui/components/button"
+import { cn } from "@workspace/ui/lib/utils"
 
 import { clerkDarkAppearance } from "../lib/clerk-theme"
 import { syncProfileImageFn } from "../lib/profile"
@@ -30,7 +31,13 @@ function PlusIcon() {
 function SubmitBarCta() {
   const { t } = useTranslation()
   return (
-    <Button size="sm" aria-label={t("nav.submit")} render={<Link to="/submit" />}>
+    <Button
+      size="sm"
+      aria-label={t("nav.submit")}
+      render={<Link to="/submit" />}
+      // Secondary action — drop it from the crowded mobile header; it returns at sm+.
+      className="hidden sm:inline-flex"
+    >
       <PlusIcon />
       <span className="hidden sm:inline">{t("nav.submit")}</span>
     </Button>
@@ -47,11 +54,19 @@ function ProfileMenuIcon() {
   )
 }
 
-function Logo() {
+function Logo({ hideWordmarkOnMobile = false }: { hideWordmarkOnMobile?: boolean }) {
   return (
     <span className="flex items-center gap-2 select-none">
-      <img src="/logo.png" alt="" aria-hidden="true" className="h-7 w-7" />
-      <span className="font-bold text-lg tracking-tight">
+      <img src="/logo.png" alt="" aria-hidden="true" className="h-7 w-7 shrink-0" />
+      <span
+        className={cn(
+          "font-bold text-lg tracking-tight",
+          // During play the artist/mode breadcrumb already anchors the left side,
+          // so the wordmark is redundant chrome on a narrow phone — hide it there
+          // to claw back ~130px and stop the header overflowing.
+          hideWordmarkOnMobile && "hidden sm:inline",
+        )}
+      >
         <span className="text-foreground">punchline</span>
         <span className="text-primary">/quiz</span>
       </span>
@@ -94,14 +109,20 @@ export function AppHeader({
 }) {
   const { t } = useTranslation()
 
+  const hasBreadcrumb = Boolean(playMode || artistCtx)
+
   return (
-    <header className="fixed top-0 inset-x-0 z-50 flex items-center justify-between gap-3 pl-4 pr-4 h-14 border-b border-border/40 bg-background/95 md:bg-background/80 md:backdrop-blur-sm md:pl-6 md:pr-16">
-      <Link to="/" aria-label={playMode ? t("common.backToHome") : t("nav.logoAria")} className="select-none flex items-center gap-2.5">
-        <Logo />
+    <header className="fixed top-0 inset-x-0 z-50 flex items-center justify-between gap-2 pl-4 pr-3 h-14 border-b border-border/40 bg-background/95 md:bg-background/80 md:backdrop-blur-sm sm:gap-3 sm:pr-4 md:pl-6 md:pr-16">
+      <Link
+        to="/"
+        aria-label={playMode ? t("common.backToHome") : t("nav.logoAria")}
+        className="select-none flex min-w-0 items-center gap-2.5"
+      >
+        <Logo hideWordmarkOnMobile={hasBreadcrumb} />
         {playMode && !artistCtx && (
           <>
             <span className="text-primary/40 text-sm select-none">/</span>
-            <span className="text-[10px] font-bold tracking-[0.16em] uppercase text-primary/80">
+            <span className="text-[10px] font-bold tracking-[0.16em] uppercase text-primary/80 truncate">
               {playMode === "cloze"
                 ? t("home.modes.clozeEyebrow").replace(/^\/\s*/, "")
                 : t("home.modes.classicEyebrow").replace(/^\/\s*/, "")}
@@ -111,7 +132,7 @@ export function AppHeader({
         {artistCtx && (
           <>
             <span className="text-primary/40 text-sm select-none">/</span>
-            <span className="flex items-center gap-1.5">
+            <span className="flex min-w-0 items-center gap-1.5">
               <ArtistAvatar
                 artist={{ id: artistCtx.id, name: artistCtx.name, imageUrl: artistCtx.imageUrl }}
                 size={22}
@@ -124,7 +145,7 @@ export function AppHeader({
         )}
       </Link>
 
-      <nav className="flex items-center gap-2 text-xs font-medium tabular-nums sm:gap-3">
+      <nav className="flex shrink-0 items-center gap-2 text-xs font-medium tabular-nums sm:gap-3">
         <Link
           to="/leaderboard"
           className="font-bold tracking-wide text-foreground/70 hover:text-primary transition-colors"
@@ -132,7 +153,9 @@ export function AppHeader({
           {t("nav.leaderboard")}
         </Link>
         {streak !== undefined && streak > 0 && (
-          <span className="flex items-center gap-1.5 text-primary" aria-label={t("play.streakAria", { count: streak })}>
+          /* Redundant with the streak shown inside the XP chip; hide on mobile to
+             save header width. */
+          <span className="hidden items-center gap-1.5 text-primary sm:flex" aria-label={t("play.streakAria", { count: streak })}>
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
             <span>{t("play.streakLabel", { count: streak })}</span>
           </span>
