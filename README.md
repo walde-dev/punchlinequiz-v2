@@ -3,6 +3,8 @@
 This is a TanStack Start monorepo template with shadcn/ui.
 
 <!-- observability: Sentry (client) + Axiom logging; see docs/logging-observability.md -->
+<!-- redeploy trigger -->
+
 
 
 ## Adding components
