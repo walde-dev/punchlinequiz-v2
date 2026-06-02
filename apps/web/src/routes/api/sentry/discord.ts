@@ -46,11 +46,15 @@ export const Route = createFileRoute("/api/sentry/discord")({
           return new Response("bad request", { status: 400 })
         }
 
-        // Normalize across Sentry payload shapes (legacy webhook vs internal).
-        const event = body.event ?? body.data?.event ?? {}
+        // Normalize across Sentry payload shapes: legacy webhook (top-level
+        // fields + `event`), alert-rule action (`data.event`), and internal-
+        // integration resource webhooks (`data.issue` / `data.error`).
+        const d = body.data ?? {}
+        const event = body.event ?? d.event ?? d.issue ?? d.error ?? {}
         const title: string =
           event.title ||
           body.message ||
+          event.culprit ||
           body.culprit ||
           event.metadata?.value ||
           "Sentry alert"
@@ -60,11 +64,19 @@ export const Route = createFileRoute("/api/sentry/discord")({
           "error"
         ).toLowerCase()
         const url: string | undefined =
-          body.url || event.web_url || event.issue_url || event.url
+          body.url ||
+          event.web_url ||
+          event.permalink ||
+          event.issue_url ||
+          event.url
         const environment: string | undefined =
           event.environment || body.environment
+        // project can be a string (legacy) or an object {name, slug} (internal).
+        const projectRaw = body.project_name || body.project || event.project
         const project: string | undefined =
-          body.project_name || body.project || event.project
+          typeof projectRaw === "string"
+            ? projectRaw
+            : projectRaw?.slug || projectRaw?.name
         const culprit: string | undefined = body.culprit || event.culprit
 
         const color =
