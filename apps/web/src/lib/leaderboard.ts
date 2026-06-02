@@ -20,7 +20,7 @@ export type LeaderboardWindow = "weekly" | "alltime"
 export type LeaderboardEntry = {
   rank: number
   handle: string
-  avatarKey: string | null
+  imageUrl: string | null
   /** All-time XP — drives the rank badge regardless of the active board. */
   totalXp: number
   level: LevelInfo
@@ -56,7 +56,7 @@ async function rawRows<T>(query: SQL): Promise<Array<T>> {
 type Row = {
   clerk_id: string
   handle: string
-  avatar_key: string | null
+  image_url: string | null
   total_xp: number
   metric: number
 }
@@ -65,7 +65,7 @@ function toEntry(row: Row, rank: number, levels: Awaited<ReturnType<typeof loadL
   return {
     rank,
     handle: row.handle,
-    avatarKey: row.avatar_key,
+    imageUrl: row.image_url,
     totalXp: row.total_xp,
     level: levelFor(row.total_xp, levels).current,
     metric: Number(row.metric),
@@ -127,7 +127,7 @@ export async function getLeaderboard(input: {
     )
     // LEFT JOIN so everyone you follow shows even at 0 XP this week.
     topRows = await rawRows<Row>(sql`
-      SELECT u.clerk_id, u.handle, u.avatar_key, u.total_xp, COALESCE(SUM(t.xp), 0)::int AS metric
+      SELECT u.clerk_id, u.handle, u.image_url, u.total_xp, COALESCE(SUM(t.xp), 0)::int AS metric
       FROM ${users} u
       LEFT JOIN (
         SELECT clerk_id, xp_awarded AS xp FROM ${userPunchlineXp} WHERE created_at >= ${start}
@@ -135,7 +135,7 @@ export async function getLeaderboard(input: {
         SELECT clerk_id, xp_awarded AS xp FROM user_daily_xp WHERE created_at >= ${start}
       ) t ON t.clerk_id = u.clerk_id
       WHERE u.handle IS NOT NULL AND u.clerk_id IN (${inList})
-      GROUP BY u.clerk_id, u.handle, u.avatar_key, u.total_xp
+      GROUP BY u.clerk_id, u.handle, u.image_url, u.total_xp
       ORDER BY metric DESC, u.total_xp DESC
       LIMIT ${TOP_N}
     `)
@@ -153,12 +153,12 @@ export async function getLeaderboard(input: {
     totalActiveLines = total
 
     topRows = await rawRows<Row>(sql`
-      SELECT u.clerk_id, u.handle, u.avatar_key, u.total_xp, count(*)::int AS metric
+      SELECT u.clerk_id, u.handle, u.image_url, u.total_xp, count(*)::int AS metric
       FROM ${userPunchlineXp} up
       JOIN ${punchlines} p ON p.id = up.punchline_id AND p.active
       JOIN ${songs} s ON s.id = p.song_id AND s.artist_id = ${artistId}
       JOIN ${users} u ON u.clerk_id = up.clerk_id AND u.handle IS NOT NULL
-      GROUP BY u.clerk_id, u.handle, u.avatar_key, u.total_xp
+      GROUP BY u.clerk_id, u.handle, u.image_url, u.total_xp
       ORDER BY metric DESC, u.total_xp DESC
       LIMIT ${TOP_N}
     `)
@@ -167,11 +167,11 @@ export async function getLeaderboard(input: {
     // Rank by accepted-bar count (all-time). Tiebreak: acceptance rate, then
     // most-recent acceptance. Only contributors with ≥1 accepted bar appear.
     topRows = await rawRows<Row>(sql`
-      SELECT u.clerk_id, u.handle, u.avatar_key, u.total_xp,
+      SELECT u.clerk_id, u.handle, u.image_url, u.total_xp,
         count(*) FILTER (WHERE ps.status = 'approved')::int AS metric
       FROM ${punchlineSubmissions} ps
       JOIN ${users} u ON u.clerk_id = ps.submitter_clerk_id AND u.handle IS NOT NULL
-      GROUP BY u.clerk_id, u.handle, u.avatar_key, u.total_xp
+      GROUP BY u.clerk_id, u.handle, u.image_url, u.total_xp
       HAVING count(*) FILTER (WHERE ps.status = 'approved') > 0
       ORDER BY metric DESC,
         (count(*) FILTER (WHERE ps.status = 'approved')::float
@@ -188,11 +188,11 @@ export async function getLeaderboard(input: {
     totalActiveLines = total
 
     topRows = await rawRows<Row>(sql`
-      SELECT u.clerk_id, u.handle, u.avatar_key, u.total_xp, count(*)::int AS metric
+      SELECT u.clerk_id, u.handle, u.image_url, u.total_xp, count(*)::int AS metric
       FROM ${userPunchlineXp} up
       JOIN ${punchlines} p ON p.id = up.punchline_id AND p.active
       JOIN ${users} u ON u.clerk_id = up.clerk_id AND u.handle IS NOT NULL
-      GROUP BY u.clerk_id, u.handle, u.avatar_key, u.total_xp
+      GROUP BY u.clerk_id, u.handle, u.image_url, u.total_xp
       ORDER BY metric DESC, u.total_xp DESC
       LIMIT ${TOP_N}
     `)
@@ -200,7 +200,7 @@ export async function getLeaderboard(input: {
   } else if (window === "weekly") {
     const start = currentWeekStartUtc()
     topRows = await rawRows<Row>(sql`
-      SELECT u.clerk_id, u.handle, u.avatar_key, u.total_xp, COALESCE(SUM(t.xp), 0)::int AS metric
+      SELECT u.clerk_id, u.handle, u.image_url, u.total_xp, COALESCE(SUM(t.xp), 0)::int AS metric
       FROM ${users} u
       JOIN (
         SELECT clerk_id, xp_awarded AS xp FROM ${userPunchlineXp} WHERE created_at >= ${start}
@@ -208,7 +208,7 @@ export async function getLeaderboard(input: {
         SELECT clerk_id, xp_awarded AS xp FROM user_daily_xp WHERE created_at >= ${start}
       ) t ON t.clerk_id = u.clerk_id
       WHERE u.handle IS NOT NULL
-      GROUP BY u.clerk_id, u.handle, u.avatar_key, u.total_xp
+      GROUP BY u.clerk_id, u.handle, u.image_url, u.total_xp
       ORDER BY metric DESC
       LIMIT ${TOP_N}
     `)
@@ -218,7 +218,7 @@ export async function getLeaderboard(input: {
       .select({
         clerk_id: users.clerkId,
         handle: users.handle,
-        avatar_key: users.avatarKey,
+        image_url: users.imageUrl,
         total_xp: users.totalXp,
         metric: users.totalXp,
       })
@@ -263,7 +263,7 @@ async function computeMe(args: {
 
   // Only onboarded (handle-set) users rank.
   const meRows = await db
-    .select({ handle: users.handle, avatarKey: users.avatarKey, totalXp: users.totalXp })
+    .select({ handle: users.handle, imageUrl: users.imageUrl, totalXp: users.totalXp })
     .from(users)
     .where(eq(users.clerkId, callerId))
     .limit(1)
@@ -352,7 +352,7 @@ async function computeMe(args: {
     // highlighted row matches its rank in the visible list.
     rank: inTop ? topIdx + 1 : rank,
     handle: meUser.handle,
-    avatarKey: meUser.avatarKey,
+    imageUrl: meUser.imageUrl,
     totalXp: meUser.totalXp,
     level: levelFor(meUser.totalXp, levels).current,
     metric,

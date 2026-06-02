@@ -320,7 +320,7 @@ function Row({
       >
         {entry.rank}
       </span>
-      <AvatarFallback handle={entry.handle} />
+      <Avatar handle={entry.handle} imageUrl={entry.imageUrl} />
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="truncate text-sm font-bold tracking-tight text-foreground">@{entry.handle}</span>
         <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -336,14 +336,14 @@ function Row({
   )
 }
 
-function AvatarFallback({ handle }: { handle: string }) {
+function Avatar({ handle, imageUrl }: { handle: string; imageUrl: string | null }) {
   const initial = handle.slice(0, 1).toUpperCase()
   return (
     <div
-      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-sm font-extrabold text-primary"
+      className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-primary/30 bg-primary/10 text-sm font-extrabold text-primary"
       aria-hidden="true"
     >
-      {initial}
+      {imageUrl ? <img src={imageUrl} alt="" className="h-full w-full object-cover" /> : initial}
     </div>
   )
 }
