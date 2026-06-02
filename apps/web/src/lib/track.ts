@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start"
 import { gameEvents } from "@workspace/db"
 import { db } from "./db"
 import { forwardToAxiom } from "./axiom"
-import { capturePostHog } from "./posthog.client"
+import { capturePostHog } from "./posthog"
 
 const SESSION_KEY = "pq.session_id"
 /** Cookie mirror of the session id, so server-side errors/logs can read it. */

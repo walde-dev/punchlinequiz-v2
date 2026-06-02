@@ -2,7 +2,7 @@ import { useUser } from "@clerk/tanstack-react-start"
 import { useEffect, useRef } from "react"
 
 import { getOnboardingStatusFn } from "../lib/onboarding"
-import { identifyPostHog, resetPostHog } from "../lib/posthog.client"
+import { identifyPostHog, resetPostHog } from "../lib/posthog"
 
 /**
  * PostHog identity stitching (PUN-42). Mounted in the root document.

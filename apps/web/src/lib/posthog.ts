@@ -1,11 +1,16 @@
 /**
- * Client-only PostHog init + helpers. Side-effect import from `router.tsx`
- * (the `void loadPostHog()` at the bottom kicks off init at app boot).
+ * PostHog browser init + helpers. `loadPostHog()` is kicked off from `router.tsx`
+ * at app boot; the capture/identify helpers are imported by isomorphic modules
+ * (track.ts, analytics-identity.tsx) and no-op on the server.
  *
- * Mirrors the defensive shape of `sentry.client.ts`: PostHog's browser SDK is
- * loaded ONLY on the client via a dynamic `import("posthog-js")`, behind an
- * `import.meta.env.SSR` guard, so Vite keeps it out of the Nitro server bundle
- * entirely (the server talks to PostHog over plain HTTP — see `posthog.server.ts`).
+ * NOTE: deliberately NOT named `*.client.*`. TanStack Start's import-protection
+ * forbids server-reachable code from importing `*.client.*` files, but these
+ * helpers ARE called from isomorphic modules (logEvent in track.ts, the SSR-
+ * rendered AnalyticsIdentity). Client-onlyness is instead guaranteed the same
+ * way `sentry.client.ts` does it: the browser SDK loads ONLY via a dynamic
+ * `import("posthog-js")` behind an `import.meta.env.SSR` early-return, so Vite
+ * dead-code-eliminates it from the Nitro server bundle. The server talks to
+ * PostHog over plain HTTP instead (see `posthog.server.ts`).
  *
  * Config decisions (see Linear PUN-40/41/42/45 + the grilled decision record):
  *  - api_host = "/ingest": first-party reverse proxy (vercel.json) to survive

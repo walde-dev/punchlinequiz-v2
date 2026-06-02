@@ -4,7 +4,7 @@ import { routeTree } from "./routeTree.gen"
 import "./lib/sentry.client"
 // Side-effect: kick off client-side PostHog init (no-op unless
 // VITE_PUBLIC_POSTHOG_KEY is set; SSR-guarded so it stays out of the server bundle).
-import { loadPostHog } from "./lib/posthog.client"
+import { loadPostHog } from "./lib/posthog"
 
 if (!import.meta.env.SSR) void loadPostHog()
 

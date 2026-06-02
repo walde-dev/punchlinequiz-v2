@@ -17,7 +17,7 @@
  */
 import { useEffect, useState } from "react"
 
-import { getFeatureFlag, loadPostHog } from "./posthog.client"
+import { getFeatureFlag, loadPostHog } from "./posthog"
 
 /** Read an experiment variant synchronously (bootstrap value before SDK load). */
 export function getVariant(flagKey: string, fallback = "control"): string {
