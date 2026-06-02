@@ -4,7 +4,7 @@ import { and, desc, eq, isNull, sql } from "drizzle-orm"
 import { artists, contributorGrants, punchlines, punchlineSubmissions, songs } from "@workspace/db"
 
 import { getActor } from "./auth"
-import { checkSubmitGate } from "./contributor"
+import { checkSubmitGate, claimSubmissionSlot } from "./contributor"
 import { db } from "./db"
 import { ensureUser } from "./xp"
 
@@ -58,6 +58,13 @@ export const submitBarFn = createServerFn({ method: "POST" })
         return { ok: false, reason: "cooldown", retryAfterSeconds: gate.retryAfterSeconds }
       }
       return { ok: false, reason: "pending_cap", cap: gate.cap, tier: gate.tier }
+    }
+    const slot = await claimSubmissionSlot(clerkId)
+    if (!slot.ok) {
+      if (slot.reason === "cooldown") {
+        return { ok: false, reason: "cooldown", retryAfterSeconds: slot.retryAfterSeconds }
+      }
+      return { ok: false, reason: "pending_cap", cap: slot.cap, tier: slot.tier }
     }
 
     const answer = clean(data.answer, 200)

@@ -127,6 +127,13 @@
       "when": 1780341048914,
       "tag": "0017_clear_kabuki",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1780476000000,
+      "tag": "0018_security_hardening",
+      "breakpoints": true
     }
   ]
 }

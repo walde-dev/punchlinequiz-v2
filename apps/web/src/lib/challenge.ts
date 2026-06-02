@@ -25,6 +25,7 @@ import { ensureUser, levelFor, loadLevels, type LevelInfo } from "./xp"
  */
 
 export const CHALLENGE_SIZE = 5
+const MIN_BAR_MS = 300
 const MAX_BAR_MS = 120_000
 
 export type ChallengeChoice = { id: number; name: string; imageUrl: string | null }
@@ -51,10 +52,10 @@ export type ChallengeAttemptInput = { punchlineId: number; artistId: number; ms:
 export type ChallengeRecapBar = {
   punchlineId: number
   line: string
-  correctArtistId: number
-  correctArtistName: string
+  correctArtistId: number | null
+  correctArtistName: string | null
   chosenArtistId: number | null
-  correct: boolean
+  correct: boolean | null
   /** Contributor handle if this bar came from a submission (PUN-67); null = admin-authored. */
   submittedByHandle: string | null
 }
@@ -303,6 +304,8 @@ export const submitChallengeAttemptFn = createServerFn({ method: "POST" })
     if (!challenge) return { found: false }
 
     const levels = await loadLevels()
+    const viewerId = await callerClerkId()
+    const revealAnswers = Boolean(viewerId)
 
     // Authoritative correct answers for the challenge's frozen bars.
     const bars = await db
@@ -331,27 +334,26 @@ export const submitChallengeAttemptFn = createServerFn({ method: "POST" })
       const chosenArtistId = ans?.artistId ?? null
       const correct = chosenArtistId === bar.artistId
       if (correct) correctCount++
-      solveMs += Math.min(MAX_BAR_MS, Math.max(0, Math.round(ans?.ms ?? MAX_BAR_MS)))
+      solveMs += Math.min(MAX_BAR_MS, Math.max(MIN_BAR_MS, Math.round(ans?.ms ?? MAX_BAR_MS)))
       recap.push({
         punchlineId: id,
         line: bar.line,
-        correctArtistId: bar.artistId,
-        correctArtistName: bar.artistName,
+        correctArtistId: revealAnswers ? bar.artistId : null,
+        correctArtistName: revealAnswers ? bar.artistName : null,
         chosenArtistId,
-        correct,
+        correct: revealAnswers ? correct : null,
         submittedByHandle: bar.submittedByHandle ?? null,
       })
     }
 
-    const result = { correctCount, solveMs, recap }
-    const viewerId = await callerClerkId()
+    const result = { correctCount, solveMs, recap: revealAnswers ? recap : [] }
 
     if (!viewerId) {
       // Anonymous: scored but not persisted; client shows the sign-up wall.
       const board = await loadBoard(challenge.id, challenge.creatorClerkId, levels)
       return {
         found: true,
-        result,
+        result: { correctCount: 0, solveMs, recap: [] },
         persisted: false,
         locked: null,
         alreadyLocked: false,

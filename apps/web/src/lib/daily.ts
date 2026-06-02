@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start"
 import { getRequest } from "@tanstack/react-start/server"
-import { eq, inArray, lte } from "drizzle-orm"
+import { and, eq, inArray, lte } from "drizzle-orm"
 import { artists, dailyChallenges, punchlines, songs, users } from "@workspace/db"
 
 import { db } from "./db"
@@ -78,6 +78,26 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
+async function loadScheduledDailyAnswer(date: string, punchlineId: number) {
+  const rows = await db
+    .select({
+      correctArtistId: songs.artistId,
+      artistName: artists.name,
+      artistImageUrl: artists.imageUrl,
+      title: songs.title,
+      album: songs.album,
+      albumArtUrl: songs.albumArtUrl,
+      releaseYear: songs.releaseYear,
+    })
+    .from(dailyChallenges)
+    .innerJoin(punchlines, eq(punchlines.id, dailyChallenges.punchlineId))
+    .innerJoin(songs, eq(songs.id, punchlines.songId))
+    .innerJoin(artists, eq(artists.id, songs.artistId))
+    .where(and(eq(dailyChallenges.date, date), eq(dailyChallenges.punchlineId, punchlineId)))
+    .limit(1)
+  return rows[0] ?? null
+}
+
 /**
  * Fetch the daily challenge for a given date (default: today CET). Returns
  * null when no daily is scheduled for that date.
@@ -152,23 +172,13 @@ export const getDailyChallenge = createServerFn({ method: "GET" })
 export const submitDailyArtistGuess = createServerFn({ method: "POST" })
   .inputValidator((d: { punchlineId: number; artistId: number; date: string }) => d)
   .handler(async ({ data }): Promise<DailyArtistGuessResult> => {
-    const rows = await db
-      .select({
-        correctArtistId: songs.artistId,
-        artistName: artists.name,
-        artistImageUrl: artists.imageUrl,
-      })
-      .from(punchlines)
-      .innerJoin(songs, eq(songs.id, punchlines.songId))
-      .innerJoin(artists, eq(artists.id, songs.artistId))
-      .where(eq(punchlines.id, data.punchlineId))
-      .limit(1)
-    if (rows.length === 0) throw new Error("Punchline not found")
-    const r = rows[0]
+    if (!isValidIsoDate(data.date)) throw new Error("Invalid daily date")
+    const r = await loadScheduledDailyAnswer(data.date, data.punchlineId)
+    if (!r) throw new Error("Daily challenge not found")
     const isCorrect = r.correctArtistId === data.artistId
     let xp: XpGrantResult | null = null
     const clerkId = await getClerkIdOrNull()
-    if (clerkId && isValidIsoDate(data.date)) {
+    if (clerkId) {
       xp = await grantDailyArtist({ clerkId, date: data.date, isCorrect })
     }
     return {
@@ -199,24 +209,14 @@ function titleCandidates(title: string): string[] {
 export const submitDailySongGuess = createServerFn({ method: "POST" })
   .inputValidator((d: { punchlineId: number; guess: string; date: string }) => d)
   .handler(async ({ data }): Promise<DailySongGuessResult> => {
-    const rows = await db
-      .select({
-        title: songs.title,
-        album: songs.album,
-        albumArtUrl: songs.albumArtUrl,
-        releaseYear: songs.releaseYear,
-      })
-      .from(punchlines)
-      .innerJoin(songs, eq(songs.id, punchlines.songId))
-      .where(eq(punchlines.id, data.punchlineId))
-      .limit(1)
-    if (rows.length === 0) throw new Error("Punchline not found")
-    const r = rows[0]
+    if (!isValidIsoDate(data.date)) throw new Error("Invalid daily date")
+    const r = await loadScheduledDailyAnswer(data.date, data.punchlineId)
+    if (!r) throw new Error("Daily challenge not found")
     const g = normalizeTitle((data.guess ?? "").trim())
     const isCorrect = g.length > 0 && titleCandidates(r.title).some((c) => c === g)
     let xp: XpGrantResult | null = null
     const clerkId = await getClerkIdOrNull()
-    if (clerkId && isValidIsoDate(data.date)) {
+    if (clerkId) {
       xp = await grantDailySong({ clerkId, date: data.date, isCorrect })
     }
     return {

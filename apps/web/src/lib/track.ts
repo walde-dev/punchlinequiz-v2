@@ -6,6 +6,9 @@ import { forwardToAxiom } from "./axiom"
 const SESSION_KEY = "pq.session_id"
 /** Cookie mirror of the session id, so server-side errors/logs can read it. */
 const SESSION_COOKIE = "pq_sid"
+const MAX_PROPS_BYTES = 4_096
+const MAX_EVENTS_PER_MINUTE = 30
+const eventBuckets = new Map<string, { count: number; resetAt: number }>()
 
 function uuid(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID()
@@ -30,20 +33,51 @@ export function getSessionId(): string {
   return id
 }
 
+function cleanIdentifier(value: unknown, max: number): string | null {
+  if (typeof value !== "string") return null
+  const trimmed = value.trim()
+  if (!trimmed || trimmed.length > max) return null
+  return trimmed
+}
+
+function cleanProps(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {}
+  const json = JSON.stringify(value)
+  if (json.length > MAX_PROPS_BYTES) return null
+  return JSON.parse(json) as Record<string, unknown>
+}
+
+function claimEventSlot(sessionId: string): boolean {
+  const now = Date.now()
+  const bucket = eventBuckets.get(sessionId)
+  if (!bucket || bucket.resetAt <= now) {
+    eventBuckets.set(sessionId, { count: 1, resetAt: now + 60_000 })
+    return true
+  }
+  if (bucket.count >= MAX_EVENTS_PER_MINUTE) return false
+  bucket.count += 1
+  return true
+}
+
 /** Server function: persist event + forward to Axiom (if configured). */
 export const recordEvent = createServerFn({ method: "POST" })
   .inputValidator((d: { sessionId: string; name: string; props?: Record<string, unknown> }) => d)
   .handler(async ({ data }) => {
-    const props = data.props ?? {}
+    const sessionId = cleanIdentifier(data.sessionId, 64)
+    const name = cleanIdentifier(data.name, 80)
+    const props = cleanProps(data.props)
+    if (!sessionId || !name || !props) return { ok: false }
+    if (!claimEventSlot(sessionId)) return { ok: false }
+
     // Persist to DB — fire-and-forget catch so analytics never block flow
     db.insert(gameEvents)
-      .values({ sessionId: data.sessionId, name: data.name, props })
+      .values({ sessionId, name, props })
       .catch((e) => console.error("[track] db insert failed", e))
 
     forwardToAxiom([
       {
-        event: data.name,
-        session_id: data.sessionId,
+        event: name,
+        session_id: sessionId,
         timestamp: new Date().toISOString(),
         ...props,
       },

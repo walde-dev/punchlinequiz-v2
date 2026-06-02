@@ -35,11 +35,15 @@ export const Route = createFileRoute("/api/cron/discord-daily")({
     handlers: {
       GET: async ({ request }) => {
         const secret = process.env.CRON_SECRET
-        if (secret) {
-          const auth = request.headers.get("authorization")
-          if (auth !== `Bearer ${secret}`) {
-            return new Response("unauthorized", { status: 401 })
-          }
+        if (!secret) {
+          logServer("error", "discord_daily_misconfigured", {
+            reason: "CRON_SECRET missing",
+          })
+          return json({ error: "CRON_SECRET missing" }, 500)
+        }
+        const auth = request.headers.get("authorization")
+        if (auth !== `Bearer ${secret}`) {
+          return new Response("unauthorized", { status: 401 })
         }
 
         const force = new URL(request.url).searchParams.get("force") === "1"

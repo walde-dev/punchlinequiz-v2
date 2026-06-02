@@ -13,13 +13,13 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
-    "drizzle-orm": "^0.44.2"
+    "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {
-    "@types/node": "^25.1.0",
-    "drizzle-kit": "^0.31.1",
+    "@types/node": "catalog:",
+    "drizzle-kit": "^0.31.10",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "catalog:"
   },
   "exports": {
     ".": "./src/index.ts",

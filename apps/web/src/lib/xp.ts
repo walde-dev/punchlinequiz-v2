@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, sql } from "drizzle-orm"
+import { and, asc, desc, eq, gt, isNull, lte, or, sql } from "drizzle-orm"
 import {
   levels,
   punchlines,
@@ -110,6 +110,28 @@ export async function ensureUser(clerkId: string): Promise<void> {
     .onConflictDoNothing()
 }
 
+async function claimXpAttemptSlot(
+  clerkId: string,
+  cfg: XpConfig,
+): Promise<{ ok: true; userRow: typeof users.$inferSelect } | { ok: false }> {
+  const [userRow] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1)
+  if (!userRow) throw new Error("user upsert failed")
+
+  const threshold = new Date(Date.now() - cfg.minSecondsBetweenAttempts * 1000)
+  const claimed = await db
+    .update(users)
+    .set({ lastAttemptAt: new Date() })
+    .where(
+      and(
+        eq(users.clerkId, clerkId),
+        or(isNull(users.lastAttemptAt), lte(users.lastAttemptAt, threshold)),
+      ),
+    )
+    .returning({ clerkId: users.clerkId })
+
+  return claimed.length > 0 ? { ok: true, userRow } : { ok: false }
+}
+
 function isStreakAlive(lastCorrectAt: Date | null, idleMinutes: number): boolean {
   if (!lastCorrectAt) return false
   const idleMs = idleMinutes * 60_000
@@ -149,18 +171,11 @@ export async function grantPrimary(input: {
   const cfg = await loadXpConfig()
   const sortedLevels = await loadLevels()
 
-  const [userRow] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1)
-  if (!userRow) throw new Error("user upsert failed")
-
-  // Cooldown — block autofarm. Update last_attempt_at unconditionally so a
-  // burst of attempts can't slip past by all reading a stale timestamp.
-  if (
-    userRow.lastAttemptAt &&
-    Date.now() - userRow.lastAttemptAt.getTime() < cfg.minSecondsBetweenAttempts * 1000
-  ) {
-    await db.update(users).set({ lastAttemptAt: new Date() }).where(eq(users.clerkId, clerkId))
+  const claim = await claimXpAttemptSlot(clerkId, cfg)
+  if (!claim.ok) {
     return { awarded: false, skipped: "rate_limited" }
   }
+  const { userRow } = claim
 
   // Compute streak from current state.
   const alive = isStreakAlive(userRow.lastCorrectAt, cfg.streakIdleResetMinutes)
@@ -183,7 +198,6 @@ export async function grantPrimary(input: {
     .returning({ id: userPunchlineXp.id })
 
   if (inserted.length === 0) {
-    await db.update(users).set({ lastAttemptAt: new Date() }).where(eq(users.clerkId, clerkId))
     return { awarded: false, skipped: "duplicate" }
   }
 
@@ -234,17 +248,11 @@ export async function grantSongBonus(input: {
   const cfg = await loadXpConfig()
   const sortedLevels = await loadLevels()
 
-  const [userRow] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1)
-  if (!userRow) throw new Error("user upsert failed")
-
-  // Cooldown.
-  if (
-    userRow.lastAttemptAt &&
-    Date.now() - userRow.lastAttemptAt.getTime() < cfg.minSecondsBetweenAttempts * 1000
-  ) {
-    await db.update(users).set({ lastAttemptAt: new Date() }).where(eq(users.clerkId, clerkId))
+  const claim = await claimXpAttemptSlot(clerkId, cfg)
+  if (!claim.ok) {
     return { awarded: false, skipped: "rate_limited" }
   }
+  const { userRow } = claim
 
   // Find the primary grant row.
   const [grantRow] = await db
@@ -254,7 +262,6 @@ export async function grantSongBonus(input: {
     .limit(1)
 
   if (!grantRow || grantRow.songBonusAwarded) {
-    await db.update(users).set({ lastAttemptAt: new Date() }).where(eq(users.clerkId, clerkId))
     return { awarded: false, skipped: "duplicate" }
   }
 
@@ -276,7 +283,6 @@ export async function grantSongBonus(input: {
     .returning({ id: userPunchlineXp.id })
 
   if (updated.length === 0) {
-    await db.update(users).set({ lastAttemptAt: new Date() }).where(eq(users.clerkId, clerkId))
     return { awarded: false, skipped: "duplicate" }
   }
 
@@ -320,16 +326,11 @@ export async function grantDailyArtist(input: {
   const cfg = await loadXpConfig()
   const sortedLevels = await loadLevels()
 
-  const [userRow] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1)
-  if (!userRow) throw new Error("user upsert failed")
-
-  if (
-    userRow.lastAttemptAt &&
-    Date.now() - userRow.lastAttemptAt.getTime() < cfg.minSecondsBetweenAttempts * 1000
-  ) {
-    await db.update(users).set({ lastAttemptAt: new Date() }).where(eq(users.clerkId, clerkId))
+  const claim = await claimXpAttemptSlot(clerkId, cfg)
+  if (!claim.ok) {
     return { awarded: false, skipped: "rate_limited" }
   }
+  const { userRow } = claim
 
   // Only grant if the answer is correct; a wrong daily artist still records
   // a row so the day is "spent" but with zero xp.
@@ -354,7 +355,6 @@ export async function grantDailyArtist(input: {
     .returning({ id: userDailyXp.id })
 
   if (inserted.length === 0) {
-    await db.update(users).set({ lastAttemptAt: new Date() }).where(eq(users.clerkId, clerkId))
     return { awarded: false, skipped: "duplicate" }
   }
 
@@ -404,8 +404,11 @@ export async function grantDailySong(input: {
   const cfg = await loadXpConfig()
   const sortedLevels = await loadLevels()
 
-  const [userRow] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1)
-  if (!userRow) throw new Error("user upsert failed")
+  const claim = await claimXpAttemptSlot(clerkId, cfg)
+  if (!claim.ok) {
+    return { awarded: false, skipped: "rate_limited" }
+  }
+  const { userRow } = claim
 
   const [dailyRow] = await db
     .select()
@@ -470,7 +473,6 @@ export async function grantDailySong(input: {
  * get a soft "not signed in" stub from the route, not this function.
  */
 export type ProfileSnapshot = {
-  clerkId: string
   totalXp: number
   currentStreak: number
   longestStreak: number
@@ -539,7 +541,6 @@ export async function getProfileSnapshot(clerkId: string): Promise<ProfileSnapsh
     : 100
 
   return {
-    clerkId,
     totalXp: userRow.totalXp,
     currentStreak: userRow.currentStreak,
     longestStreak: userRow.longestStreak,

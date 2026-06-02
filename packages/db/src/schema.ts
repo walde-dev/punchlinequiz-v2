@@ -332,6 +332,36 @@ export type Level = typeof levels.$inferSelect
 export type NewLevel = typeof levels.$inferInsert
 
 /**
+ * First-attempt ledger for reveal-bearing game steps. A wrong/skip answer
+ * reveals the correct answer, so that reveal must also spend the signed-in
+ * user's chance to earn XP for that step. The unique key makes later replayed
+ * submits read as "already spent" even if the replay is correct.
+ */
+export const userAnswerAttempts = pgTable(
+  "user_answer_attempts",
+  {
+    id: serial("id").primaryKey(),
+    clerkId: varchar("clerk_id", { length: 64 })
+      .notNull()
+      .references(() => users.clerkId, { onDelete: "cascade" }),
+    punchlineId: integer("punchline_id")
+      .notNull()
+      .references(() => punchlines.id, { onDelete: "cascade" }),
+    /** "artist" | "cloze" | "song" */
+    kind: varchar("kind", { length: 16 }).notNull(),
+    correct: boolean("correct").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    uq: uniqueIndex("user_answer_attempts_uq").on(t.clerkId, t.punchlineId, t.kind),
+    byUser: index("user_answer_attempts_by_user").on(t.clerkId, t.createdAt),
+  }),
+)
+
+export type UserAnswerAttempt = typeof userAnswerAttempts.$inferSelect
+export type NewUserAnswerAttempt = typeof userAnswerAttempts.$inferInsert
+
+/**
  * Challenges (PUN-8/9/10). A challenge freezes a dedicated 5-bar set (artist-
  * guess mode) into a shareable, one-to-many "beat my score" board. `bar_ids`
  * is the ordered snapshot of punchline ids; `slug` is the short URL key.
@@ -420,6 +450,21 @@ export const punchlineSubmissions = pgTable(
 
 export type PunchlineSubmission = typeof punchlineSubmissions.$inferSelect
 export type NewPunchlineSubmission = typeof punchlineSubmissions.$inferInsert
+
+/**
+ * Per-user submission lease. The submissions table contains the durable audit
+ * trail; this row is the short-window write gate so concurrent requests cannot
+ * all pass a read-only cooldown check before inserting.
+ */
+export const submissionRateLimits = pgTable("submission_rate_limits", {
+  clerkId: varchar("clerk_id", { length: 64 })
+    .primaryKey()
+    .references(() => users.clerkId, { onDelete: "cascade" }),
+  lastSubmittedAt: timestamp("last_submitted_at").notNull().defaultNow(),
+})
+
+export type SubmissionRateLimit = typeof submissionRateLimits.$inferSelect
+export type NewSubmissionRateLimit = typeof submissionRateLimits.$inferInsert
 
 /**
  * Contributor XP ledger (PUN-65). One row per ACCEPTED submission — the UNIQUE

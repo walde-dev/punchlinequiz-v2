@@ -1,5 +1,5 @@
 import { eq, sql } from "drizzle-orm"
-import { contributorGrants, punchlineSubmissions, users } from "@workspace/db"
+import { contributorGrants, punchlineSubmissions, submissionRateLimits, users } from "@workspace/db"
 
 import { db } from "./db"
 import { ensureUser, loadXpConfig } from "./xp"
@@ -134,6 +134,38 @@ export async function checkSubmitGate(clerkId: string): Promise<SubmitGate> {
     return { ok: false, reason: "pending_cap", cap, tier: stats.tier }
   }
   return { ok: true }
+}
+
+export async function claimSubmissionSlot(clerkId: string): Promise<SubmitGate> {
+  const now = new Date()
+  const inserted = await db
+    .insert(submissionRateLimits)
+    .values({ clerkId, lastSubmittedAt: now })
+    .onConflictDoNothing()
+    .returning({ clerkId: submissionRateLimits.clerkId })
+  if (inserted.length > 0) return { ok: true }
+
+  const updated = await db
+    .update(submissionRateLimits)
+    .set({ lastSubmittedAt: now })
+    .where(
+      sql`${submissionRateLimits.clerkId} = ${clerkId}
+        AND ${submissionRateLimits.lastSubmittedAt} <= now() - (${SUBMIT_COOLDOWN_SECONDS} * INTERVAL '1 second')`,
+    )
+    .returning({ clerkId: submissionRateLimits.clerkId })
+  if (updated.length > 0) return { ok: true }
+
+  const [latest] = await db
+    .select({ lastSubmittedAt: submissionRateLimits.lastSubmittedAt })
+    .from(submissionRateLimits)
+    .where(eq(submissionRateLimits.clerkId, clerkId))
+    .limit(1)
+  const elapsed = latest ? (Date.now() - latest.lastSubmittedAt.getTime()) / 1000 : 0
+  return {
+    ok: false,
+    reason: "cooldown",
+    retryAfterSeconds: Math.max(1, Math.ceil(SUBMIT_COOLDOWN_SECONDS - elapsed)),
+  }
 }
 
 export type ContributorGrantResult =

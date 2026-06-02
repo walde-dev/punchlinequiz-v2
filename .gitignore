@@ -36,3 +36,6 @@ node_modules/
 
 # Lyrics pipeline working data (raw lyrics, candidates, curated picks)
 scripts/lyrics/data/
+seed-research/*.json
+__pycache__/
+*.pyc

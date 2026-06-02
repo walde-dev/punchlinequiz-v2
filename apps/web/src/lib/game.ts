@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start"
 import { getRequest } from "@tanstack/react-start/server"
 import { and, eq, inArray, isNotNull, ne, sql } from "drizzle-orm"
-import { artists, dailyChallenges, punchlines, songs, users } from "@workspace/db"
+import { artists, dailyChallenges, punchlines, songs, userAnswerAttempts, users } from "@workspace/db"
 import { db } from "./db"
 import { getActor } from "./auth"
 import { grantPrimary, grantSongBonus, type XpGrantResult } from "./xp"
@@ -171,6 +171,20 @@ async function getClerkIdOrNull(): Promise<string | null> {
     /* getRequest only valid inside server fn context; ignore */
   }
   return null
+}
+
+async function recordAnswerAttempt(input: {
+  clerkId: string
+  punchlineId: number
+  kind: "artist" | "cloze" | "song"
+  correct: boolean
+}): Promise<boolean> {
+  const inserted = await db
+    .insert(userAnswerAttempts)
+    .values(input)
+    .onConflictDoNothing()
+    .returning({ id: userAnswerAttempts.id })
+  return inserted.length > 0
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -406,10 +420,18 @@ export const submitAnswer = createServerFn({ method: "POST" })
     const r = rows[0]
     const isCorrect = r.correctArtistId === data.artistId
     let xp: XpGrantResult | null = null
-    if (isCorrect) {
-      const clerkId = await getClerkIdOrNull()
-      if (clerkId) {
+    const clerkId = await getClerkIdOrNull()
+    if (clerkId) {
+      const firstAttempt = await recordAnswerAttempt({
+        clerkId,
+        punchlineId: data.punchlineId,
+        kind: "artist",
+        correct: isCorrect,
+      })
+      if (isCorrect && firstAttempt) {
         xp = await grantPrimary({ clerkId, punchlineId: data.punchlineId, mode: "artist" })
+      } else if (isCorrect) {
+        xp = { awarded: false, skipped: "duplicate" }
       }
     }
     return {
@@ -459,10 +481,18 @@ export const submitClozeGuess = createServerFn({ method: "POST" })
     const accepted = r.perfectSolution ?? []
     const isCorrect = clozeAnswerMatches(guess, accepted)
     let xp: XpGrantResult | null = null
-    if (isCorrect) {
-      const clerkId = await getClerkIdOrNull()
-      if (clerkId) {
+    const clerkId = await getClerkIdOrNull()
+    if (clerkId) {
+      const firstAttempt = await recordAnswerAttempt({
+        clerkId,
+        punchlineId: data.punchlineId,
+        kind: "cloze",
+        correct: isCorrect,
+      })
+      if (isCorrect && firstAttempt) {
         xp = await grantPrimary({ clerkId, punchlineId: data.punchlineId, mode: "cloze" })
+      } else if (isCorrect) {
+        xp = { awarded: false, skipped: "duplicate" }
       }
     }
     return {
@@ -503,10 +533,18 @@ export const submitSongGuess = createServerFn({ method: "POST" })
     const guess = (data.guess ?? "").trim()
     const isCorrect = guess.length > 0 && songGuessMatches(guess, r.title)
     let xp: XpGrantResult | null = null
-    if (isCorrect) {
-      const clerkId = await getClerkIdOrNull()
-      if (clerkId) {
+    const clerkId = await getClerkIdOrNull()
+    if (clerkId) {
+      const firstAttempt = await recordAnswerAttempt({
+        clerkId,
+        punchlineId: data.punchlineId,
+        kind: "song",
+        correct: isCorrect,
+      })
+      if (isCorrect && firstAttempt) {
         xp = await grantSongBonus({ clerkId, punchlineId: data.punchlineId })
+      } else if (isCorrect) {
+        xp = { awarded: false, skipped: "duplicate" }
       }
     }
     return {
