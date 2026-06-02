@@ -8,6 +8,7 @@ import { cn } from "@workspace/ui/lib/utils"
 import { AnonymousXpCta } from "../components/anonymous-xp-cta"
 import { BarCredit } from "../components/bar-credit"
 import { Confetti } from "../components/confetti"
+import { DiscordJoinCard } from "../components/discord-cta"
 import { LangToggle } from "../components/lang-toggle"
 import { LevelUpModal } from "../components/level-up-modal"
 import { XpGain } from "../components/xp-gain"
@@ -26,7 +27,13 @@ type DailySearch = { date?: string }
 
 export const Route = createFileRoute("/daily")({
   component: DailyPage,
-  head: () => seo({ title: "Daily Bar", description: "Die tägliche Bar — errate Künstler und Song. Jeden Tag eine neue Punchline.", path: "/daily" }),
+  head: () =>
+    seo({
+      title: "Daily Bar",
+      description:
+        "Die tägliche Bar — errate Künstler und Song. Jeden Tag eine neue Punchline.",
+      path: "/daily",
+    }),
   validateSearch: (search: Record<string, unknown>): DailySearch => ({
     date: typeof search.date === "string" ? search.date : undefined,
   }),
@@ -87,7 +94,7 @@ function DailyInner({ daily }: { daily: DailyChallenge }) {
   const initialStored = useMemo(() => readLocal(daily.date), [daily.date])
   const [phase, setPhase] = useState<Phase>(initialStored ? "done" : "artist")
   const [pickedArtistId, setPickedArtistId] = useState<number | null>(
-    initialStored?.artistId ?? null,
+    initialStored?.artistId ?? null
   )
   const [songGuess, setSongGuess] = useState("")
   const [submitting, setSubmitting] = useState(false)
@@ -104,11 +111,16 @@ function DailyInner({ daily }: { daily: DailyChallenge }) {
             imageUrl: daily.artistImageUrl,
           },
         }
-      : null,
+      : null
   )
   const [songResult, setSongResult] = useState<{
     isCorrect: boolean
-    song: { title: string; album: string | null; albumArtUrl: string | null; releaseYear: number | null }
+    song: {
+      title: string
+      album: string | null
+      albumArtUrl: string | null
+      releaseYear: number | null
+    }
   } | null>(
     initialStored
       ? {
@@ -120,16 +132,22 @@ function DailyInner({ daily }: { daily: DailyChallenge }) {
             releaseYear: daily.releaseYear,
           },
         }
-      : null,
+      : null
   )
   const [confettiKey, setConfettiKey] = useState(0)
   const [wrongShake, setWrongShake] = useState(0)
-  const [xpGrant, setXpGrant] = useState<{ key: number; grant: XpGrantResult } | null>(null)
+  const [xpGrant, setXpGrant] = useState<{
+    key: number
+    grant: XpGrantResult
+  } | null>(null)
   const [levelUp, setLevelUp] = useState<LevelInfo | null>(null)
   const [anonCtaKey, setAnonCtaKey] = useState(0)
   const loggedRef = useRef(false)
 
-  function consumeXp(grant: XpGrantResult | null | undefined, isCorrect: boolean) {
+  function consumeXp(
+    grant: XpGrantResult | null | undefined,
+    isCorrect: boolean
+  ) {
     if (!isCorrect) return
     if (grant === null) {
       setAnonCtaKey((k) => k + 1)
@@ -164,7 +182,11 @@ function DailyInner({ daily }: { daily: DailyChallenge }) {
     })
     try {
       const res = await submitDailyArtistGuess({
-        data: { punchlineId: daily.punchlineId, artistId: choice.id, date: daily.date },
+        data: {
+          punchlineId: daily.punchlineId,
+          artistId: choice.id,
+          date: daily.date,
+        },
       })
       setArtistResult(res)
       consumeXp(res.xp, res.isCorrect)
@@ -196,7 +218,11 @@ function DailyInner({ daily }: { daily: DailyChallenge }) {
     logEvent("daily_song_submitted", { daily_date: daily.date, skipped: skip })
     try {
       const res = await submitDailySongGuess({
-        data: { punchlineId: daily.punchlineId, guess: trimmed, date: daily.date },
+        data: {
+          punchlineId: daily.punchlineId,
+          guess: trimmed,
+          date: daily.date,
+        },
       })
       setSongResult(res)
       consumeXp(res.xp, res.isCorrect)
@@ -230,11 +256,19 @@ function DailyInner({ daily }: { daily: DailyChallenge }) {
   return (
     <div className="relative flex min-h-svh flex-col overflow-hidden">
       <Header dailyNumber={daily.number} date={daily.date} />
-      <div className="pq-spotlight pointer-events-none absolute inset-0" aria-hidden="true" />
+      <div
+        className="pq-spotlight pointer-events-none absolute inset-0"
+        aria-hidden="true"
+      />
 
       <main className="relative flex flex-1 flex-col px-5 pt-20 pb-8 md:px-8">
         <div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-between gap-8">
-          <BarDisplay line={daily.line} shakeKey={wrongShake} dailyNumber={daily.number} submittedByHandle={daily.submittedByHandle} />
+          <BarDisplay
+            line={daily.line}
+            shakeKey={wrongShake}
+            dailyNumber={daily.number}
+            submittedByHandle={daily.submittedByHandle}
+          />
 
           <div className="relative">
             <Confetti trigger={confettiKey} />
@@ -279,19 +313,26 @@ function DailyInner({ daily }: { daily: DailyChallenge }) {
 function Header({ dailyNumber, date }: { dailyNumber: number; date: string }) {
   const { t } = useTranslation()
   return (
-    <header className="fixed top-0 inset-x-0 z-50 flex items-center justify-between pl-5 pr-16 h-14 border-b border-border/40 bg-background/95 md:bg-background/80 md:backdrop-blur-sm">
-      <Link to="/" aria-label={t("common.backToHome")} className="select-none flex items-center gap-2.5">
-        <span className="font-bold text-base tracking-tight">
+    <header className="fixed inset-x-0 top-0 z-50 flex h-14 items-center justify-between border-b border-border/40 bg-background/95 pr-16 pl-5 md:bg-background/80 md:backdrop-blur-sm">
+      <Link
+        to="/"
+        aria-label={t("common.backToHome")}
+        className="flex items-center gap-2.5 select-none"
+      >
+        <span className="text-base font-bold tracking-tight">
           <span className="text-foreground">punchline</span>
           <span className="text-primary">/quiz</span>
         </span>
-        <span className="text-primary/40 text-sm select-none">/</span>
-        <span className="text-[10px] font-bold tracking-[0.16em] uppercase text-primary/80">
+        <span className="text-sm text-primary/40 select-none">/</span>
+        <span className="text-[10px] font-bold tracking-[0.16em] text-primary/80 uppercase">
           daily #{dailyNumber}
         </span>
       </Link>
       <div className="flex items-center gap-2">
-        <span className="text-xs font-medium tabular-nums text-muted-foreground" aria-label={t("daily.dateAria", { date })}>
+        <span
+          className="text-xs font-medium text-muted-foreground tabular-nums"
+          aria-label={t("daily.dateAria", { date })}
+        >
           {date}
         </span>
         <LangToggle />
@@ -319,23 +360,23 @@ function BarDisplay({
       style={{ animation: `pq-fade-up 0.5s ${ease} both` }}
     >
       <div className="flex w-full items-center justify-between gap-2">
-        <span className="text-xs font-semibold tracking-[0.16em] uppercase text-primary/70">
+        <span className="text-xs font-semibold tracking-[0.16em] text-primary/70 uppercase">
           {t("daily.eyebrowBar")}
         </span>
-        <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+        <span className="text-[10px] font-bold tracking-[0.16em] text-muted-foreground uppercase">
           #{dailyNumber}
         </span>
       </div>
       <blockquote
-        className="font-extrabold leading-[1.18] tracking-tight text-balance"
+        className="leading-[1.18] font-extrabold tracking-tight text-balance"
         style={{
           fontSize: "clamp(1.6rem, 5.5vw, 2.5rem)",
           animation: shakeKey ? `pq-shake 0.45s ${ease} both` : undefined,
         }}
       >
-        <span className="text-primary/40 select-none mr-1">"</span>
+        <span className="mr-1 text-primary/40 select-none">"</span>
         {renderBarLines(line)}
-        <span className="text-primary/40 select-none ml-1">"</span>
+        <span className="ml-1 text-primary/40 select-none">"</span>
       </blockquote>
       <div className="flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <p className="text-sm text-muted-foreground">{t("daily.subtext")}</p>
@@ -377,14 +418,16 @@ function ArtistChoices({
       style={{ animation: `pq-fade-up 0.55s ${ease} 0.15s both` }}
     >
       <div className="flex items-center justify-between px-1">
-        <span className="text-[11px] font-bold tracking-[0.16em] uppercase text-primary/80">
+        <span className="text-[11px] font-bold tracking-[0.16em] text-primary/80 uppercase">
           {t("daily.eyebrowArtist")}
         </span>
-        <span className="text-[11px] font-bold tracking-[0.16em] uppercase text-muted-foreground/60">
+        <span className="text-[11px] font-bold tracking-[0.16em] text-muted-foreground/60 uppercase">
           {t("daily.oneShot")}
         </span>
       </div>
-      <p className="px-1 text-sm text-muted-foreground">{t("daily.questionArtist")}</p>
+      <p className="px-1 text-sm text-muted-foreground">
+        {t("daily.questionArtist")}
+      </p>
       {choices.map((c, i) => {
         const isSelected = pickedId === c.id
         return (
@@ -395,20 +438,22 @@ function ArtistChoices({
             disabled={disabled || pickedId !== null}
             aria-pressed={isSelected}
             className={cn(
-              "group relative flex items-center gap-3 w-full min-h-14 px-4 py-3 rounded-full",
+              "group relative flex min-h-14 w-full items-center gap-3 rounded-full px-4 py-3",
               "border bg-card/60 text-left text-base font-semibold transition-all",
-              "hover:bg-card hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
-              "disabled:opacity-60 disabled:cursor-not-allowed",
-              isSelected ? "border-primary bg-primary/10" : "border-border/60",
+              "hover:border-primary/40 hover:bg-card focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none",
+              "disabled:cursor-not-allowed disabled:opacity-60",
+              isSelected ? "border-primary bg-primary/10" : "border-border/60"
             )}
-            style={{ animation: `pq-fade-up 0.5s ${ease} ${0.2 + i * 0.07}s both` }}
+            style={{
+              animation: `pq-fade-up 0.5s ${ease} ${0.2 + i * 0.07}s both`,
+            }}
           >
             <ArtistAvatar artist={c} size={36} />
             <span className="flex-1">{c.name}</span>
             <span
               className={cn(
                 "h-2 w-2 rounded-full transition-all",
-                isSelected ? "bg-primary scale-125" : "bg-muted-foreground/30",
+                isSelected ? "scale-125 bg-primary" : "bg-muted-foreground/30"
               )}
               aria-hidden="true"
             />
@@ -419,7 +464,13 @@ function ArtistChoices({
   )
 }
 
-function ArtistAvatar({ artist, size }: { artist: DailyArtistChoice; size: number }) {
+function ArtistAvatar({
+  artist,
+  size,
+}: {
+  artist: DailyArtistChoice
+  size: number
+}) {
   const initials = artist.name
     .split(" ")
     .map((w) => w[0])
@@ -428,14 +479,20 @@ function ArtistAvatar({ artist, size }: { artist: DailyArtistChoice; size: numbe
     .toUpperCase()
   return (
     <div
-      className="relative shrink-0 overflow-hidden rounded-full border border-border/60 bg-muted/60 flex items-center justify-center"
+      className="relative flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/60 bg-muted/60"
       style={{ width: size, height: size }}
       aria-hidden="true"
     >
       {artist.imageUrl ? (
-        <img src={artist.imageUrl} alt="" className="h-full w-full object-cover" />
+        <img
+          src={artist.imageUrl}
+          alt=""
+          className="h-full w-full object-cover"
+        />
       ) : (
-        <span className="text-[0.7em] font-bold tracking-tight text-foreground/70">{initials}</span>
+        <span className="text-[0.7em] font-bold tracking-tight text-foreground/70">
+          {initials}
+        </span>
       )}
     </div>
   )
@@ -476,10 +533,10 @@ function FreeTextStep({
       style={{ animation: `pq-fade-up 0.55s ${ease} 0.15s both` }}
     >
       <div className="flex items-center justify-between px-1">
-        <span className="text-[11px] font-bold tracking-[0.16em] uppercase text-primary/80">
+        <span className="text-[11px] font-bold tracking-[0.16em] text-primary/80 uppercase">
           {eyebrow}
         </span>
-        <span className="text-[11px] font-bold tracking-[0.16em] uppercase text-muted-foreground/60">
+        <span className="text-[11px] font-bold tracking-[0.16em] text-muted-foreground/60 uppercase">
           {t("daily.oneShot")}
         </span>
       </div>
@@ -496,9 +553,9 @@ function FreeTextStep({
         spellCheck={false}
         disabled={submitting}
         className={cn(
-          "w-full min-h-14 rounded-full border bg-background/60 px-5 text-lg font-bold",
-          "border-border/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
-          "placeholder:text-muted-foreground/50 disabled:opacity-60",
+          "min-h-14 w-full rounded-full border bg-background/60 px-5 text-lg font-bold",
+          "border-border/60 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none",
+          "placeholder:text-muted-foreground/50 disabled:opacity-60"
         )}
       />
       <div className="flex gap-2">
@@ -508,7 +565,7 @@ function FreeTextStep({
             variant="ghost"
             onClick={onSkip}
             disabled={submitting}
-            className="flex-1 min-h-12 text-sm font-bold text-muted-foreground hover:text-foreground"
+            className="min-h-12 flex-1 text-sm font-bold text-muted-foreground hover:text-foreground"
           >
             {t("common.skip")}
           </Button>
@@ -517,7 +574,10 @@ function FreeTextStep({
           type="submit"
           size="lg"
           disabled={submitting || value.trim().length === 0}
-          className={cn("cta-glow min-h-12 text-base font-bold", onSkip ? "flex-[2]" : "w-full")}
+          className={cn(
+            "cta-glow min-h-12 text-base font-bold",
+            onSkip ? "flex-[2]" : "w-full"
+          )}
         >
           {submitting ? "…" : t("common.submit")}
         </Button>
@@ -538,7 +598,12 @@ function DailyResult({
   }
   songResult: {
     isCorrect: boolean
-    song: { title: string; album: string | null; albumArtUrl: string | null; releaseYear: number | null }
+    song: {
+      title: string
+      album: string | null
+      albumArtUrl: string | null
+      releaseYear: number | null
+    }
   }
 }) {
   const { t } = useTranslation()
@@ -582,14 +647,18 @@ function DailyResult({
       className={cn(
         "flex flex-col items-center gap-5 rounded-3xl p-6 text-center",
         "border bg-card/40 backdrop-blur-[2px]",
-        both ? "border-primary/40" : half ? "border-primary/25" : "border-border/50",
+        both
+          ? "border-primary/40"
+          : half
+            ? "border-primary/25"
+            : "border-border/50"
       )}
       style={{ animation: `pq-fade-up 0.55s ${ease} both` }}
     >
       <span
         className={cn(
           "inline-flex items-center gap-2 text-xs font-bold tracking-[0.16em] uppercase",
-          both ? "text-primary" : "text-muted-foreground",
+          both ? "text-primary" : "text-muted-foreground"
         )}
       >
         <span className="opacity-50">/</span>
@@ -605,15 +674,25 @@ function DailyResult({
       />
 
       <div className="flex flex-col items-center gap-1.5">
-        <p className="text-xl font-extrabold leading-tight tracking-tight">{songResult.song.title}</p>
+        <p className="text-xl leading-tight font-extrabold tracking-tight">
+          {songResult.song.title}
+        </p>
         <p className="text-sm text-muted-foreground">
-          <span className="text-foreground/80">{artistResult.correctArtist.name}</span>
-          {songResult.song.album && <span className="opacity-50"> · {songResult.song.album}</span>}
-          {songResult.song.releaseYear && <span className="opacity-50"> · {songResult.song.releaseYear}</span>}
+          <span className="text-foreground/80">
+            {artistResult.correctArtist.name}
+          </span>
+          {songResult.song.album && (
+            <span className="opacity-50"> · {songResult.song.album}</span>
+          )}
+          {songResult.song.releaseYear && (
+            <span className="opacity-50"> · {songResult.song.releaseYear}</span>
+          )}
         </p>
       </div>
 
-      <p className="text-sm text-muted-foreground/80 max-w-xs text-balance">{verdict.line}</p>
+      <p className="max-w-xs text-sm text-balance text-muted-foreground/80">
+        {verdict.line}
+      </p>
 
       <Button
         size="lg"
@@ -624,15 +703,23 @@ function DailyResult({
       </Button>
 
       <div className="flex flex-col items-center gap-1 text-xs text-muted-foreground/70">
-        <span className="font-bold tracking-[0.16em] uppercase text-primary/70">
+        <span className="font-bold tracking-[0.16em] text-primary/70 uppercase">
           {t("daily.nextIn")}
         </span>
-        <span className="font-mono tabular-nums text-base text-foreground">{countdown}</span>
+        <span className="font-mono text-base text-foreground tabular-nums">
+          {countdown}
+        </span>
       </div>
+
+      <DiscordJoinCard
+        placement="daily_done"
+        delay={0.1}
+        className="mt-1 w-full text-left"
+      />
 
       <Link
         to="/play"
-        className="text-xs font-bold tracking-[0.16em] uppercase text-muted-foreground hover:text-primary"
+        className="text-xs font-bold tracking-[0.16em] text-muted-foreground uppercase hover:text-primary"
       >
         {t("daily.keepPlaying")}
       </Link>
@@ -652,14 +739,16 @@ function WordleGrid({ artist, song }: { artist: boolean; song: boolean }) {
         <div
           key={c.label}
           className={cn(
-            "flex h-14 w-14 items-center justify-center rounded-lg border-2 text-xs font-bold uppercase tracking-wide",
+            "flex h-14 w-14 items-center justify-center rounded-lg border-2 text-xs font-bold tracking-wide uppercase",
             c.correct
               ? "border-primary/80 bg-primary/20 text-primary"
-              : "border-destructive/50 bg-destructive/15 text-destructive/80",
+              : "border-destructive/50 bg-destructive/15 text-destructive/80"
           )}
           aria-label={t("daily.wordleAria", {
             label: c.label,
-            result: c.correct ? t("daily.wordleCorrect") : t("daily.wordleWrong"),
+            result: c.correct
+              ? t("daily.wordleCorrect")
+              : t("daily.wordleWrong"),
           })}
         >
           {c.correct ? "✓" : "✕"}
@@ -682,8 +771,8 @@ function AlbumArt({
   return (
     <div
       className={cn(
-        "relative aspect-square w-32 sm:w-40 overflow-hidden rounded-2xl border",
-        highlight ? "border-primary/50" : "border-border/60",
+        "relative aspect-square w-32 overflow-hidden rounded-2xl border sm:w-40",
+        highlight ? "border-primary/50" : "border-border/60"
       )}
       style={{
         animation: `pq-pop-in 0.6s ${ease} 0.1s both`,
@@ -692,12 +781,16 @@ function AlbumArt({
       }}
     >
       {url && (
-        <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <img
+          src={url}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+        />
       )}
       {highlight && (
         <div
           aria-hidden="true"
-          className="absolute inset-0 pointer-events-none"
+          className="pointer-events-none absolute inset-0"
           style={{
             boxShadow:
               "inset 0 0 0 1px color-mix(in oklch, var(--primary), transparent 50%), 0 0 40px color-mix(in oklch, var(--primary), transparent 60%)",
@@ -719,7 +812,9 @@ function useNextDailyCountdown(): string {
   // Date that matches when our clock crosses that wall-clock instant.
   const target = useMemo(() => {
     const d = new Date(now)
-    const berlinNow = new Date(d.toLocaleString("en-US", { timeZone: "Europe/Berlin" }))
+    const berlinNow = new Date(
+      d.toLocaleString("en-US", { timeZone: "Europe/Berlin" })
+    )
     const next = new Date(berlinNow)
     next.setHours(24, 0, 0, 0)
     const diffLocal = next.getTime() - berlinNow.getTime()
@@ -736,21 +831,28 @@ function NoDailyState({ requestedDate }: { requestedDate: string | null }) {
   const { t } = useTranslation()
   return (
     <div className="relative flex min-h-svh flex-col">
-      <header className="fixed top-0 inset-x-0 z-50 flex items-center justify-between pl-5 pr-16 h-14 border-b border-border/40 bg-background/95 md:bg-background/80 md:backdrop-blur-sm">
-        <Link to="/" className="select-none font-bold text-base tracking-tight">
+      <header className="fixed inset-x-0 top-0 z-50 flex h-14 items-center justify-between border-b border-border/40 bg-background/95 pr-16 pl-5 md:bg-background/80 md:backdrop-blur-sm">
+        <Link to="/" className="text-base font-bold tracking-tight select-none">
           <span className="text-foreground">punchline</span>
           <span className="text-primary">/quiz</span>
-          <span className="text-primary/40 mx-1.5">/</span>
-          <span className="text-[10px] tracking-[0.16em] uppercase text-primary/80">daily</span>
+          <span className="mx-1.5 text-primary/40">/</span>
+          <span className="text-[10px] tracking-[0.16em] text-primary/80 uppercase">
+            daily
+          </span>
         </Link>
       </header>
-      <div className="pq-spotlight pointer-events-none absolute inset-0" aria-hidden="true" />
+      <div
+        className="pq-spotlight pointer-events-none absolute inset-0"
+        aria-hidden="true"
+      />
       <main className="relative mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-5 px-6 text-center">
-        <span className="text-xs font-bold tracking-[0.18em] uppercase text-primary/70">
+        <span className="text-xs font-bold tracking-[0.18em] text-primary/70 uppercase">
           {t("daily.empty.eyebrow")}
         </span>
         <h1 className="text-2xl font-extrabold tracking-tight">
-          {requestedDate ? t("daily.empty.headlineDate", { date: requestedDate }) : t("daily.empty.headline")}
+          {requestedDate
+            ? t("daily.empty.headlineDate", { date: requestedDate })
+            : t("daily.empty.headline")}
         </h1>
         <p className="max-w-xs text-sm text-muted-foreground">
           {t("daily.empty.subtext")}
@@ -759,12 +861,15 @@ function NoDailyState({ requestedDate }: { requestedDate: string | null }) {
           to="/play"
           className={cn(
             "cta-glow inline-flex min-h-12 items-center justify-center rounded-full px-7 text-base font-bold",
-            "bg-primary text-primary-foreground hover:bg-primary/90",
+            "bg-primary text-primary-foreground hover:bg-primary/90"
           )}
         >
           {t("daily.empty.classicCta")}
         </Link>
-        <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">
+        <Link
+          to="/"
+          className="text-xs text-muted-foreground hover:text-foreground"
+        >
           ← {t("common.back")}
         </Link>
       </main>

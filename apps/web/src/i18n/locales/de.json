@@ -264,6 +264,13 @@
       "tryAgain": "Beim nächsten besser."
     }
   },
+  "community": {
+    "eyebrow": "/ community",
+    "joinTitle": "Komm in den Discord",
+    "joinSubtitle": "Bars vorschlagen, über den GOAT streiten, deine Crew herausfordern.",
+    "joinCta": "Beitreten",
+    "footerLink": "Discord"
+  },
   "artistGrid": {
     "allEyebrow": "/ alle Artists",
     "all": "Alle",

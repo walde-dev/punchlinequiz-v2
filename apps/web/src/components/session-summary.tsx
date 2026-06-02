@@ -7,8 +7,13 @@ import { SignInButton, useAuth } from "@clerk/tanstack-react-start"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 
+import { DiscordJoinCard } from "./discord-cta"
 import { createChallengeFn } from "../lib/challenge"
-import { renderShareCard, shareFilenameFor, shareUrlFor } from "../lib/share-card"
+import {
+  renderShareCard,
+  shareFilenameFor,
+  shareUrlFor,
+} from "../lib/share-card"
 import { logEvent } from "../lib/track"
 import type { ShareCardData } from "../lib/share-card"
 
@@ -23,7 +28,13 @@ type Props = {
   onRestart: () => void
 }
 
-type ShareChannel = "native" | "whatsapp" | "twitter" | "instagram" | "download" | "copy"
+type ShareChannel =
+  | "native"
+  | "whatsapp"
+  | "twitter"
+  | "instagram"
+  | "download"
+  | "copy"
 
 const ease = "cubic-bezier(0.16, 1, 0.3, 1)"
 
@@ -31,11 +42,14 @@ function verdictHeadline(
   t: TFunction,
   score: number,
   total: number,
-  mode: "artist" | "cloze",
+  mode: "artist" | "cloze"
 ): string {
   if (total === 0) return t("session.headline.ended")
   const r = score / total
-  if (score === total) return mode === "cloze" ? t("session.headline.perfectCloze") : t("session.headline.perfectArtist")
+  if (score === total)
+    return mode === "cloze"
+      ? t("session.headline.perfectCloze")
+      : t("session.headline.perfectArtist")
   if (r >= 0.8) return t("session.headline.great")
   if (r >= 0.6) return t("session.headline.solid")
   if (r >= 0.4) return t("session.headline.half")
@@ -58,7 +72,7 @@ export function SessionSummary({
   const [creatingChallenge, setCreatingChallenge] = useState(false)
   const cardData = useMemo<ShareCardData>(
     () => ({ score, total, mode, artistName, artistImageUrl }),
-    [score, total, mode, artistName, artistImageUrl],
+    [score, total, mode, artistName, artistImageUrl]
   )
 
   async function createChallenge() {
@@ -79,7 +93,10 @@ export function SessionSummary({
   const [generating, setGenerating] = useState(true)
   const [copied, setCopied] = useState(false)
 
-  const shareUrl = useMemo(() => shareUrlFor({ mode, artistSlug }), [mode, artistSlug])
+  const shareUrl = useMemo(
+    () => shareUrlFor({ mode, artistSlug }),
+    [mode, artistSlug]
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -149,10 +166,15 @@ export function SessionSummary({
   async function onNativeShare() {
     if (!blob) return
     const text = t("session.shareText", { score, total })
-    const file = new File([blob], shareFilenameFor(cardData), { type: "image/png" })
-    const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean }
+    const file = new File([blob], shareFilenameFor(cardData), {
+      type: "image/png",
+    })
+    const nav = navigator as Navigator & {
+      canShare?: (d: ShareData) => boolean
+    }
     const dataWithFile: ShareData = { files: [file], text, url: shareUrl }
-    const canShareFile = typeof nav.canShare === "function" && nav.canShare(dataWithFile)
+    const canShareFile =
+      typeof nav.canShare === "function" && nav.canShare(dataWithFile)
     try {
       logShare("native")
       await nav.share(canShareFile ? dataWithFile : { text, url: shareUrl })
@@ -163,15 +185,23 @@ export function SessionSummary({
 
   function onWhatsApp() {
     logShare("whatsapp")
-    const text = encodeURIComponent(`${t("session.shareText", { score, total })} ${shareUrl}`)
+    const text = encodeURIComponent(
+      `${t("session.shareText", { score, total })} ${shareUrl}`
+    )
     window.open(`https://wa.me/?text=${text}`, "_blank", "noopener")
   }
 
   function onTwitter() {
     logShare("twitter")
-    const text = encodeURIComponent(t("session.shareTextTwitter", { score, total }))
+    const text = encodeURIComponent(
+      t("session.shareTextTwitter", { score, total })
+    )
     const url = encodeURIComponent(shareUrl)
-    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, "_blank", "noopener")
+    window.open(
+      `https://twitter.com/intent/tweet?text=${text}&url=${url}`,
+      "_blank",
+      "noopener"
+    )
   }
 
   function onInstagram() {
@@ -189,25 +219,26 @@ export function SessionSummary({
       style={{ animation: `pq-fade-up 0.55s ${ease} both` }}
     >
       <div className="flex flex-col items-center gap-3 text-center">
-        <span className="text-xs font-bold tracking-[0.18em] uppercase text-primary/80">
+        <span className="text-xs font-bold tracking-[0.18em] text-primary/80 uppercase">
           {t("session.eyebrow")}
         </span>
         <h1 className="text-3xl font-extrabold tracking-tight">
           {verdictHeadline(t, score, total, mode)}
         </h1>
-        <p className="text-sm text-muted-foreground">
-          {t("session.subtitle")}
-        </p>
+        <p className="text-sm text-muted-foreground">{t("session.subtitle")}</p>
       </div>
 
       {/* Result dots — replay of which lines hit */}
-      <div className="flex items-center justify-center gap-1.5" aria-label={t("session.resultsAria", { score, total })}>
+      <div
+        className="flex items-center justify-center gap-1.5"
+        aria-label={t("session.resultsAria", { score, total })}
+      >
         {results.map((hit, i) => (
           <span
             key={i}
             className={cn(
               "inline-block h-2 w-7 rounded-full transition-colors",
-              hit ? "bg-primary" : "bg-muted-foreground/25",
+              hit ? "bg-primary" : "bg-muted-foreground/25"
             )}
             aria-hidden="true"
           />
@@ -217,7 +248,10 @@ export function SessionSummary({
       {/* Card preview */}
       <div
         className="relative overflow-hidden rounded-3xl border border-primary/30 bg-card/40 shadow-[0_20px_60px_-20px_rgba(251,191,36,0.25)]"
-        style={{ aspectRatio: "1 / 1", animation: `pq-pop-in 0.55s ${ease} 0.1s both` }}
+        style={{
+          aspectRatio: "1 / 1",
+          animation: `pq-pop-in 0.55s ${ease} 0.1s both`,
+        }}
       >
         {previewUrl ? (
           <img
@@ -227,8 +261,10 @@ export function SessionSummary({
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-              {generating ? t("session.cardGenerating") : t("session.cardFailed")}
+            <span className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
+              {generating
+                ? t("session.cardGenerating")
+                : t("session.cardFailed")}
             </span>
           </div>
         )}
@@ -303,7 +339,9 @@ export function SessionSummary({
             disabled={creatingChallenge}
             className="min-h-12 w-full border border-primary/50 text-base font-bold text-primary hover:bg-primary/10"
           >
-            {creatingChallenge ? t("challenge.creating") : t("profile.public.createChallenge")}
+            {creatingChallenge
+              ? t("challenge.creating")
+              : t("profile.public.createChallenge")}
           </Button>
         ) : (
           <SignInButton mode="modal">
@@ -316,6 +354,9 @@ export function SessionSummary({
             </Button>
           </SignInButton>
         )}
+
+        {/* Community next-step — the post-game high is the right moment to ask. */}
+        <DiscordJoinCard placement="session_summary" delay={0.15} />
 
         <Button
           type="button"
@@ -339,8 +380,8 @@ function ShareChip({ label, onClick }: { label: string; onClick: () => void }) {
         "group flex min-h-11 items-center justify-center rounded-full",
         "border border-border/60 bg-card/40 px-3 text-xs font-bold tracking-tight",
         "hover:border-primary/50 hover:bg-primary/10 hover:text-primary",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
-        "transition-colors",
+        "focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none",
+        "transition-colors"
       )}
     >
       {label}

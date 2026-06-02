@@ -264,6 +264,13 @@
       "tryAgain": "Better next time."
     }
   },
+  "community": {
+    "eyebrow": "/ community",
+    "joinTitle": "Join the Discord",
+    "joinSubtitle": "Suggest bars, argue the GOAT, challenge your crew.",
+    "joinCta": "Join",
+    "footerLink": "Discord"
+  },
   "artistGrid": {
     "allEyebrow": "/ all artists",
     "all": "All",

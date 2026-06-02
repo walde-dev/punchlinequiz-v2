@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { AppHeader } from "../components/app-header"
+import { DiscordFooterLink } from "../components/discord-cta"
 import { SignInBanner } from "../components/sign-in-banner"
 import { getDailyChallenge } from "../lib/daily"
 import { listPlayableArtists } from "../lib/game"
@@ -36,14 +37,13 @@ export const Route = createFileRoute("/")({
 
 const ease = "cubic-bezier(0.16, 1, 0.3, 1)"
 
-
 function BetaBadge({ label }: { label: string }) {
   return (
     <span
       className="inline-flex items-center gap-1 text-xs font-semibold tracking-[0.12em] uppercase"
       style={{ animation: `pq-fade-up 0.5s ${ease} 0.1s both` }}
     >
-      <span className="text-primary/50 font-light select-none">/</span>
+      <span className="font-light text-primary/50 select-none">/</span>
       <span className="text-primary/75">{label}</span>
     </span>
   )
@@ -51,12 +51,16 @@ function BetaBadge({ label }: { label: string }) {
 
 function HomePage() {
   const { t } = useTranslation()
-  const { artistTotal, clozeTotal, clozeArtists, dailyNumber } = Route.useLoaderData()
+  const { artistTotal, clozeTotal, clozeArtists, dailyNumber } =
+    Route.useLoaderData()
 
   return (
     <div className="relative flex min-h-svh flex-col overflow-hidden">
       <AppHeader />
-      <div className="pq-spotlight pointer-events-none absolute inset-0" aria-hidden="true" />
+      <div
+        className="pq-spotlight pointer-events-none absolute inset-0"
+        aria-hidden="true"
+      />
 
       <main className="relative flex flex-1 flex-col items-center px-5 pt-16 pb-10 md:px-8 md:pt-20">
         <div className="flex w-full max-w-3xl flex-col gap-5 md:gap-8">
@@ -66,7 +70,7 @@ function HomePage() {
           >
             <BetaBadge label={t("home.betaBadge")} />
             <h1
-              className="font-extrabold leading-[1.1] tracking-tight"
+              className="leading-[1.1] font-extrabold tracking-tight"
               style={{ fontSize: "clamp(2rem, 6vw, 3.5rem)" }}
             >
               {t("home.hero")}
@@ -78,7 +82,11 @@ function HomePage() {
 
           {dailyNumber !== null && <DailyBanner dailyNumber={dailyNumber} />}
           <SignInBanner />
-          <ModeCards artistTotal={artistTotal} clozeTotal={clozeTotal} clozeArtists={clozeArtists} />
+          <ModeCards
+            artistTotal={artistTotal}
+            clozeTotal={clozeTotal}
+            clozeArtists={clozeArtists}
+          />
         </div>
       </main>
 
@@ -87,13 +95,23 @@ function HomePage() {
         style={{ animation: `pq-fade-up 0.55s ${ease} 0.65s both` }}
       >
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/60 animate-pulse" />
+          <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-primary/60" />
           <span>{t("home.betaNotice")}</span>
         </div>
         <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs font-semibold text-muted-foreground/70 md:justify-start">
-          <Link to="/artists" className="hover:text-primary transition-colors">{t("home.footerArtists")}</Link>
-          <Link to="/leaderboard" className="hover:text-primary transition-colors">{t("nav.leaderboard")}</Link>
-          <Link to="/daily" className="hover:text-primary transition-colors">{t("home.footerDaily")}</Link>
+          <Link to="/artists" className="transition-colors hover:text-primary">
+            {t("home.footerArtists")}
+          </Link>
+          <Link
+            to="/leaderboard"
+            className="transition-colors hover:text-primary"
+          >
+            {t("nav.leaderboard")}
+          </Link>
+          <Link to="/daily" className="transition-colors hover:text-primary">
+            {t("home.footerDaily")}
+          </Link>
+          <DiscordFooterLink placement="home_footer" />
         </nav>
         <p className="text-xs text-muted-foreground/40">{t("home.madeWith")}</p>
       </footer>
@@ -111,20 +129,22 @@ function DailyBanner({ dailyNumber }: { dailyNumber: number }) {
         "group relative flex items-center justify-between gap-3 overflow-hidden rounded-3xl",
         "border border-primary/50 bg-primary/10 p-5",
         "transition-[border-color,background-color] duration-200",
-        "hover:border-primary hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+        "hover:border-primary hover:bg-primary/15 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
       )}
       style={{ animation: `pq-fade-up 0.55s ${ease} 0.1s both` }}
     >
       <div className="flex flex-col gap-1">
-        <span className="text-[10px] font-bold tracking-[0.18em] uppercase text-primary">
+        <span className="text-[10px] font-bold tracking-[0.18em] text-primary uppercase">
           {t("home.dailyEyebrow", { number: dailyNumber })}
         </span>
-        <h2 className="text-xl font-extrabold leading-tight tracking-tight">
+        <h2 className="text-xl leading-tight font-extrabold tracking-tight">
           {t("home.dailyHeadline")}
         </h2>
-        <p className="text-xs text-muted-foreground">{t("home.dailySubtext")}</p>
+        <p className="text-xs text-muted-foreground">
+          {t("home.dailySubtext")}
+        </p>
       </div>
-      <span className="text-primary text-2xl transition-transform duration-200 group-hover:translate-x-0.5">
+      <span className="text-2xl text-primary transition-transform duration-200 group-hover:translate-x-0.5">
         →
       </span>
     </Link>
@@ -162,8 +182,14 @@ function ModeCards({
           search={{ mode: "cloze" }}
           eyebrow={t("home.modes.clozeEyebrow")}
           title={t("home.modes.clozeTitle")}
-          meta={t("home.modes.clozeMeta", { count: clozeTotal, artists: clozeArtists })}
-          ariaLabel={t("home.modes.clozeAria", { count: clozeTotal, artists: clozeArtists })}
+          meta={t("home.modes.clozeMeta", {
+            count: clozeTotal,
+            artists: clozeArtists,
+          })}
+          ariaLabel={t("home.modes.clozeAria", {
+            count: clozeTotal,
+            artists: clozeArtists,
+          })}
           iconSrc="/cloze.png"
           index={1}
         />
@@ -171,10 +197,10 @@ function ModeCards({
           to="/finishing"
           className={cn(
             "inline-flex min-h-11 w-fit items-center gap-1.5 rounded-full px-4",
-            "border border-border/60 bg-card text-xs font-bold uppercase tracking-[0.16em] text-foreground/80",
+            "border border-border/60 bg-card text-xs font-bold tracking-[0.16em] text-foreground/80 uppercase",
             "transition-[color,border-color,background-color] duration-200",
             "hover:border-primary/60 hover:bg-card hover:text-foreground",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+            "focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
           )}
         >
           {t("home.modes.perArtist")}
@@ -213,7 +239,7 @@ function ModeCard({
         "group relative flex flex-col gap-4 overflow-hidden rounded-3xl sm:gap-5",
         "border border-border/60 bg-card/50 p-5",
         "transition-[border-color,background-color] duration-200",
-        "hover:border-primary/60 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+        "hover:border-primary/60 hover:bg-card focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
       )}
       style={{
         animation: `pq-fade-up 0.55s ${ease} ${0.2 + index * 0.08}s both`,
@@ -229,7 +255,7 @@ function ModeCard({
           aria-hidden="true"
           width={80}
           height={80}
-          className="h-14 w-14 shrink-0 select-none transition-transform duration-200 motion-safe:group-hover:translate-x-1 sm:h-20 sm:w-20"
+          className="h-14 w-14 shrink-0 transition-transform duration-200 select-none motion-safe:group-hover:translate-x-1 sm:h-20 sm:w-20"
           style={{
             mixBlendMode: "screen",
             WebkitMaskImage:
@@ -241,10 +267,10 @@ function ModeCard({
           }}
         />
         <div className="flex flex-col gap-2">
-          <span className="text-[10px] font-bold tracking-[0.18em] uppercase text-primary/80">
+          <span className="text-[10px] font-bold tracking-[0.18em] text-primary/80 uppercase">
             {eyebrow}
           </span>
-          <h2 className="flex items-center gap-2 text-2xl font-extrabold leading-[1.1] tracking-tight text-balance">
+          <h2 className="flex items-center gap-2 text-2xl leading-[1.1] font-extrabold tracking-tight text-balance">
             <span>{title}</span>
             <span className="inline-block translate-y-px text-primary transition-transform duration-200 group-hover:translate-x-0.5">
               →
