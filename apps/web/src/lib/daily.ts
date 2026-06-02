@@ -65,6 +65,17 @@ function todayCET(): string {
   return new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" })
 }
 
+/**
+ * Coerce a DB `date` column value to a plain "YYYY-MM-DD" string. The neon-http
+ * driver parses Postgres `date` into a JS `Date` (UTC midnight) BEFORE drizzle,
+ * so a drizzle `mode: "string"` is not enough. Returning the Date to the client
+ * is fatal: TanStack serializes it as `new Date(...)` and `/daily` then renders
+ * it as a React child → React error #31 (whole page = error fallback).
+ */
+function toIsoDate(v: string | Date): string {
+  return typeof v === "string" ? v.slice(0, 10) : v.toISOString().slice(0, 10)
+}
+
 function isValidIsoDate(s: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(s)
 }
@@ -132,7 +143,7 @@ export const getDailyChallenge = createServerFn({ method: "GET" })
       .filter((x): x is DailyArtistChoice => Boolean(x))
 
     return {
-      date: row.date,
+      date: toIsoDate(row.date),
       number,
       punchlineId: row.punchlineId,
       line: row.line,
