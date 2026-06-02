@@ -84,16 +84,12 @@ function ArtistAvatar({ artist, size }: { artist: ArtistChoice; size: number }) 
 export function AppHeader({
   playMode,
   artistCtx,
-  score,
   streak,
-  roundSize,
   xpRefreshKey,
 }: {
   playMode?: "artist" | "cloze"
   artistCtx?: ArtistContext | null
-  score?: { right: number; total: number }
   streak?: number
-  roundSize?: number
   xpRefreshKey?: number
 }) {
   const { t } = useTranslation()
@@ -139,12 +135,6 @@ export function AppHeader({
           <span className="flex items-center gap-1.5 text-primary" aria-label={t("play.streakAria", { count: streak })}>
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
             <span>{t("play.streakLabel", { count: streak })}</span>
-          </span>
-        )}
-        {score !== undefined && (
-          <span className="text-muted-foreground" aria-label={t("play.scoreAria", { score: score.right, total: roundSize ?? score.total })}>
-            <span className="text-foreground">{score.right}</span>
-            <span className="opacity-50"> / {roundSize ?? score.total}</span>
           </span>
         )}
         <AuthSlot xpRefreshKey={xpRefreshKey} />

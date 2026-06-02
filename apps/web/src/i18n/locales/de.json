@@ -157,7 +157,7 @@
     "barsShort": "{{count}} Bars"
   },
   "play": {
-    "barEyebrow": "/ die bar",
+    "progress": "Bar {{n}} / {{total}}",
     "questionCloze": "Welches Wort fehlt?",
     "questionArtist": "Von wem ist die Bar?",
     "edit": "Bearbeiten",

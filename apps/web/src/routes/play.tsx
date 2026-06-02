@@ -399,7 +399,7 @@ function PlayInner({
   if (phase === "session-complete") {
     return (
       <div className="relative flex min-h-svh flex-col overflow-hidden">
-        <AppHeader score={score} streak={streak} artistCtx={artistCtx} playMode={playMode} />
+        <AppHeader streak={streak} artistCtx={artistCtx} playMode={playMode} />
         <div className="pq-spotlight pointer-events-none absolute inset-0" aria-hidden="true" />
         <main className="relative flex flex-1 flex-col px-5 pt-20 pb-8 md:px-8">
           <SessionSummary
@@ -421,11 +421,9 @@ function PlayInner({
   return (
     <div className="relative flex min-h-svh flex-col overflow-hidden">
       <AppHeader
-        score={score}
         streak={streak}
         artistCtx={artistCtx}
         playMode={playMode}
-        roundSize={ROUND_SIZE}
         xpRefreshKey={xpRefreshKey}
       />
       <div className="pq-spotlight pointer-events-none absolute inset-0" aria-hidden="true" />
@@ -434,6 +432,8 @@ function PlayInner({
         <div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-between gap-8">
           <BarDisplay
             key={round.punchlineId}
+            roundSize={ROUND_SIZE}
+            results={results}
             line={
               // Once the cloze is solved, swap the blanked prompt for the
               // full bar so the user can see their answer in context while
@@ -534,6 +534,8 @@ function BarDisplay({
   shakeKey,
   adminBadge,
   submittedByHandle,
+  roundSize,
+  results,
 }: {
   line: string
   mode: Round["mode"]
@@ -542,8 +544,14 @@ function BarDisplay({
   shakeKey: number
   adminBadge?: React.ReactNode
   submittedByHandle?: string | null
+  /** Total bars in a round — drives the progress strip. */
+  roundSize: number
+  /** Per-bar outcomes so far (true = nailed it). Length = bars already answered. */
+  results: Array<boolean>
 }) {
   const { t } = useTranslation()
+  // The bar currently on screen is the one after everything already answered.
+  const current = Math.min(results.length + 1, roundSize)
   return (
     <div
       key={shakeKey}
@@ -551,10 +559,16 @@ function BarDisplay({
       style={{ animation: `pq-fade-up 0.5s ${ease} both` }}
     >
       <div className="flex w-full items-center justify-between gap-2">
-        <span className="text-xs font-semibold tracking-[0.16em] uppercase text-primary/70">
-          {t("play.barEyebrow")}
+        <span
+          className="text-xs font-semibold tracking-[0.16em] uppercase text-primary/70"
+          aria-label={t("play.scoreAria", { score: results.filter(Boolean).length, total: roundSize })}
+        >
+          {t("play.progress", { n: current, total: roundSize })}
         </span>
-        {adminBadge}
+        <div className="flex items-center gap-2.5">
+          <RoundProgress total={roundSize} results={results} />
+          {adminBadge}
+        </div>
       </div>
       <blockquote
         className="font-extrabold leading-[1.18] tracking-tight text-balance"
@@ -574,6 +588,39 @@ function BarDisplay({
         <BarCredit handle={submittedByHandle} />
       </div>
     </div>
+  )
+}
+
+/**
+ * Round progress as a row of dots — one per bar. Answered bars glow gold when
+ * nailed and dim when missed (gold stays the only accent); the bar on screen
+ * pulses, and bars still to come sit faint. Reads as a live scoreboard you'd
+ * want to screenshot, not a cramped header counter.
+ */
+function RoundProgress({ total, results }: { total: number; results: Array<boolean> }) {
+  const current = results.length
+  return (
+    <span className="flex items-center gap-1.5" aria-hidden="true">
+      {Array.from({ length: total }).map((_, i) => {
+        const answered = i < results.length
+        const isCurrent = i === current
+        return (
+          <span
+            key={i}
+            className={cn(
+              "inline-block h-1.5 w-4 rounded-full transition-colors",
+              answered
+                ? results[i]
+                  ? "bg-primary"
+                  : "bg-muted-foreground/30"
+                : isCurrent
+                  ? "bg-primary/50 animate-pulse"
+                  : "bg-muted-foreground/20",
+            )}
+          />
+        )
+      })}
+    </span>
   )
 }
 
@@ -1117,7 +1164,7 @@ function EmptyArtistState({
       : t("play.empty.noBars")
   return (
     <div className="relative flex min-h-svh flex-col">
-      <AppHeader score={{ right: 0, total: 0 }} streak={0} artistCtx={artist} playMode={mode} />
+      <AppHeader streak={0} artistCtx={artist} playMode={mode} />
       <div className="pq-spotlight pointer-events-none absolute inset-0" aria-hidden="true" />
       <main className="relative mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-5 px-6 text-center">
         <span className="text-xs font-bold tracking-[0.18em] uppercase text-primary/70">
