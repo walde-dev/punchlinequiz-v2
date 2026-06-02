@@ -13,41 +13,11 @@ import { db } from "./db"
 import { SITE_URL } from "./seo"
 import { getLeaderboard } from "./leaderboard"
 
-const API = "https://discord.com/api/v10"
+// REST core lives in discord-rest.ts (dependency-light). Re-export for callers
+// that already import these from this module (e.g. the daily cron).
+export { discordRequest, postMessage } from "./discord-rest"
+
 export const GOLD = 0xfbbf24 // the one brand accent
-
-// ---------------------------------------------------------------------------
-// REST
-// ---------------------------------------------------------------------------
-export async function discordRequest<T = unknown>(
-  method: string,
-  path: string,
-  body?: unknown
-): Promise<T | null> {
-  const token = process.env.DISCORD_BOT_TOKEN
-  if (!token) throw new Error("DISCORD_BOT_TOKEN missing")
-  const res = await fetch(`${API}${path}`, {
-    method,
-    headers: {
-      Authorization: `Bot ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  })
-  if (!res.ok) {
-    throw new Error(
-      `Discord ${method} ${path} → ${res.status}: ${await res.text()}`
-    )
-  }
-  return res.status === 204 ? null : ((await res.json()) as T)
-}
-
-export function postMessage(
-  channelId: string,
-  payload: Record<string, unknown>
-) {
-  return discordRequest("POST", `/channels/${channelId}/messages`, payload)
-}
 
 // ---------------------------------------------------------------------------
 // Ed25519 signature verification (Discord signs every interaction request).

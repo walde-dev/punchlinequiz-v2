@@ -6,15 +6,15 @@ just Discord's REST + HTTP-interactions APIs, so everything runs on Vercel.
 
 ## What runs where
 
-| Piece | Where | Notes |
-|---|---|---|
-| Server scaffolding | `scripts/discord/setup.ts` | One-time/idempotent. Channels, roles, perms, server settings. |
-| Slash commands `/daily` `/play` `/leaderboard` | `apps/web/src/routes/api/discord/interactions.ts` | HTTP interactions, ed25519-verified. |
-| Command registration | `scripts/discord/register-commands.ts` | Guild-scoped (instant). Re-run on command changes. |
-| Daily 18:00 auto-post | `apps/web/src/routes/api/cron/discord-daily.ts` + `apps/web/vercel.json` | Posts the bar to `#punchline-des-tages`. |
-| Welcome message | Discord native "X joined" → `#willkommen` | No code (set via `system_channel_id`). |
-| `#willkommen` / `#ankündigungen` copy | `scripts/discord/post-welcome.ts` | Idempotent (edits its own message). |
-| Shared helpers | `apps/web/src/lib/discord.ts` | REST, signature verify, message payloads. |
+| Piece                                          | Where                                                                    | Notes                                                         |
+| ---------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------- |
+| Server scaffolding                             | `scripts/discord/setup.ts`                                               | One-time/idempotent. Channels, roles, perms, server settings. |
+| Slash commands `/daily` `/play` `/leaderboard` | `apps/web/src/routes/api/discord/interactions.ts`                        | HTTP interactions, ed25519-verified.                          |
+| Command registration                           | `scripts/discord/register-commands.ts`                                   | Guild-scoped (instant). Re-run on command changes.            |
+| Daily 18:00 auto-post                          | `apps/web/src/routes/api/cron/discord-daily.ts` + `apps/web/vercel.json` | Posts the bar to `#punchline-des-tages`.                      |
+| Welcome message                                | Discord native "X joined" → `#willkommen`                                | No code (set via `system_channel_id`).                        |
+| `#willkommen` / `#ankündigungen` copy          | `scripts/discord/post-welcome.ts`                                        | Idempotent (edits its own message).                           |
+| Shared helpers                                 | `apps/web/src/lib/discord.ts`                                            | REST, signature verify, message payloads.                     |
 
 Created IDs are written to `.context/discord-ids.json` (gitignored).
 
@@ -25,7 +25,22 @@ Created IDs are written to `.context/discord-ids.json` (gitignored).
 - **🎮 DAS QUIZ**: `highscores`, `bar-vorschläge`
 - **🛠️ FEEDBACK**: `ideen-feedback`, `bugs`
 - **🔊 VOICE**: `Lobby`
+- **🔒 STAFF** (admin-only — hidden from `@everyone`; Administrator roles bypass): `logs`, `alerts`, `review-queue`, `bot-status`
 - Roles: **Admin** (gold, you) → **Team** (mod perms) → **OG** (bronze, flair) → `@everyone`
+
+## Staff channel wiring
+
+The Admin role has Administrator, which bypasses channel overwrites — so admins
+(and the bot, and the owner) see the STAFF category for free; everyone else,
+**including Team**, is blocked by the `@everyone` View-Channel deny.
+
+- **`#alerts`** ← every `logServer("error", …)` is forwarded here, fire-and-forget
+  (`lib/discord-rest.ts` `notifyError`; no-op unless `DISCORD_ALERTS_CHANNEL_ID`
+  is set; failures go to console, never back through `logServer`, so no recursion).
+- **`#review-queue`** ← each new user bar submission (`lib/submissions.ts` →
+  `notifyNewSubmission`), with a link to `/admin/review`.
+- `#logs` and `#bot-status` exist but nothing auto-posts to them yet (left for
+  later; full event stream lives in Axiom).
 
 ## Daily post & DST
 
@@ -44,12 +59,14 @@ DISCORD_PUBLIC_KEY=        # verifies interaction signatures
 DISCORD_APPLICATION_ID=    # bot user id (command registration)
 DISCORD_GUILD_ID=          # 1341150349968412804
 DISCORD_DAILY_CHANNEL_ID=  # #punchline-des-tages (from discord-ids.json)
+DISCORD_ALERTS_CHANNEL_ID= # #alerts (staff) — error forwarding
+DISCORD_REVIEW_CHANNEL_ID= # #review-queue (staff) — new submissions
 CRON_SECRET=               # any random string; Vercel sends it to the cron
 ```
 
 ## Deploy / handoff checklist
 
-1. Add all six env vars above to **Vercel** (Production + Preview).
+1. Add all env vars above to **Vercel** (Production + Preview).
 2. Confirm the Vercel project **Root Directory = `apps/web`** (where `vercel.json`
    lives) so the cron is picked up. If the root is the repo root, move
    `vercel.json` there.

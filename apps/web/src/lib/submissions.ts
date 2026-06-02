@@ -1,11 +1,18 @@
 import { createServerFn } from "@tanstack/react-start"
 import { getRequest } from "@tanstack/react-start/server"
 import { and, desc, eq, isNull, sql } from "drizzle-orm"
-import { artists, contributorGrants, punchlines, punchlineSubmissions, songs } from "@workspace/db"
+import {
+  artists,
+  contributorGrants,
+  punchlines,
+  punchlineSubmissions,
+  songs,
+} from "@workspace/db"
 
 import { getActor } from "./auth"
 import { checkSubmitGate } from "./contributor"
 import { db } from "./db"
+import { notifyNewSubmission } from "./discord-rest"
 import { ensureUser } from "./xp"
 
 /**
@@ -55,12 +62,23 @@ export const submitBarFn = createServerFn({ method: "POST" })
     const gate = await checkSubmitGate(clerkId)
     if (!gate.ok) {
       if (gate.reason === "cooldown") {
-        return { ok: false, reason: "cooldown", retryAfterSeconds: gate.retryAfterSeconds }
+        return {
+          ok: false,
+          reason: "cooldown",
+          retryAfterSeconds: gate.retryAfterSeconds,
+        }
       }
-      return { ok: false, reason: "pending_cap", cap: gate.cap, tier: gate.tier }
+      return {
+        ok: false,
+        reason: "pending_cap",
+        cap: gate.cap,
+        tier: gate.tier,
+      }
     }
 
     const answer = clean(data.answer, 200)
+    const artistHint = clean(data.artistHint, 200)
+    const songHint = clean(data.songHint, 300)
     const [row] = await db
       .insert(punchlineSubmissions)
       .values({
@@ -68,11 +86,20 @@ export const submitBarFn = createServerFn({ method: "POST" })
         line: line.slice(0, 1000),
         clozePrompt: clean(data.clozePrompt, 1000),
         perfectSolution: answer ? [answer] : null,
-        artistHint: clean(data.artistHint, 200),
-        songHint: clean(data.songHint, 300),
+        artistHint,
+        songHint,
         note: clean(data.note, 500),
       })
       .returning({ id: punchlineSubmissions.id })
+
+    // Ping the #review-queue staff channel (fire-and-forget, never blocks).
+    notifyNewSubmission({
+      id: row.id,
+      line: line.slice(0, 1000),
+      artistHint,
+      songHint,
+      answer,
+    })
     return { ok: true, id: row.id }
   })
 
@@ -104,10 +131,16 @@ export const getMySubmissionsFn = createServerFn({ method: "GET" }).handler(
         xpAwarded: contributorGrants.xpAwarded,
       })
       .from(punchlineSubmissions)
-      .leftJoin(punchlines, eq(punchlines.id, punchlineSubmissions.createdPunchlineId))
+      .leftJoin(
+        punchlines,
+        eq(punchlines.id, punchlineSubmissions.createdPunchlineId)
+      )
       .leftJoin(songs, eq(songs.id, punchlines.songId))
       .leftJoin(artists, eq(artists.id, songs.artistId))
-      .leftJoin(contributorGrants, eq(contributorGrants.submissionId, punchlineSubmissions.id))
+      .leftJoin(
+        contributorGrants,
+        eq(contributorGrants.submissionId, punchlineSubmissions.id)
+      )
       .where(eq(punchlineSubmissions.submitterClerkId, clerkId))
       .orderBy(desc(punchlineSubmissions.createdAt))
       .limit(50)
@@ -120,7 +153,7 @@ export const getMySubmissionsFn = createServerFn({ method: "GET" }).handler(
       xpAwarded: r.xpAwarded ?? null,
       newlyAccepted: r.status === "approved" && r.acceptanceSeenAt === null,
     }))
-  },
+  }
 )
 
 /**
@@ -138,10 +171,10 @@ export const markAcceptanceSeenFn = createServerFn({ method: "POST" }).handler(
         and(
           eq(punchlineSubmissions.submitterClerkId, clerkId),
           eq(punchlineSubmissions.status, "approved"),
-          isNull(punchlineSubmissions.acceptanceSeenAt),
-        ),
+          isNull(punchlineSubmissions.acceptanceSeenAt)
+        )
       )
       .returning({ id: punchlineSubmissions.id })
     return { ok: true, marked: updated.length }
-  },
+  }
 )

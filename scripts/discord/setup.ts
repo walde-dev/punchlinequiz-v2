@@ -114,6 +114,8 @@ type ChannelSpec = {
 type CategorySpec = {
   name: string
   readOnly?: boolean
+  /** Hidden from @everyone. Only roles with Administrator (Admin, the bot) see it. */
+  adminOnly?: boolean
   channels: ChannelSpec[]
 }
 
@@ -185,6 +187,25 @@ const LAYOUT: CategorySpec[] = [
     name: "🔊 VOICE",
     channels: [{ name: "Lobby", type: VOICE, adopt: "General" }],
   },
+  {
+    // Admin-only: hidden from @everyone; Administrator roles (Admin + bot) auto-see it.
+    name: "🔒 STAFF",
+    adminOnly: true,
+    channels: [
+      { name: "logs", type: TEXT, topic: "App-Events (Server-Logs)." },
+      { name: "alerts", type: TEXT, topic: "Fehler & wichtige Alerts." },
+      {
+        name: "review-queue",
+        type: TEXT,
+        topic: "Neue Bar-Vorschläge zum Prüfen.",
+      },
+      {
+        name: "bot-status",
+        type: TEXT,
+        topic: "Daily-Post-Bestätigungen & Cron-Heartbeat.",
+      },
+    ],
+  },
 ]
 
 type RoleSpec = {
@@ -223,6 +244,33 @@ const ROLES: RoleSpec[] = [
 
 const norm = (s: string) => s.trim().toLowerCase()
 
+/**
+ * @everyone overwrite for a category/its channels. adminOnly hides it entirely;
+ * readOnly leaves it visible but unpostable. Administrator roles (Admin + bot)
+ * bypass both. Returns undefined for normal categories (inherit defaults).
+ */
+function overwritesFor(cat: CategorySpec) {
+  if (cat.adminOnly) {
+    return [{ id: GUILD, type: 0, allow: "0", deny: bits(P.VIEW_CHANNEL) }]
+  }
+  if (cat.readOnly) {
+    return [
+      {
+        id: GUILD,
+        type: 0,
+        allow: bits(P.VIEW_CHANNEL),
+        deny: bits(
+          P.SEND_MESSAGES,
+          P.SEND_MESSAGES_IN_THREADS,
+          P.CREATE_PUBLIC_THREADS,
+          P.CREATE_PRIVATE_THREADS
+        ),
+      },
+    ]
+  }
+  return undefined
+}
+
 async function main() {
   console.log(`\n🎤 Setting up PunchlineQuiz Discord (guild ${GUILD})\n`)
 
@@ -235,17 +283,22 @@ async function main() {
   const catIds: Record<string, string> = {}
   for (let i = 0; i < LAYOUT.length; i++) {
     const cat = LAYOUT[i]
+    const catOverwrites = overwritesFor(cat)
     let existing = channels.find(
       (c) => c.type === CATEGORY && norm(c.name) === norm(cat.name)
     )
     if (existing) {
-      await api("PATCH", `/channels/${existing.id}`, { position: i })
+      await api("PATCH", `/channels/${existing.id}`, {
+        position: i,
+        ...(catOverwrites ? { permission_overwrites: catOverwrites } : {}),
+      })
       console.log(`= category ${cat.name}`)
     } else {
       existing = await api("POST", `/guilds/${GUILD}/channels`, {
         name: cat.name,
         type: CATEGORY,
         position: i,
+        ...(catOverwrites ? { permission_overwrites: catOverwrites } : {}),
       })
       channels.push(existing)
       console.log(`+ category ${cat.name}`)
@@ -256,21 +309,7 @@ async function main() {
   // ---------- channels ----------
   const channelIds: Record<string, string> = {}
   for (const cat of LAYOUT) {
-    const everyoneRO = cat.readOnly
-      ? [
-          {
-            id: GUILD, // @everyone role id == guild id
-            type: 0,
-            allow: bits(P.VIEW_CHANNEL),
-            deny: bits(
-              P.SEND_MESSAGES,
-              P.SEND_MESSAGES_IN_THREADS,
-              P.CREATE_PUBLIC_THREADS,
-              P.CREATE_PRIVATE_THREADS
-            ),
-          },
-        ]
-      : undefined
+    const overwrites = overwritesFor(cat)
 
     for (let j = 0; j < cat.channels.length; j++) {
       const spec = cat.channels[j]
@@ -290,7 +329,7 @@ async function main() {
           parent_id: catIds[cat.name],
           position: j,
           ...(spec.topic ? { topic: spec.topic } : {}),
-          ...(everyoneRO ? { permission_overwrites: everyoneRO } : {}),
+          ...(overwrites ? { permission_overwrites: overwrites } : {}),
         })
         channels.push(ch)
         console.log(`+ #${spec.name}`)
@@ -299,7 +338,7 @@ async function main() {
           parent_id: catIds[cat.name],
           position: j,
           ...(spec.topic ? { topic: spec.topic } : {}),
-          ...(everyoneRO ? { permission_overwrites: everyoneRO } : {}),
+          ...(overwrites ? { permission_overwrites: overwrites } : {}),
         })
         console.log(`= #${spec.name}`)
       }

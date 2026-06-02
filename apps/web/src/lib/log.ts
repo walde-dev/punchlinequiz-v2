@@ -1,6 +1,7 @@
 import { getRequest } from "@tanstack/react-start/server"
 
 import { forwardToAxiom } from "./axiom"
+import { notifyError } from "./discord-rest"
 
 /**
  * Server-side structured logging. Two outputs, both keyed by `session_id`:
@@ -40,7 +41,7 @@ export function logServer(
   level: LogLevel,
   event: string,
   fields: Record<string, unknown> = {},
-  sessionId?: string,
+  sessionId?: string
 ): void {
   const record = {
     level,
@@ -58,4 +59,9 @@ export function logServer(
 
   // 2) direct Axiom ingest (no-op unless AXIOM_TOKEN/AXIOM_DATASET set)
   forwardToAxiom([record])
+
+  // 3) push errors to the #alerts staff channel (fire-and-forget; no-op unless
+  // DISCORD_ALERTS_CHANNEL_ID is set). notifyError logs its own failures to
+  // console, never back through here, so there's no recursion.
+  if (level === "error") notifyError(record)
 }
