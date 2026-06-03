@@ -22,6 +22,7 @@ async function loadBar(id: number) {
       line: punchlines.line,
       clozePrompt: punchlines.clozePrompt,
       clozeEnabled: punchlines.clozeEnabled,
+      starter: punchlines.starter,
       reviewed: punchlines.reviewed,
       active: punchlines.active,
       perfectSolution: punchlines.perfectSolution,
@@ -100,6 +101,11 @@ export const Route = createFileRoute("/api/admin/bars/$id")({
             if (typeof body.clozeEnabled !== "boolean")
               throw new HttpError(400, "invalid_field", "clozeEnabled must be boolean.")
             patch.clozeEnabled = body.clozeEnabled
+          }
+          if (body.starter !== undefined) {
+            if (typeof body.starter !== "boolean")
+              throw new HttpError(400, "invalid_field", "starter must be boolean.")
+            patch.starter = body.starter
           }
           const perfect = optionalStringArray(body.perfectSolution, "perfectSolution")
           if (perfect !== undefined) patch.perfectSolution = perfect

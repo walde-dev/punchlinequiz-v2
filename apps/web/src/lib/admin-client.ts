@@ -10,6 +10,8 @@ export type BarRow = {
   clozePrompt?: string | null
   /** Soft toggle: false → excluded from cloze (artist-filtered) mode. */
   clozeEnabled?: boolean
+  /** Curated starter bar — eligible to seed a first-run player's opening rounds. */
+  starter?: boolean
   /** Accepted cloze answers (first entry is canonical). */
   perfectSolution?: string[]
   /** Whether an admin has manually verified this row. */
@@ -186,6 +188,7 @@ export async function patchBar(
     line?: string
     clozePrompt?: string | null
     clozeEnabled?: boolean
+    starter?: boolean
     perfectSolution?: string[]
     active?: boolean
     reviewed?: boolean

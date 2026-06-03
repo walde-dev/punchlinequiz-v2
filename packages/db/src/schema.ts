@@ -74,6 +74,13 @@ export const punchlines = pgTable("punchlines", {
    * in classic mode by flipping this off.
    */
   clozeEnabled: boolean("cloze_enabled").notNull().default(true),
+  /**
+   * Curated "starter" bar (PUN-94). When true the bar is eligible to seed a
+   * brand-new player's opening rounds so the cold-open is an easy, recognizable
+   * win (PUN-95). Admin-flagged; the bar still lives in the normal pool for
+   * everyone else — this only adds eligibility for the first-run opening slot.
+   */
+  starter: boolean("starter").notNull().default(false),
   distractor1Id: integer("distractor1_id")
     .notNull()
     .references(() => artists.id),
@@ -256,6 +263,56 @@ export const userDailyXp = pgTable(
     byCreatedAt: index("user_daily_xp_created_at").on(t.createdAt),
   }),
 )
+
+/**
+ * Provisional XP for anonymous (not-yet-signed-up) players (PUN-97). Mirrors
+ * user_punchline_xp but keyed by the anonymous `pq_sid` session instead of a
+ * Clerk user: one row per (session_id, punchline_id) records the XP a correct
+ * answer WOULD have earned. On sign-up the session total is migrated to the new
+ * account ("keep your XP", PUN-98). The unique (session_id, punchline_id) makes
+ * accrual idempotent and un-farmable per bar; the song bonus layers onto the
+ * same row. Server-authoritative — the client never writes here.
+ */
+export const anonXp = pgTable(
+  "anon_xp",
+  {
+    id: serial("id").primaryKey(),
+    sessionId: varchar("session_id", { length: 64 }).notNull(),
+    punchlineId: integer("punchline_id")
+      .notNull()
+      .references(() => punchlines.id, { onDelete: "cascade" }),
+    /** "artist" | "cloze" — which mode awarded the primary provisional XP. */
+    primaryMode: varchar("primary_mode", { length: 16 }).notNull(),
+    /** Cumulative provisional XP for this line (primary + song bonus). */
+    xpAwarded: integer("xp_awarded").notNull(),
+    songBonusAwarded: boolean("song_bonus_awarded").notNull().default(false),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    uq: uniqueIndex("anon_xp_uq").on(t.sessionId, t.punchlineId),
+    bySession: index("anon_xp_by_session").on(t.sessionId),
+  }),
+)
+
+/**
+ * Idempotency ledger for provisional-XP migration (PUN-98). One row per claimed
+ * session — the PK on session_id guarantees a session's provisional XP is
+ * migrated to at most one account, exactly once (re-claim is a no-op). Records
+ * the capped amount actually credited.
+ */
+export const anonXpClaims = pgTable("anon_xp_claims", {
+  sessionId: varchar("session_id", { length: 64 }).primaryKey(),
+  clerkId: varchar("clerk_id", { length: 64 })
+    .notNull()
+    .references(() => users.clerkId, { onDelete: "cascade" }),
+  xpClaimed: integer("xp_claimed").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+})
+
+export type AnonXp = typeof anonXp.$inferSelect
+export type NewAnonXp = typeof anonXp.$inferInsert
+export type AnonXpClaim = typeof anonXpClaims.$inferSelect
+export type NewAnonXpClaim = typeof anonXpClaims.$inferInsert
 
 /**
  * Singleton config row (id = 1). CHECK constraint enforces that no other id

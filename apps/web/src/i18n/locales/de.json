@@ -43,6 +43,11 @@
       "headline": "Das wären XP gewesen.",
       "sub": "Anmelden und Ränge knacken.",
       "cta": "Anmelden"
+    },
+    "banked": {
+      "label": "{{xp}} XP gebunkert",
+      "cta": "Sichern",
+      "aria": "{{xp}} XP gesammelt — anmelden, um sie zu behalten"
     }
   },
   "profile": {
@@ -174,6 +179,12 @@
     "songAriaLabel": "Song-Titel eingeben",
     "viewScore": "Score ansehen →",
     "nextBar": "Nächste Bar",
+    "hint": {
+      "artist": "So läuft's: Tippe, von wem die Bar ist.",
+      "cloze": "So läuft's: Tippe das fehlende Wort.",
+      "song": "Bonus: Kennst du auch den Song? Sonst überspringen.",
+      "dismiss": "Verstanden"
+    },
     "yourAnswer": "Deine Antwort",
     "correctAnswer": "Richtige Antwort",
     "you": "Du",
@@ -251,6 +262,11 @@
     "cardAlt": "Dein Score als Share-Card",
     "cardGenerating": "Karte wird erstellt…",
     "cardFailed": "Karte konnte nicht erstellt werden",
+    "claim": {
+      "headline": "{{xp}} XP warten auf dich.",
+      "sub": "Anmelden und deine XP + deinen Rang sichern.",
+      "cta": "XP sichern"
+    },
     "restart": "Nochmal — neue Runde",
     "shareText": "{{score}}/{{total}} bei punchline/quiz — schaffst du mehr?",
     "shareTextTwitter": "{{score}}/{{total}} bei punchline/quiz — schaffst du mehr?",
@@ -392,6 +408,8 @@
       "distractor2": "Distractor 2",
       "conflict": "Distractors müssen sich vom korrekten Artist und voneinander unterscheiden.",
       "activeLabel": "Aktiv (im Spiel sichtbar)",
+      "starterLabel": "Starter-Bar",
+      "starterHint": "(leicht & ikonisch — für die ersten Bars neuer Spieler)",
       "deactivateConfirm": "Bar wirklich deaktivieren?",
       "hardDeleteConfirm": "Bar #{{id}} endgültig löschen?\n\n„{{preview}}\"\n\nDas lässt sich nicht rückgängig machen.",
       "deleteHard": "Löschen ✕",

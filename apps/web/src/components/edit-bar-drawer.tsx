@@ -31,6 +31,7 @@ export function EditBarDrawer({
     (bar.perfectSolution ?? []).join(", "),
   )
   const [clozeEnabled, setClozeEnabled] = useState(bar.clozeEnabled ?? true)
+  const [starter, setStarter] = useState(bar.starter ?? false)
   const [active, setActive] = useState(bar.active)
   const [d1, setD1] = useState(bar.distractor1Id)
   const [d2, setD2] = useState(bar.distractor2Id)
@@ -85,6 +86,9 @@ export function EditBarDrawer({
     }
     if (clozeEnabled !== (bar.clozeEnabled ?? true)) {
       patch.clozeEnabled = clozeEnabled
+    }
+    if (starter !== (bar.starter ?? false)) {
+      patch.starter = starter
     }
     return patch
   }
@@ -309,6 +313,21 @@ export function EditBarDrawer({
               className="accent-primary"
             />
             {t("admin.edit.activeLabel")}
+          </label>
+
+          <label className="flex items-center gap-2 text-sm font-medium">
+            <input
+              type="checkbox"
+              checked={starter}
+              onChange={(e) => setStarter(e.target.checked)}
+              className="accent-primary"
+            />
+            <span>
+              {t("admin.edit.starterLabel")}
+              <span className="ml-1 text-xs text-muted-foreground">
+                {t("admin.edit.starterHint")}
+              </span>
+            </span>
           </label>
 
           {err && <p className="text-xs text-destructive">{err}</p>}

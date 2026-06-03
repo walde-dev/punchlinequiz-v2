@@ -6,12 +6,14 @@ import type { TFunction } from "i18next"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 
+import { AnonXpPill } from "../components/anon-xp-pill"
 import { AnonymousXpCta } from "../components/anonymous-xp-cta"
 import { AppHeader } from "../components/app-header"
 import { BarCredit } from "../components/bar-credit"
 import { Confetti } from "../components/confetti"
 import { EditBarDrawer } from "../components/edit-bar-drawer"
 import { LevelUpModal } from "../components/level-up-modal"
+import { SessionClaimCta } from "../components/session-claim-cta"
 import { SessionSummary } from "../components/session-summary"
 import { XpGain } from "../components/xp-gain"
 import type { LevelInfo, XpGrantResult } from "../lib/xp"
@@ -36,6 +38,7 @@ import {
 } from "../lib/game"
 import { isAdminFn } from "../lib/session"
 import { seo } from "../lib/seo"
+import { isFirstRun, markPlayed } from "../lib/first-run"
 import { logEvent, newId, setInternalSession } from "../lib/track"
 
 type PlayMode = "artist" | "cloze"
@@ -63,7 +66,10 @@ export const Route = createFileRoute("/play")({
       const round = await getRound({
         data: {
           mode,
-          ...(artistSlug ? { artistSlug } : {}),
+          // Cold-open only (no artist filter): let the server serve an easy
+          // starter bar for first-run devices (PUN-95). It checks the
+          // `pq_played` cookie and falls back to random for returning players.
+          ...(artistSlug ? { artistSlug } : { opening: true }),
         },
       })
       return { round, artistCtx, mode, isAdmin: session.admin }
@@ -132,6 +138,37 @@ function PlayInner({
   const [levelUp, setLevelUp] = useState<LevelInfo | null>(null)
   const [xpRefreshKey, setXpRefreshKey] = useState(0)
   const [anonCtaKey, setAnonCtaKey] = useState(0)
+
+  // First-run cold-open (PUN-95/96). Captured once on mount, BEFORE we mark the
+  // device as played, so the opening ramp + how-it-works hint only run for a
+  // genuinely brand-new player. Refs (not state) so reads inside callbacks are
+  // always current and don't re-trigger effects.
+  const firstRunRef = useRef(false)
+  /** Punchline ids served during the opening starter ramp (max 3). */
+  const openingServedRef = useRef<number[]>([])
+  const earlyWinFiredRef = useRef(false)
+  const playedMarkedRef = useRef(false)
+  const [showHint, setShowHint] = useState(false)
+
+  /** Set the device "has played" flag after the first answer. Idempotent. */
+  function markFirstAnswer() {
+    if (playedMarkedRef.current) return
+    playedMarkedRef.current = true
+    markPlayed()
+  }
+
+  /** Fire the guaranteed-early-win event on a first-run player's first correct. */
+  function maybeEarlyWin() {
+    if (!firstRunRef.current || earlyWinFiredRef.current) return
+    earlyWinFiredRef.current = true
+    logEvent("early_win", { punchline_id: round.punchlineId, mode: round.mode })
+  }
+
+  function dismissHint() {
+    if (!showHint) return
+    setShowHint(false)
+    logEvent("explainer_dismissed", { punchline_id: round.punchlineId })
+  }
 
   function consumeXp(grant: XpGrantResult | null | undefined, isCorrect: boolean) {
     if (!isCorrect) return
@@ -229,6 +266,23 @@ function PlayInner({
     logEvent("play_opened", { artist_slug: artistSlug })
   }, [artistSlug])
 
+  // Cold-open capture: detect first-run once, before any answer marks the
+  // device as played. Seeds the opening ramp with bar #1 (which the loader
+  // already drew from the starter pool) and surfaces the how-it-works hint.
+  useEffect(() => {
+    if (!isFirstRun()) return
+    firstRunRef.current = true
+    openingServedRef.current = [initialRound.punchlineId]
+    setShowHint(true)
+    logEvent("first_run_started", {
+      mode: playMode,
+      punchline_id: initialRound.punchlineId,
+      artist_slug: artistSlug,
+    })
+    // Mount-only: first-run truth must be read before markPlayed().
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   async function onChoose(choice: ArtistChoice) {
     if (phase !== "guessing") return
     setSelectedId(choice.id)
@@ -241,6 +295,7 @@ function PlayInner({
       const res = await submitAnswer({
         data: { punchlineId: round.punchlineId, artistId: choice.id },
       })
+      markFirstAnswer()
       setArtistResult(res)
       consumeXp(res.xp, res.isCorrect)
       logEvent("answer_revealed", {
@@ -251,6 +306,7 @@ function PlayInner({
         correct_artist_id: res.correctArtist.id,
       })
       if (res.isCorrect) {
+        maybeEarlyWin()
         setConfettiKey((k) => k + 1)
         // Move on to the song-guessing phase. Score is awarded only after
         // the song step resolves so a single round counts once.
@@ -281,6 +337,7 @@ function PlayInner({
       const res: ClozeGuessResult = await submitClozeGuess({
         data: { punchlineId: round.punchlineId, guess: trimmed },
       })
+      markFirstAnswer()
       // The artist is pre-known in cloze mode → synthesize an AnswerResult so
       // the existing Reveal component renders the artist/song card cleanly.
       setArtistResult({
@@ -302,6 +359,7 @@ function PlayInner({
         is_correct: res.isCorrect,
       })
       if (res.isCorrect) {
+        maybeEarlyWin()
         setConfettiKey((k) => k + 1)
         // Move to the bonus song-guess phase. Score is awarded when that
         // resolves so a single round counts once (same flow as classic mode).
@@ -378,14 +436,24 @@ function PlayInner({
       return
     }
     setPhase("loading-next")
+    // Early-win ramp (PUN-95): for a first-run cold-open, keep drawing from the
+    // starter pool for the opening 3 bars, excluding the ones already served so
+    // they stay distinct. After that (or in artist-filtered play) go random.
+    const inOpeningRamp =
+      firstRunRef.current && !artistCtx && openingServedRef.current.length < 3
     try {
       const next = await getRound({
         data: {
           mode: playMode,
-          excludeId: round.punchlineId,
+          ...(inOpeningRamp
+            ? { starter: true, excludeIds: openingServedRef.current }
+            : { excludeId: round.punchlineId }),
           ...(artistCtx ? { artistSlug: artistCtx.slug } : {}),
         },
       })
+      if (inOpeningRamp) {
+        openingServedRef.current = [...openingServedRef.current, next.punchlineId]
+      }
       setRound(next)
       resetRoundState()
     } catch (err) {
@@ -426,6 +494,9 @@ function PlayInner({
         <AppHeader streak={streak} artistCtx={artistCtx} playMode={playMode} />
         <div className="pq-spotlight pointer-events-none absolute inset-0" aria-hidden="true" />
         <main className="relative flex flex-1 flex-col px-5 pt-20 pb-8 md:px-8">
+          {/* Claim CTA sits ABOVE the summary, never gating the freely-clickable
+              "Play again" inside it (PUN-100 hard constraint). */}
+          <SessionClaimCta />
           <SessionSummary
             score={score.right}
             total={score.total}
@@ -454,6 +525,9 @@ function PlayInner({
 
       <main className="relative flex flex-1 flex-col px-5 pt-20 pb-8 md:px-8">
         <div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-between gap-8">
+          {/* Persistent "X XP banked" signup pill (PUN-99). Refetches the live
+              total after each correct answer (anonCtaKey bumps then). */}
+          <AnonXpPill refreshKey={anonCtaKey} />
           <BarDisplay
             key={round.punchlineId}
             roundSize={ROUND_SIZE}
@@ -500,6 +574,9 @@ function PlayInner({
             <Confetti trigger={confettiKey} />
             {xpGrant && <XpGain key={xpGrant.key} xp={xpGrant.grant} />}
             <AnonymousXpCta triggerKey={anonCtaKey} />
+            {showHint && firstRunRef.current && results.length === 0 && (
+              <FirstRunHint phase={phase} mode={round.mode} onDismiss={dismissHint} />
+            )}
             {phase === "guessing" && round.mode === "artist" && (
               <Choices
                 choices={round.choices}
@@ -716,6 +793,54 @@ function renderClozeBlanks(text: string): React.ReactNode {
     ) : (
       <span key={i}>{p}</span>
     ),
+  )
+}
+
+/**
+ * Non-blocking, phase-aware "how it works" hint for a brand-new player's first
+ * bar (PUN-96). Learn-by-doing: it explains only the action in front of them
+ * (artist → song), never gates the tap, and is one-tap dismissible. Brand voice
+ * — confident, never a childish tutorial.
+ */
+function FirstRunHint({
+  phase,
+  mode,
+  onDismiss,
+}: {
+  phase: Phase
+  mode: Round["mode"]
+  onDismiss: () => void
+}) {
+  const { t } = useTranslation()
+  const key =
+    phase === "guessing"
+      ? mode === "cloze"
+        ? "play.hint.cloze"
+        : "play.hint.artist"
+      : phase === "song-guessing"
+        ? "play.hint.song"
+        : null
+  if (!key) return null
+  return (
+    <div
+      role="note"
+      className={cn(
+        "mb-3 flex items-center gap-3 rounded-2xl px-4 py-2.5",
+        "border border-primary/30 bg-primary/5 text-sm text-foreground/90",
+      )}
+      style={{ animation: `pq-fade-up 0.4s ${ease} both` }}
+    >
+      <span aria-hidden="true" className="text-primary">↳</span>
+      <span className="flex-1 font-medium">{t(key)}</span>
+      <button
+        type="button"
+        onClick={onDismiss}
+        aria-label={t("play.hint.dismiss")}
+        className="shrink-0 rounded-full px-2 py-0.5 text-xs font-bold text-muted-foreground hover:bg-primary/10 hover:text-foreground"
+      >
+        ✕
+      </button>
+    </div>
   )
 }
 

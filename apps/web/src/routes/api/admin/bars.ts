@@ -97,6 +97,7 @@ export const Route = createFileRoute("/api/admin/bars")({
               line: punchlines.line,
               clozePrompt: punchlines.clozePrompt,
               clozeEnabled: punchlines.clozeEnabled,
+              starter: punchlines.starter,
               perfectSolution: punchlines.perfectSolution,
               reviewed: punchlines.reviewed,
               active: punchlines.active,

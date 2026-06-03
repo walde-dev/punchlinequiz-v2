@@ -1,9 +1,11 @@
 import { createServerFn } from "@tanstack/react-start"
 import { getRequest } from "@tanstack/react-start/server"
-import { and, eq, inArray, isNotNull, ne, sql } from "drizzle-orm"
+import { and, eq, inArray, isNotNull, ne, notInArray, sql } from "drizzle-orm"
 import { artists, dailyChallenges, punchlines, songs, users } from "@workspace/db"
 import { db } from "./db"
 import { getActor } from "./auth"
+import { accrueAnonPrimary, accrueAnonSongBonus } from "./anon-xp"
+import { getServerSessionId } from "./log"
 import { grantPrimary, grantSongBonus, type XpGrantResult } from "./xp"
 
 /**
@@ -173,6 +175,22 @@ async function getClerkIdOrNull(): Promise<string | null> {
   return null
 }
 
+/**
+ * Has this device ever finished a bar? Read from the `pq_played` cookie set
+ * client-side after the first answer (see `lib/first-run.ts`). Used to gate the
+ * starter-pool early-win ramp on the very FIRST bar — which the SSR loader
+ * fetches before any client code runs, so a localStorage-only flag couldn't
+ * reach it. Absent cookie ⇒ treat as first-run. Never throws.
+ */
+function hasPlayedCookie(): boolean {
+  try {
+    const c = getRequest().headers.get("cookie")
+    return !!c && /(?:^|;\s*)pq_played=1/.test(c)
+  } catch {
+    return false
+  }
+}
+
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr]
   for (let i = a.length - 1; i > 0; i--) {
@@ -298,12 +316,31 @@ function songGuessMatches(guess: string, title: string): boolean {
  * "cloze" → finishing-lines round (line with `___`, free-typed completion;
  * filtered to cloze-eligible punchlines). `artistSlug` is orthogonal — it
  * narrows either mode to a single artist when present.
+ *
+ * Early-win ramp (PUN-95): a brand-new player's opening rounds are drawn from
+ * the curated starter pool (`punchlines.starter`) so the cold-open is an easy,
+ * recognizable win. Two entry points:
+ *   - `starter: true` — client-driven; the client knows it's a first-run
+ *     opening round (rounds 2–3) and asks explicitly.
+ *   - `opening: true` — used by the SSR loader for bar #1, which runs before
+ *     any client code. The server reads the `pq_played` cookie and only serves
+ *     a starter when the device hasn't played before.
+ * Either way, if the starter pool is exhausted/empty for the current
+ * mode+filters we fall back to a normal random pick — play is never blocked.
+ * `excludeIds` keeps the opening starter bars distinct across those rounds.
  */
 export const getRound = createServerFn({ method: "GET" })
   .inputValidator(
     (
       d:
-        | { excludeId?: number; artistSlug?: string; mode?: "artist" | "cloze" }
+        | {
+            excludeId?: number
+            excludeIds?: number[]
+            artistSlug?: string
+            mode?: "artist" | "cloze"
+            starter?: boolean
+            opening?: boolean
+          }
         | undefined,
     ) => d ?? {},
   )
@@ -312,29 +349,39 @@ export const getRound = createServerFn({ method: "GET" })
     const conds = [eq(punchlines.active, true)]
     conds.push(sql`${punchlines.id} NOT IN ${dailyScheduledIds}`)
     if (data.excludeId) conds.push(ne(punchlines.id, data.excludeId))
+    const excludeIds = (data.excludeIds ?? []).filter((n) => Number.isInteger(n) && n > 0)
+    if (excludeIds.length > 0) conds.push(notInArray(punchlines.id, excludeIds))
     if (data.artistSlug) conds.push(eq(artists.slug, data.artistSlug))
     if (mode === "cloze") {
       conds.push(isNotNull(punchlines.clozePrompt))
       conds.push(eq(punchlines.clozeEnabled, true))
     }
 
-    const baseRows = await db
-      .select({
-        punchlineId: punchlines.id,
-        line: punchlines.line,
-        clozePrompt: punchlines.clozePrompt,
-        artistId: songs.artistId,
-        distractor1Id: punchlines.distractor1Id,
-        distractor2Id: punchlines.distractor2Id,
-        submittedByHandle: users.handle,
-      })
-      .from(punchlines)
-      .innerJoin(songs, eq(songs.id, punchlines.songId))
-      .innerJoin(artists, eq(artists.id, songs.artistId))
-      .leftJoin(users, eq(users.clerkId, punchlines.submittedByClerkId))
-      .where(and(...conds))
-      .orderBy(sql`random()`)
-      .limit(1)
+    function pick(extra: ReturnType<typeof eq>[]) {
+      return db
+        .select({
+          punchlineId: punchlines.id,
+          line: punchlines.line,
+          clozePrompt: punchlines.clozePrompt,
+          artistId: songs.artistId,
+          distractor1Id: punchlines.distractor1Id,
+          distractor2Id: punchlines.distractor2Id,
+          submittedByHandle: users.handle,
+        })
+        .from(punchlines)
+        .innerJoin(songs, eq(songs.id, punchlines.songId))
+        .innerJoin(artists, eq(artists.id, songs.artistId))
+        .leftJoin(users, eq(users.clerkId, punchlines.submittedByClerkId))
+        .where(and(...conds, ...extra))
+        .orderBy(sql`random()`)
+        .limit(1)
+    }
+
+    // Starter-first with graceful fallback: try the curated pool, but if it's
+    // empty for these filters drop the constraint so play is never blocked.
+    const wantStarter = data.starter === true || (data.opening === true && !hasPlayedCookie())
+    let baseRows = wantStarter ? await pick([eq(punchlines.starter, true)]) : []
+    if (baseRows.length === 0) baseRows = await pick([])
 
     if (baseRows.length === 0) {
       throw new Error(
@@ -410,6 +457,11 @@ export const submitAnswer = createServerFn({ method: "POST" })
       const clerkId = await getClerkIdOrNull()
       if (clerkId) {
         xp = await grantPrimary({ clerkId, punchlineId: data.punchlineId, mode: "artist" })
+      } else {
+        // Anonymous: bank provisional XP for "keep your XP" on sign-up (PUN-97).
+        const sid = getServerSessionId()
+        if (sid)
+          await accrueAnonPrimary({ sessionId: sid, punchlineId: data.punchlineId, mode: "artist" })
       }
     }
     return {
@@ -463,6 +515,10 @@ export const submitClozeGuess = createServerFn({ method: "POST" })
       const clerkId = await getClerkIdOrNull()
       if (clerkId) {
         xp = await grantPrimary({ clerkId, punchlineId: data.punchlineId, mode: "cloze" })
+      } else {
+        const sid = getServerSessionId()
+        if (sid)
+          await accrueAnonPrimary({ sessionId: sid, punchlineId: data.punchlineId, mode: "cloze" })
       }
     }
     return {
@@ -507,6 +563,9 @@ export const submitSongGuess = createServerFn({ method: "POST" })
       const clerkId = await getClerkIdOrNull()
       if (clerkId) {
         xp = await grantSongBonus({ clerkId, punchlineId: data.punchlineId })
+      } else {
+        const sid = getServerSessionId()
+        if (sid) await accrueAnonSongBonus({ sessionId: sid, punchlineId: data.punchlineId })
       }
     }
     return {

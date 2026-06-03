@@ -43,6 +43,11 @@
       "headline": "That could've been XP.",
       "sub": "Sign in and climb the ranks.",
       "cta": "Sign in"
+    },
+    "banked": {
+      "label": "{{xp}} XP banked",
+      "cta": "Keep it",
+      "aria": "{{xp}} XP collected — sign in to keep it"
     }
   },
   "profile": {
@@ -174,6 +179,12 @@
     "songAriaLabel": "Enter song title",
     "viewScore": "View score →",
     "nextBar": "Next bar",
+    "hint": {
+      "artist": "How it works: tap who wrote the bar.",
+      "cloze": "How it works: type the missing word.",
+      "song": "Bonus: know the song too? Or skip.",
+      "dismiss": "Got it"
+    },
     "yourAnswer": "Your answer",
     "correctAnswer": "Correct answer",
     "you": "You",
@@ -251,6 +262,11 @@
     "cardAlt": "Your score as a share card",
     "cardGenerating": "Generating card…",
     "cardFailed": "Card couldn't be generated",
+    "claim": {
+      "headline": "{{xp}} XP are waiting for you.",
+      "sub": "Sign in to keep your XP and your rank.",
+      "cta": "Keep my XP"
+    },
     "restart": "Play again — new round",
     "shareText": "{{score}}/{{total}} on punchline/quiz — can you beat it?",
     "shareTextTwitter": "{{score}}/{{total}} on punchline/quiz — can you beat it?",
@@ -392,6 +408,8 @@
       "distractor2": "Distractor 2",
       "conflict": "Distractors must differ from the correct artist and from each other.",
       "activeLabel": "Active (visible in game)",
+      "starterLabel": "Starter bar",
+      "starterHint": "(easy & iconic — for new players' opening bars)",
       "deactivateConfirm": "Really deactivate this bar?",
       "hardDeleteConfirm": "Permanently delete bar #{{id}}?\n\n\"{{preview}}\"\n\nThis cannot be undone.",
       "deleteHard": "Delete ✕",

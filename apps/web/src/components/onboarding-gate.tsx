@@ -84,6 +84,11 @@ function OnboardingFlow() {
       const res = await claimHandleFn({ data: { handle: value, referral } })
       if (res.ok) {
         logEvent("handle_claimed", { handle: res.handle, referred: !!referral })
+        // Provisional XP migrated from the anonymous session (PUN-98). This is
+        // the cold-open → signup conversion event for the funnel (PUN-101/102).
+        if (res.claimedXp && res.claimedXp > 0) {
+          logEvent("xp_claimed", { xp: res.claimedXp })
+        }
         clearReferralToken()
         setPhase("hidden")
       } else {

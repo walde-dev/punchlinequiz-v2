@@ -4,7 +4,9 @@ import { eq, sql } from "drizzle-orm"
 import { users } from "@workspace/db"
 
 import { getActor } from "./auth"
+import { claimAnonXp } from "./anon-xp"
 import { db } from "./db"
+import { getServerSessionId } from "./log"
 import { recordPendingReferral, type ReferralToken } from "./referral"
 import { ensureUser } from "./xp"
 import { validateHandle } from "./handle"
@@ -76,7 +78,7 @@ export const checkHandleFn = createServerFn({ method: "POST" })
   })
 
 export type ClaimHandleResult =
-  | { ok: true; handle: string }
+  | { ok: true; handle: string; claimedXp?: number }
   | { ok: false; reason: HandleRejection | "taken" | "unauthorized" }
 
 function isUniqueViolation(err: unknown): boolean {
@@ -138,5 +140,9 @@ export const claimHandleFn = createServerFn({ method: "POST" })
       await recordPendingReferral({ refereeClerkId: clerkId, token: data.referral }).catch(() => {})
     }
 
-    return { ok: true, handle: display }
+    // Migrate provisional XP banked while anonymous ("keep your XP", PUN-98).
+    // Idempotent per session + capped; never let it fail the claim.
+    const claimedXp = await claimAnonXp(clerkId, getServerSessionId()).catch(() => 0)
+
+    return { ok: true, handle: display, claimedXp }
   })
