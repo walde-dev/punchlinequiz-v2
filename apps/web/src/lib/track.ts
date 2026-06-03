@@ -7,10 +7,42 @@ import { capturePostHog } from "./posthog"
 const SESSION_KEY = "pq.session_id"
 /** Cookie mirror of the session id, so server-side errors/logs can read it. */
 const SESSION_COOKIE = "pq_sid"
+/**
+ * Per-tab marker that the current player is an admin (QA playthroughs). When set,
+ * every event carries `internal: true` so the admin analytics dashboard can
+ * exclude our own sessions from per-line / per-artist rates. sessionStorage
+ * (not localStorage) so it dies with the tab and never leaks onto a shared device.
+ */
+const INTERNAL_KEY = "pq.internal"
 
 function uuid(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID()
   return Math.random().toString(36).slice(2) + Date.now().toString(36)
+}
+
+/** Fresh opaque id — used for per-round `attempt_id`s that group a round's events. */
+export function newId(): string {
+  return uuid()
+}
+
+/** Flag (or clear) the current tab as an internal/admin session. Client-only. */
+export function setInternalSession(value: boolean): void {
+  if (typeof window === "undefined") return
+  try {
+    if (value) window.sessionStorage.setItem(INTERNAL_KEY, "1")
+    else window.sessionStorage.removeItem(INTERNAL_KEY)
+  } catch {
+    /* storage disabled — best-effort only */
+  }
+}
+
+function isInternalSession(): boolean {
+  if (typeof window === "undefined") return false
+  try {
+    return window.sessionStorage.getItem(INTERNAL_KEY) === "1"
+  } catch {
+    return false
+  }
 }
 
 /**
@@ -60,10 +92,12 @@ export const recordEvent = createServerFn({ method: "POST" })
 export function logEvent(name: string, props: Record<string, unknown> = {}): void {
   if (typeof window === "undefined") return
   const sessionId = getSessionId()
+  // Stamp admin/QA sessions so the analytics dashboard can filter them out.
+  const enriched = isInternalSession() ? { ...props, internal: true } : props
   // Single choke point: every product event goes to BOTH sinks.
   //  1) PostHog (client SDK) — product analytics: funnels, retention, replay.
   //  2) recordEvent server fn — raw backup in the gameEvents DB + Axiom logs.
   // recordEvent intentionally does NOT re-send to PostHog (would double-count).
-  capturePostHog(name, props)
-  recordEvent({ data: { sessionId, name, props } }).catch(() => {})
+  capturePostHog(name, enriched)
+  recordEvent({ data: { sessionId, name, props: enriched } }).catch(() => {})
 }

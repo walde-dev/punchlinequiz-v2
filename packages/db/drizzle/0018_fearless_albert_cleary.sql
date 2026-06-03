@@ -1,0 +1,1 @@
+CREATE INDEX "game_events_name_created_at" ON "game_events" USING btree ("name","created_at");

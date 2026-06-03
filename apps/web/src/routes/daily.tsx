@@ -192,6 +192,7 @@ function DailyInner({ daily }: { daily: DailyChallenge }) {
       consumeXp(res.xp, res.isCorrect)
       logEvent("daily_artist_revealed", {
         daily_date: daily.date,
+        punchline_id: daily.punchlineId,
         is_correct: res.isCorrect,
         artist_id: choice.id,
         correct_artist_id: res.correctArtist.id,
@@ -228,6 +229,7 @@ function DailyInner({ daily }: { daily: DailyChallenge }) {
       consumeXp(res.xp, res.isCorrect)
       logEvent("daily_song_revealed", {
         daily_date: daily.date,
+        punchline_id: daily.punchlineId,
         is_correct: res.isCorrect,
         skipped: skip,
       })

@@ -91,13 +91,21 @@ export const punchlines = pgTable("punchlines", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 })
 
-export const gameEvents = pgTable("game_events", {
-  id: serial("id").primaryKey(),
-  sessionId: varchar("session_id", { length: 64 }).notNull(),
-  name: varchar("name", { length: 80 }).notNull(),
-  props: json("props").$type<Record<string, unknown>>().notNull().default({}),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-})
+export const gameEvents = pgTable(
+  "game_events",
+  {
+    id: serial("id").primaryKey(),
+    sessionId: varchar("session_id", { length: 64 }).notNull(),
+    name: varchar("name", { length: 80 }).notNull(),
+    props: json("props").$type<Record<string, unknown>>().notNull().default({}),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    // Admin analytics filters by event name within a date range — this index
+    // keeps those scans cheap as the event log grows.
+    byNameCreatedAt: index("game_events_name_created_at").on(t.name, t.createdAt),
+  }),
+)
 
 export const tags = pgTable("tags", {
   id: serial("id").primaryKey(),

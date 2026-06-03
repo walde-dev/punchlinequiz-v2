@@ -36,7 +36,7 @@ import {
 } from "../lib/game"
 import { isAdminFn } from "../lib/session"
 import { seo } from "../lib/seo"
-import { logEvent } from "../lib/track"
+import { logEvent, newId, setInternalSession } from "../lib/track"
 
 type PlayMode = "artist" | "cloze"
 type PlaySearch = { artist?: string; mode?: PlayMode }
@@ -199,26 +199,42 @@ function PlayInner({
     }
   }
 
+  // Per-round id stamped onto every event of the round, so the analytics layer
+  // can group a player's tries (e.g. cloze allows 3) back into one attempt.
+  const attemptIdRef = useRef<string>("")
+  const artistSlug = artistCtx?.slug ?? null
+
   const loggedRoundRef = useRef<number | null>(null)
   useEffect(() => {
     if (loggedRoundRef.current === round.punchlineId) return
     loggedRoundRef.current = round.punchlineId
+    attemptIdRef.current = newId()
     logEvent("round_started", {
       punchline_id: round.punchlineId,
       mode: round.mode,
+      attempt_id: attemptIdRef.current,
+      // `artist_slug` is non-null only when the session is artist-filtered —
+      // the "pull" signal (player actively chose this artist).
+      artist_slug: artistSlug,
       choice_ids: round.mode === "artist" ? round.choices.map((c) => c.id) : [],
     })
-  }, [round])
+  }, [round, artistSlug])
+
+  // Mark admin/QA tabs so their events are excluded from analytics rates.
+  useEffect(() => {
+    setInternalSession(isAdmin)
+  }, [isAdmin])
 
   useEffect(() => {
-    logEvent("play_opened", {})
-  }, [])
+    logEvent("play_opened", { artist_slug: artistSlug })
+  }, [artistSlug])
 
   async function onChoose(choice: ArtistChoice) {
     if (phase !== "guessing") return
     setSelectedId(choice.id)
     logEvent("answer_selected", {
       punchline_id: round.punchlineId,
+      attempt_id: attemptIdRef.current,
       artist_id: choice.id,
     })
     try {
@@ -229,6 +245,7 @@ function PlayInner({
       consumeXp(res.xp, res.isCorrect)
       logEvent("answer_revealed", {
         punchline_id: round.punchlineId,
+        attempt_id: attemptIdRef.current,
         artist_id: choice.id,
         is_correct: res.isCorrect,
         correct_artist_id: res.correctArtist.id,
@@ -258,6 +275,7 @@ function PlayInner({
     if (!trimmed) return
     logEvent("cloze_submitted", {
       punchline_id: round.punchlineId,
+      attempt_id: attemptIdRef.current,
     })
     try {
       const res: ClozeGuessResult = await submitClozeGuess({
@@ -280,6 +298,7 @@ function PlayInner({
       consumeXp(res.xp, res.isCorrect)
       logEvent("cloze_revealed", {
         punchline_id: round.punchlineId,
+        attempt_id: attemptIdRef.current,
         is_correct: res.isCorrect,
       })
       if (res.isCorrect) {
@@ -316,6 +335,7 @@ function PlayInner({
     const trimmed = guess.trim()
     logEvent("song_guess_submitted", {
       punchline_id: round.punchlineId,
+      attempt_id: attemptIdRef.current,
       skipped: trimmed.length === 0,
     })
     try {
@@ -326,6 +346,7 @@ function PlayInner({
       consumeXp(res.xp, res.isCorrect)
       logEvent("song_guess_revealed", {
         punchline_id: round.punchlineId,
+        attempt_id: attemptIdRef.current,
         is_correct: res.isCorrect,
         skipped: trimmed.length === 0,
       })
@@ -347,7 +368,10 @@ function PlayInner({
   }
 
   async function onNext() {
-    logEvent("next_clicked", { punchline_id: round.punchlineId })
+    logEvent("next_clicked", {
+      punchline_id: round.punchlineId,
+      attempt_id: attemptIdRef.current,
+    })
     // After 10 punchlines, jump to the share-card summary instead of loading.
     if (results.length >= ROUND_SIZE) {
       setPhase("session-complete")

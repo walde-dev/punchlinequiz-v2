@@ -452,7 +452,8 @@
       "daily": "Daily",
       "xp": "XP-Werte",
       "levels": "Level",
-      "submissions": "Einreichungen"
+      "submissions": "Einreichungen",
+      "analytics": "Analytics"
     },
     "xp": {
       "eyebrow": "/ XP",
