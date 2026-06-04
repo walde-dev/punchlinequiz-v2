@@ -514,6 +514,11 @@ function PlayInner({
   }
 
   const isLastRound = results.length >= ROUND_SIZE
+  // The bar on screen: while revealing/loading it's the just-answered bar, which
+  // is already recorded in `results`; while guessing it's the next, not-yet-
+  // recorded bar. Only advance the counter after the user clicks "Nächste Bar".
+  const currentBarRecorded = phase === "revealing" || phase === "loading-next"
+  const currentBar = Math.min(results.length + (currentBarRecorded ? 0 : 1), ROUND_SIZE)
   return (
     <div className="relative flex min-h-svh flex-col overflow-hidden">
       <AppHeader
@@ -532,6 +537,7 @@ function PlayInner({
           <BarDisplay
             key={round.punchlineId}
             roundSize={ROUND_SIZE}
+            current={currentBar}
             results={results}
             line={
               // Once the cloze is solved, swap the blanked prompt for the
@@ -637,6 +643,7 @@ function BarDisplay({
   adminBadge,
   submittedByHandle,
   roundSize,
+  current,
   results,
 }: {
   line: string
@@ -648,12 +655,12 @@ function BarDisplay({
   submittedByHandle?: string | null
   /** Total bars in a round — drives the progress strip. */
   roundSize: number
+  /** 1-based number of the bar currently on screen. */
+  current: number
   /** Per-bar outcomes so far (true = nailed it). Length = bars already answered. */
   results: Array<boolean>
 }) {
   const { t } = useTranslation()
-  // The bar currently on screen is the one after everything already answered.
-  const current = Math.min(results.length + 1, roundSize)
   return (
     <div
       key={shakeKey}
@@ -668,7 +675,7 @@ function BarDisplay({
           {t("play.progress", { n: current, total: roundSize })}
         </span>
         <div className="flex items-center gap-2.5">
-          <RoundProgress total={roundSize} results={results} />
+          <RoundProgress total={roundSize} current={current - 1} results={results} />
           {adminBadge}
         </div>
       </div>
@@ -699,13 +706,23 @@ function BarDisplay({
  * pulses, and bars still to come sit faint. Reads as a live scoreboard you'd
  * want to screenshot, not a cramped header counter.
  */
-function RoundProgress({ total, results }: { total: number; results: Array<boolean> }) {
-  const current = results.length
+function RoundProgress({
+  total,
+  current,
+  results,
+}: {
+  total: number
+  /** 0-based index of the bar on screen. */
+  current: number
+  results: Array<boolean>
+}) {
   return (
     <span className="flex items-center gap-1.5" aria-hidden="true">
       {Array.from({ length: total }).map((_, i) => {
         const answered = i < results.length
-        const isCurrent = i === current
+        // Only pulse the on-screen bar while it's still unanswered; once it's
+        // recorded it shows its result colour instead.
+        const isCurrent = i === current && !answered
         return (
           <span
             key={i}
