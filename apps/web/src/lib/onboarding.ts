@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start"
 import { getRequest } from "@tanstack/react-start/server"
 import { eq, sql } from "drizzle-orm"
-import { users } from "@workspace/db"
+import { anonXpClaims, users } from "@workspace/db"
 
 import { getActor } from "./auth"
 import { claimAnonXp } from "./anon-xp"
@@ -146,3 +146,22 @@ export const claimHandleFn = createServerFn({ method: "POST" })
 
     return { ok: true, handle: display, claimedXp }
   })
+
+/**
+ * Admin test helper: reset the signed-in admin's own onboarding so the flow can
+ * be replayed (re-triggers the handle prompt + lets provisional XP be claimed
+ * again). Clears onboardedAt + handle and purges this user's XP claims. Admin +
+ * Clerk only; never touches other users. Does NOT zero earned XP.
+ */
+export const resetMyOnboardingFn = createServerFn({ method: "POST" }).handler(
+  async (): Promise<{ ok: boolean; reason?: "not_admin" | "not_signed_in" }> => {
+    const result = await getActor(getRequest())
+    if (result?.isAdmin !== true) return { ok: false, reason: "not_admin" }
+    if (result.actor.kind !== "clerk") return { ok: false, reason: "not_signed_in" }
+    const clerkId = result.actor.userId
+
+    await db.update(users).set({ onboardedAt: null, handle: null }).where(eq(users.clerkId, clerkId))
+    await db.delete(anonXpClaims).where(eq(anonXpClaims.clerkId, clerkId)).catch(() => {})
+    return { ok: true }
+  },
+)

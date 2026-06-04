@@ -13,6 +13,7 @@ type NavItem = {
     | "/admin/xp"
     | "/admin/levels"
     | "/admin/analytics"
+    | "/admin/onboarding"
   labelKey: string
   glyph: string
 }
@@ -23,6 +24,7 @@ const NAV: NavItem[] = [
   { to: "/admin/submissions", labelKey: "admin.nav.submissions", glyph: "✎" },
   { to: "/admin/daily", labelKey: "admin.nav.daily", glyph: "★" },
   { to: "/admin/analytics", labelKey: "admin.nav.analytics", glyph: "▮" },
+  { to: "/admin/onboarding", labelKey: "admin.nav.onboarding", glyph: "✸" },
   { to: "/admin/xp", labelKey: "admin.nav.xp", glyph: "✦" },
   { to: "/admin/levels", labelKey: "admin.nav.levels", glyph: "▲" },
 ]

@@ -471,7 +471,29 @@
       "xp": "XP-Werte",
       "levels": "Level",
       "submissions": "Einreichungen",
-      "analytics": "Analytics"
+      "analytics": "Analytics",
+      "onboarding": "Onboarding"
+    },
+    "onboarding": {
+      "eyebrow": "/ onboarding test",
+      "title": "Onboarding testen",
+      "subtitle": "First-Run-Flow zurücksetzen und wiederholt durchspielen.",
+      "stateFirstRun": "First-Run",
+      "stateBanked": "Gebunkerte XP",
+      "yes": "ja",
+      "no": "nein",
+      "coldOpenTitle": "Cold-Open zurücksetzen",
+      "coldOpenBody": "Setzt das First-Run-Flag, die Anon-Session und die XP-Hinweise zurück. Danach starten Starter-Bar, How-it-works-Hinweis, XP-Pille und Session-CTA wieder von vorn.",
+      "resetReplay": "Zurücksetzen & spielen",
+      "resetOnly": "Nur zurücksetzen",
+      "didReset": "Zurückgesetzt. Öffne /play für den Cold-Open.",
+      "signedInNote": "Du bist als Spieler:in angemeldet. Für den Anon-Flow (Pille, XP-CTA) erst aus dem Spieler-Account abmelden — der Admin-Zugang bleibt davon unberührt.",
+      "accountTitle": "Account-Onboarding zurücksetzen",
+      "accountBody": "Hebt onboardedAt + Handle deines Accounts auf und löscht deine XP-Claims, damit Handle-Prompt und „XP behalten\" erneut auslösen. Verdiente XP bleiben.",
+      "resetAccount": "Mein Onboarding zurücksetzen",
+      "resetAccountConfirm": "Dein Onboarding (Handle + Status) zurücksetzen? Verdiente XP bleiben.",
+      "accountReset": "Zurückgesetzt. Lade /play neu — der Handle-Prompt taucht wieder auf.",
+      "accountResetFail": "Konnte nicht zurücksetzen (Admin + Anmeldung nötig)."
     },
     "xp": {
       "eyebrow": "/ XP",

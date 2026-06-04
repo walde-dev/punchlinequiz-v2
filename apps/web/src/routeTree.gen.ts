@@ -26,6 +26,7 @@ import { Route as ArtistSlugRouteImport } from './routes/artist.$slug'
 import { Route as AdminXpRouteImport } from './routes/admin/xp'
 import { Route as AdminSubmissionsRouteImport } from './routes/admin/submissions'
 import { Route as AdminReviewRouteImport } from './routes/admin/review'
+import { Route as AdminOnboardingRouteImport } from './routes/admin/onboarding'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as AdminLevelsRouteImport } from './routes/admin/levels'
 import { Route as AdminDailyRouteImport } from './routes/admin/daily'
@@ -134,6 +135,11 @@ const AdminSubmissionsRoute = AdminSubmissionsRouteImport.update({
 const AdminReviewRoute = AdminReviewRouteImport.update({
   id: '/admin/review',
   path: '/admin/review',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminOnboardingRoute = AdminOnboardingRouteImport.update({
+  id: '/admin/onboarding',
+  path: '/admin/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
@@ -271,6 +277,7 @@ export interface FileRoutesByFullPath {
   '/admin/daily': typeof AdminDailyRoute
   '/admin/levels': typeof AdminLevelsRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/onboarding': typeof AdminOnboardingRoute
   '/admin/review': typeof AdminReviewRoute
   '/admin/submissions': typeof AdminSubmissionsRoute
   '/admin/xp': typeof AdminXpRoute
@@ -314,6 +321,7 @@ export interface FileRoutesByTo {
   '/admin/daily': typeof AdminDailyRoute
   '/admin/levels': typeof AdminLevelsRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/onboarding': typeof AdminOnboardingRoute
   '/admin/review': typeof AdminReviewRoute
   '/admin/submissions': typeof AdminSubmissionsRoute
   '/admin/xp': typeof AdminXpRoute
@@ -358,6 +366,7 @@ export interface FileRoutesById {
   '/admin/daily': typeof AdminDailyRoute
   '/admin/levels': typeof AdminLevelsRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/onboarding': typeof AdminOnboardingRoute
   '/admin/review': typeof AdminReviewRoute
   '/admin/submissions': typeof AdminSubmissionsRoute
   '/admin/xp': typeof AdminXpRoute
@@ -403,6 +412,7 @@ export interface FileRouteTypes {
     | '/admin/daily'
     | '/admin/levels'
     | '/admin/login'
+    | '/admin/onboarding'
     | '/admin/review'
     | '/admin/submissions'
     | '/admin/xp'
@@ -446,6 +456,7 @@ export interface FileRouteTypes {
     | '/admin/daily'
     | '/admin/levels'
     | '/admin/login'
+    | '/admin/onboarding'
     | '/admin/review'
     | '/admin/submissions'
     | '/admin/xp'
@@ -489,6 +500,7 @@ export interface FileRouteTypes {
     | '/admin/daily'
     | '/admin/levels'
     | '/admin/login'
+    | '/admin/onboarding'
     | '/admin/review'
     | '/admin/submissions'
     | '/admin/xp'
@@ -533,6 +545,7 @@ export interface RootRouteChildren {
   AdminDailyRoute: typeof AdminDailyRoute
   AdminLevelsRoute: typeof AdminLevelsRoute
   AdminLoginRoute: typeof AdminLoginRoute
+  AdminOnboardingRoute: typeof AdminOnboardingRoute
   AdminReviewRoute: typeof AdminReviewRoute
   AdminSubmissionsRoute: typeof AdminSubmissionsRoute
   AdminXpRoute: typeof AdminXpRoute
@@ -677,6 +690,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/review'
       fullPath: '/admin/review'
       preLoaderRoute: typeof AdminReviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/onboarding': {
+      id: '/admin/onboarding'
+      path: '/admin/onboarding'
+      fullPath: '/admin/onboarding'
+      preLoaderRoute: typeof AdminOnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/login': {
@@ -922,6 +942,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminDailyRoute: AdminDailyRoute,
   AdminLevelsRoute: AdminLevelsRoute,
   AdminLoginRoute: AdminLoginRoute,
+  AdminOnboardingRoute: AdminOnboardingRoute,
   AdminReviewRoute: AdminReviewRoute,
   AdminSubmissionsRoute: AdminSubmissionsRoute,
   AdminXpRoute: AdminXpRoute,

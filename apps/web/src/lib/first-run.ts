@@ -35,3 +35,31 @@ export function markPlayed(): void {
   }
   document.cookie = `${PLAYED_COOKIE}=1; Max-Age=31536000; Path=/; SameSite=Lax`
 }
+
+// Mirrors track.ts (session id) + anonymous-xp-cta.tsx (CTA throttle). Kept as
+// literals here so the admin reset tool can wipe all first-run state in one
+// place without those modules exporting internals.
+const SESSION_LS = "pq.session_id"
+const SESSION_COOKIE = "pq_sid"
+const ANON_CTA_COUNT = "pq_anon_cta_count"
+
+/**
+ * Reset ALL first-run / cold-open state so the onboarding flow can be replayed
+ * (admin test tool, PUN-94..100). Clears the played flag + cookie and the
+ * anon-CTA throttle, then ROTATES the anonymous session id — a fresh session
+ * has no banked provisional XP and no claim, so the starter ramp, how-it-works
+ * hint, XP pill and session-complete CTA all surface again from scratch.
+ * Client-only.
+ */
+export function resetFirstRun(): void {
+  if (typeof window === "undefined") return
+  try {
+    window.localStorage.removeItem(PLAYED_LS)
+    window.localStorage.removeItem(SESSION_LS)
+    window.sessionStorage.removeItem(ANON_CTA_COUNT)
+  } catch {
+    /* storage disabled — cookies below still get cleared */
+  }
+  document.cookie = `${PLAYED_COOKIE}=; Max-Age=0; Path=/; SameSite=Lax`
+  document.cookie = `${SESSION_COOKIE}=; Max-Age=0; Path=/; SameSite=Lax`
+}

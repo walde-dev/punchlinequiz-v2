@@ -471,7 +471,29 @@
       "xp": "XP values",
       "levels": "Levels",
       "submissions": "Submissions",
-      "analytics": "Analytics"
+      "analytics": "Analytics",
+      "onboarding": "Onboarding"
+    },
+    "onboarding": {
+      "eyebrow": "/ onboarding test",
+      "title": "Test onboarding",
+      "subtitle": "Reset the first-run flow and replay it as many times as you like.",
+      "stateFirstRun": "First-run",
+      "stateBanked": "Banked XP",
+      "yes": "yes",
+      "no": "no",
+      "coldOpenTitle": "Reset cold-open",
+      "coldOpenBody": "Clears the first-run flag, the anon session and the XP nudges. The starter bar, how-it-works hint, XP pill and session CTA all surface again from scratch.",
+      "resetReplay": "Reset & play",
+      "resetOnly": "Reset only",
+      "didReset": "Reset. Open /play for the cold-open.",
+      "signedInNote": "You're signed in as a player. To see the anonymous flow (pill, XP CTA) sign out of your player account first — admin access is separate and unaffected.",
+      "accountTitle": "Reset account onboarding",
+      "accountBody": "Clears your account's onboardedAt + handle and deletes your XP claims, so the handle prompt and \"keep your XP\" trigger again. Earned XP is kept.",
+      "resetAccount": "Reset my onboarding",
+      "resetAccountConfirm": "Reset your onboarding (handle + status)? Earned XP is kept.",
+      "accountReset": "Reset. Reload /play — the handle prompt shows again.",
+      "accountResetFail": "Couldn't reset (needs admin + sign-in)."
     },
     "xp": {
       "eyebrow": "/ XP",
