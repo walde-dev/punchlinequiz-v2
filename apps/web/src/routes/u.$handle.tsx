@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { SignInButton, useAuth } from "@clerk/tanstack-react-start"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@workspace/ui/components/button"
@@ -73,6 +73,12 @@ function ProfileView({ data }: { data: Extract<PublicProfileResult, { found: tru
   const xpToNext = profile.nextLevel ? profile.nextLevel.threshold - profile.totalXp : 0
 
   const [followers, setFollowers] = useState(data.followers)
+  // Bump the follower count on change so a follow/unfollow lands with a beat.
+  const [followerBump, setFollowerBump] = useState(0)
+  const handleFollowersChange = (n: number) => {
+    setFollowers(n)
+    setFollowerBump((k) => k + 1)
+  }
 
   return (
     <div className="relative flex min-h-svh flex-col overflow-hidden">
@@ -99,12 +105,12 @@ function ProfileView({ data }: { data: Extract<PublicProfileResult, { found: tru
 
           {/* Follow counts */}
           <div className="flex items-center gap-6 pt-0.5 text-sm">
-            <Count value={followers} label={t("profile.public.followers")} />
+            <Count value={followers} bumpKey={followerBump} label={t("profile.public.followers")} />
             <Count value={data.following} label={t("profile.public.following")} />
           </div>
 
           {/* Actions */}
-          <Actions data={data} onFollowersChange={setFollowers} />
+          <Actions data={data} onFollowersChange={handleFollowersChange} />
 
           {/* XP progress — demoted below identity + actions. */}
           <div className="flex w-full max-w-xs flex-col items-center gap-1.5 pt-2">
@@ -125,8 +131,9 @@ function ProfileView({ data }: { data: Extract<PublicProfileResult, { found: tru
 
         {/* Stats row */}
         <section className="grid grid-cols-2 gap-3 sm:grid-cols-4" style={{ animation: `pq-fade-up 0.55s ${ease} 0.08s both` }}>
-          <StatTile label={t("profile.stats.currentStreak")} value={profile.currentStreak} icon="🔥" />
-          <StatTile label={t("profile.stats.longestStreak")} value={profile.longestStreak} icon="⚡" />
+          <h2 className="sr-only">{t("profile.statsTitle")}</h2>
+          <StatTile label={t("profile.stats.currentStreak")} value={profile.currentStreak} accent={profile.currentStreak > 0} />
+          <StatTile label={t("profile.stats.longestStreak")} value={profile.longestStreak} />
           <StatTile label={t("profile.stats.linesConquered")} value={profile.linesConquered} />
           <StatTile label={t("profile.stats.daysCompleted")} value={profile.daysCompleted} />
         </section>
@@ -134,12 +141,15 @@ function ProfileView({ data }: { data: Extract<PublicProfileResult, { found: tru
         {/* Top artists */}
         {data.topArtists.length > 0 && (
           <section className="flex flex-col gap-3" style={{ animation: `pq-fade-up 0.55s ${ease} 0.12s both` }}>
-            <h2 className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary/80">
-              {t("profile.public.topArtistsTitle")}
-            </h2>
+            <SectionHeading>{t("profile.public.topArtistsTitle")}</SectionHeading>
             <ul className="flex flex-col gap-2">
-              {data.topArtists.map((a) => (
-                <TopArtistRow key={a.id} artist={a} barsLabel={t("profile.public.barsShort")} />
+              {data.topArtists.map((a, i) => (
+                <TopArtistRow
+                  key={a.id}
+                  artist={a}
+                  barsLabel={t("profile.public.barsShort")}
+                  style={{ animation: `pq-fade-up 0.4s ${ease} ${0.16 + i * 0.05}s both` }}
+                />
               ))}
             </ul>
           </section>
@@ -150,19 +160,19 @@ function ProfileView({ data }: { data: Extract<PublicProfileResult, { found: tru
 
         {/* Sparkline */}
         <section className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card/40 p-5" style={{ animation: `pq-fade-up 0.55s ${ease} 0.16s both` }}>
-          <h2 className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary/80">{t("profile.sparklineTitle")}</h2>
-          <Sparkline data={profile.last30Days} />
+          <SectionHeading>{t("profile.sparklineTitle")}</SectionHeading>
+          <Sparkline data={profile.last30Days} label={t("profile.sparklineAria")} />
         </section>
 
         {/* Recent */}
         {profile.recent.length > 0 && (
           <section className="flex flex-col gap-3" style={{ animation: `pq-fade-up 0.55s ${ease} 0.24s both` }}>
-            <h2 className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary/80">{t("profile.recentTitle")}</h2>
+            <SectionHeading>{t("profile.recentTitle")}</SectionHeading>
             <ul className="flex flex-col gap-2">
               {profile.recent.map((r, i) => (
                 <li
                   key={r.punchlineId}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-border/40 bg-card/30 px-4 py-3"
+                  className="flex items-center justify-between gap-3 rounded-xl border border-border/40 bg-card/30 px-4 py-3 transition-colors duration-200 hover:border-primary/25 hover:bg-card/50"
                   style={{ animation: `pq-fade-up 0.4s ${ease} ${0.28 + i * 0.04}s both` }}
                 >
                   <span className="line-clamp-2 text-sm font-semibold text-foreground/90">"{r.line.split("/")[0].trim()}"</span>
@@ -229,7 +239,8 @@ function InviteCard({ handle }: { handle: string }) {
     }
   }
 
-  if (data === null) return null
+  // Reserve the card's footprint while referrals load so the page below doesn't jump.
+  if (data === null) return <SectionSkeleton className="h-52 border-primary/30 bg-primary/5" />
   const celebratedXp = celebrated.reduce((a, c) => a + c.xp, 0)
 
   return (
@@ -238,12 +249,15 @@ function InviteCard({ handle }: { handle: string }) {
       style={{ animation: `pq-fade-up 0.55s ${ease} 0.28s both` }}
     >
       <Confetti trigger={confettiKey} />
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary/80">{t("invite.cardTitle")}</h2>
-        {data.confirmed > 0 && (
-          <span className="text-xs font-bold text-primary">{t("invite.count", { count: data.confirmed })}</span>
-        )}
-      </div>
+      <SectionHeading
+        action={
+          data.confirmed > 0 ? (
+            <span className="text-xs font-bold text-primary">{t("invite.count", { count: data.confirmed })}</span>
+          ) : undefined
+        }
+      >
+        {t("invite.cardTitle")}
+      </SectionHeading>
 
       {celebrated.length > 0 && (
         <p className="text-sm font-extrabold text-primary">
@@ -256,15 +270,17 @@ function InviteCard({ handle }: { handle: string }) {
 
       <p className="text-sm text-muted-foreground text-balance">{t("invite.cardSubtitle")}</p>
 
-      <div className="flex items-center gap-2 rounded-full border border-border/60 bg-background/60 px-4 py-2">
+      <div className="flex min-h-12 items-center gap-2 rounded-full border border-border/60 bg-background/60 py-1 pr-1 pl-4">
         <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground/90">{link.replace(/^https?:\/\//, "")}</span>
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={copy}
-          className="shrink-0 text-xs font-bold uppercase tracking-wide text-primary hover:underline"
+          className="min-h-10 shrink-0 rounded-full px-4 text-xs font-bold uppercase tracking-wide text-primary hover:bg-primary/10 hover:text-primary"
         >
           {copied ? t("common.linkCopied") : t("invite.copy")}
-        </button>
+        </Button>
       </div>
 
       <Button onClick={share} className="cta-glow min-h-11 text-sm font-bold">
@@ -272,10 +288,14 @@ function InviteCard({ handle }: { handle: string }) {
       </Button>
 
       {data.items.length > 0 && (
-        <ul className="flex flex-col gap-1.5 pt-1">
+        <ul className="flex flex-col gap-0.5 pt-1">
           {data.items.slice(0, 5).map((r, i) => (
             <li key={`${r.handle}-${i}`} className="flex items-center justify-between gap-3 text-sm">
-              <Link to="/u/$handle" params={{ handle: r.handle }} className="font-semibold text-foreground/90 hover:text-primary">
+              <Link
+                to="/u/$handle"
+                params={{ handle: r.handle }}
+                className="-mx-2 inline-flex min-h-9 flex-1 items-center rounded-lg px-2 font-semibold text-foreground/90 transition-colors hover:bg-primary/5 hover:text-primary"
+              >
                 @{r.handle}
               </Link>
               {r.xp > 0 && <span className="shrink-0 text-xs font-bold tabular-nums text-primary">+{r.xp} XP</span>}
@@ -313,22 +333,30 @@ function MySubmissions() {
       .catch(() => setItems([]))
   }, [])
 
-  if (items === null) return null
+  if (items === null) return <SectionSkeleton className="h-32" />
   return (
     <section className="flex flex-col gap-3" style={{ animation: `pq-fade-up 0.55s ${ease} 0.3s both` }}>
       {celebrated.length > 0 && <AcceptanceCelebration items={celebrated} confettiKey={confettiKey} />}
-      <h2 className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary/80">{t("mySubmissions.title")}</h2>
+      <SectionHeading>{t("mySubmissions.title")}</SectionHeading>
       {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t("mySubmissions.empty")}</p>
       ) : (
         <ul className="flex flex-col gap-2">
-          {items.map((s) => (
-            <li key={s.id} className="flex items-center justify-between gap-3 rounded-xl border border-border/40 bg-card/30 px-4 py-3">
+          {items.map((s, i) => (
+            <li
+              key={s.id}
+              className="flex items-center justify-between gap-3 rounded-xl border border-border/40 bg-card/30 px-4 py-3 transition-colors duration-200 hover:border-primary/25 hover:bg-card/50"
+              style={{ animation: `pq-fade-up 0.4s ${ease} ${0.32 + i * 0.04}s both` }}
+            >
               <span className="line-clamp-1 min-w-0 flex-1 text-sm font-semibold text-foreground/90">"{s.line.split("/")[0].trim()}"</span>
               <span className="flex shrink-0 items-center gap-2">
                 <SubmissionStatus status={s.status} />
                 {s.status === "approved" && s.artistSlug && (
-                  <Link to="/play" search={{ artist: s.artistSlug }} className="text-xs font-bold text-primary hover:underline">
+                  <Link
+                    to="/play"
+                    search={{ artist: s.artistSlug }}
+                    className="-my-1 inline-flex min-h-9 items-center rounded-lg px-2 text-xs font-bold text-primary transition-colors hover:bg-primary/10"
+                  >
                     {t("mySubmissions.play")}
                   </Link>
                 )}
@@ -503,11 +531,35 @@ function CreateChallengeButton({ label, signedIn }: { label: string; signedIn: b
   )
 }
 
+/** Shared section label: a small gold tick + uppercase title, with an optional
+ *  trailing action. Gives every section the same rhythm and a hierarchy anchor. */
+function SectionHeading({ children, action }: { children: ReactNode; action?: ReactNode }) {
+  return (
+    <div className="flex min-h-5 items-center justify-between gap-2">
+      <h2 className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-primary/80">
+        <span aria-hidden="true" className="h-3 w-0.5 rounded-full bg-primary/50" />
+        {children}
+      </h2>
+      {action}
+    </div>
+  )
+}
+
+/** Holds a section's footprint while async owner content loads — no layout jump. */
+function SectionSkeleton({ className }: { className?: string }) {
+  return (
+    <div
+      aria-hidden="true"
+      className={cn("animate-pulse rounded-2xl border border-border/40 bg-card/30", className)}
+    />
+  )
+}
+
 function Avatar({ imageUrl, handle }: { imageUrl: string | null; handle: string }) {
   const initial = handle.slice(0, 1).toUpperCase()
   return (
     <div
-      className="relative flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-primary/60 bg-card"
+      className="relative flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-primary/60 bg-card transition-transform duration-300 hover:scale-[1.03]"
       style={{
         animation: `pq-pop-in 0.55s ${ease} 0.05s both`,
         boxShadow: "0 0 36px color-mix(in oklch, var(--primary), transparent 60%)",
@@ -515,7 +567,7 @@ function Avatar({ imageUrl, handle }: { imageUrl: string | null; handle: string 
       aria-hidden="true"
     >
       {imageUrl ? (
-        <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+        <img src={imageUrl} alt="" decoding="async" className="h-full w-full object-cover" />
       ) : (
         <span className="text-4xl font-extrabold text-primary">{initial}</span>
       )}
@@ -523,22 +575,39 @@ function Avatar({ imageUrl, handle }: { imageUrl: string | null; handle: string 
   )
 }
 
-function Count({ value, label }: { value: number; label: string }) {
+function Count({ value, label, bumpKey = 0 }: { value: number; label: string; bumpKey?: number }) {
   return (
     <span className="flex items-baseline gap-1.5">
-      <span className="text-base font-extrabold tabular-nums text-foreground">{value}</span>
+      <span
+        key={bumpKey}
+        className="text-base font-extrabold tabular-nums text-foreground"
+        style={bumpKey > 0 ? { animation: `pq-pulse 0.4s ${ease}` } : undefined}
+      >
+        {value}
+      </span>
       <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</span>
     </span>
   )
 }
 
-function TopArtistRow({ artist, barsLabel }: { artist: TopArtist; barsLabel: string }) {
+function TopArtistRow({
+  artist,
+  barsLabel,
+  style,
+}: {
+  artist: TopArtist
+  barsLabel: string
+  style?: CSSProperties
+}) {
   const initials = artist.name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase()
   return (
-    <li className="flex items-center gap-3 rounded-xl border border-border/40 bg-card/30 px-3 py-2.5">
+    <li
+      className="flex items-center gap-3 rounded-xl border border-border/40 bg-card/30 px-3 py-2.5 transition-colors duration-200 hover:border-primary/25 hover:bg-card/50"
+      style={style}
+    >
       <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/60 bg-muted/60" aria-hidden="true">
         {artist.imageUrl ? (
-          <img src={artist.imageUrl} alt="" className="h-full w-full object-cover" />
+          <img src={artist.imageUrl} alt="" loading="lazy" decoding="async" width={36} height={36} className="h-full w-full object-cover" />
         ) : (
           <span className="text-[0.7em] font-bold text-foreground/70">{initials}</span>
         )}
@@ -553,21 +622,35 @@ function TopArtistRow({ artist, barsLabel }: { artist: TopArtist; barsLabel: str
 }
 
 function ProgressBar({ pct }: { pct: number }) {
+  const frac = Math.max(0, Math.min(1, pct / 100))
   return (
     <div className="relative h-2 w-full max-w-xs overflow-hidden rounded-full bg-primary/15">
+      {/* GPU fill: scaleX from the left edge (no layout), revealed on mount. */}
       <div
-        className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-primary/80 to-primary"
-        style={{ width: `${pct}%`, transition: "width 600ms cubic-bezier(0.23, 1, 0.32, 1)", boxShadow: "0 0 16px color-mix(in oklch, var(--primary), transparent 50%)" }}
+        className="absolute inset-0 origin-left rounded-full bg-gradient-to-r from-primary/80 to-primary"
+        style={{
+          transform: `scaleX(${frac})`,
+          animation: `pq-grow-x 0.8s ${ease} 0.15s both`,
+          boxShadow: "0 0 16px color-mix(in oklch, var(--primary), transparent 50%)",
+        }}
+      />
+      {/* One-shot gold sheen sweeping across the filled bar. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 left-0 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+        style={{ animation: `pq-banner-sheen 1.1s ${ease} 0.6s both` }}
       />
     </div>
   )
 }
 
-function StatTile({ label, value, icon }: { label: string; value: number; icon?: string }) {
+function StatTile({ label, value, accent = false }: { label: string; value: number; accent?: boolean }) {
   return (
-    <div className="flex flex-col items-center gap-1 rounded-2xl border border-border/40 bg-card/30 px-3 py-4">
-      <span className="text-2xl font-extrabold tabular-nums text-foreground">
-        {icon && <span aria-hidden="true" className="mr-1">{icon}</span>}
+    <div className="flex flex-col items-center gap-1 rounded-2xl border border-border/40 bg-card/30 px-3 py-4 transition-colors duration-200 hover:border-primary/20 hover:bg-card/50">
+      <span
+        className={cn("text-2xl font-extrabold tabular-nums", accent ? "text-primary" : "text-foreground")}
+        style={accent ? { textShadow: "0 0 18px color-mix(in oklch, var(--primary), transparent 55%)" } : undefined}
+      >
         {value}
       </span>
       <span className="text-center text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">{label}</span>
@@ -581,15 +664,12 @@ function ContributorSection({ contributor }: { contributor: ContributorProfile }
   const ratePct = contributor.resolved > 0 ? Math.round(contributor.acceptanceRate * 100) : 0
   return (
     <section className="flex flex-col gap-3" style={{ animation: `pq-fade-up 0.55s ${ease} 0.14s both` }}>
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary/80">{t("profile.contributor.title")}</h2>
-        <TierChip tier={contributor.tier} />
-      </div>
+      <SectionHeading action={<TierChip tier={contributor.tier} />}>{t("profile.contributor.title")}</SectionHeading>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatTile label={t("profile.contributor.accepted")} value={contributor.accepted} icon="✊" />
+        <StatTile label={t("profile.contributor.accepted")} value={contributor.accepted} accent={contributor.accepted > 0} />
         <StatTile label={t("profile.contributor.submitted")} value={contributor.submitted} />
         <StatTile label={t("profile.contributor.rate")} value={ratePct} />
-        <StatTile label={t("profile.contributor.streak")} value={contributor.streak} icon="🔥" />
+        <StatTile label={t("profile.contributor.streak")} value={contributor.streak} accent={contributor.streak > 0} />
       </div>
       {contributor.nextTier && (
         <p className="text-center text-xs font-semibold text-muted-foreground">
@@ -612,18 +692,20 @@ function TierChip({ tier }: { tier: ContributorTier }) {
   )
 }
 
-function Sparkline({ data }: { data: Array<{ date: string; xp: number }> }) {
+function Sparkline({ data, label }: { data: Array<{ date: string; xp: number }>; label: string }) {
   const max = useMemo(() => Math.max(1, ...data.map((d) => d.xp)), [data])
   return (
-    <div className="flex h-20 items-end gap-[3px]" aria-hidden="true">
-      {data.map((d) => {
+    <div className="flex h-20 items-end gap-[3px]" role="img" aria-label={label}>
+      {data.map((d, i) => {
         const h = (d.xp / max) * 100
         const hasXp = d.xp > 0
         return (
-          <div key={d.date} className="relative flex-1 overflow-hidden rounded-sm" style={{ height: "100%" }}>
+          <div key={d.date} className="relative flex-1 self-stretch overflow-hidden rounded-sm" aria-hidden="true">
+            {/* GPU grow: scaleY from the bottom, staggered left→right. Height % sets
+                the target; the animation only reveals the bar from a flat baseline. */}
             <div
-              className={cn("absolute bottom-0 left-0 right-0 rounded-sm", hasXp ? "bg-primary/80" : "bg-primary/10")}
-              style={{ height: hasXp ? `${Math.max(6, h)}%` : "6%", transition: "height 600ms cubic-bezier(0.23, 1, 0.32, 1)" }}
+              className={cn("absolute inset-x-0 bottom-0 origin-bottom rounded-sm", hasXp ? "bg-primary/80" : "bg-primary/10")}
+              style={{ height: hasXp ? `${Math.max(6, h)}%` : "6%", animation: `pq-grow-up 0.5s ${ease} ${i * 0.012}s both` }}
             />
           </div>
         )

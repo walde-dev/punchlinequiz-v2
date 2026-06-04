@@ -162,6 +162,19 @@
     transform: scale(1.18);
   }
 }
+/* Bar/progress reveals: grow from a flat edge. Transform-only (GPU). The `to`
+   state is the element's own base transform, so each call site keeps its target
+   width/height — these only animate the reveal from zero. */
+@keyframes pq-grow-x {
+  from {
+    transform: scaleX(0);
+  }
+}
+@keyframes pq-grow-up {
+  from {
+    transform: scaleY(0);
+  }
+}
 /* Banner sheen: a single sweep on mount. Decoration only — fires once. */
 @keyframes pq-banner-sheen {
   from {

@@ -55,6 +55,8 @@
     "nextLevelCaption": "{{xp}} XP to {{rank}}",
     "maxLevelReached": "Top of the league.",
     "sparklineTitle": "Last 30 days",
+    "sparklineAria": "XP activity over the last 30 days",
+    "statsTitle": "Stats",
     "recentTitle": "Recently conquered",
     "playMore": "Keep grinding",
     "stats": {
