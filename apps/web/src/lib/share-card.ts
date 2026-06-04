@@ -214,8 +214,15 @@ export async function renderShareCard(data: ShareCardData): Promise<Blob> {
 }
 
 export function shareUrlFor(data: { mode: ShareMode; artistSlug?: string | null }): string {
-  const base =
-    typeof window !== "undefined" ? `${window.location.origin}/play` : "https://punchlinequiz.de/play"
+  const origin =
+    typeof window !== "undefined" ? window.location.origin : "https://www.punchlinequiz.de"
+  // Artist-mode shares point at the named quiz landing (PUN-107) — the canonical
+  // playable per-artist surface and the Reddit/WhatsApp drop target. Cloze stays
+  // on /play (finishing-lines isn't a quiz).
+  if (data.artistSlug && data.mode !== "cloze") {
+    return `${origin}/quiz/${data.artistSlug}`
+  }
+  const base = `${origin}/play`
   const params = new URLSearchParams()
   if (data.mode === "cloze") params.set("mode", "cloze")
   if (data.artistSlug) params.set("artist", data.artistSlug)

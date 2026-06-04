@@ -20,9 +20,11 @@ import { Route as ArtistsRouteImport } from './routes/artists'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as UHandleRouteImport } from './routes/u.$handle'
+import { Route as QuizSlugRouteImport } from './routes/quiz.$slug'
 import { Route as IHandleRouteImport } from './routes/i.$handle'
 import { Route as CSlugRouteImport } from './routes/c.$slug'
 import { Route as ArtistSlugRouteImport } from './routes/artist.$slug'
+import { Route as ApiOgRouteImport } from './routes/api/og'
 import { Route as AdminXpRouteImport } from './routes/admin/xp'
 import { Route as AdminSubmissionsRouteImport } from './routes/admin/submissions'
 import { Route as AdminReviewRouteImport } from './routes/admin/review'
@@ -107,6 +109,11 @@ const UHandleRoute = UHandleRouteImport.update({
   path: '/u/$handle',
   getParentRoute: () => rootRouteImport,
 } as any)
+const QuizSlugRoute = QuizSlugRouteImport.update({
+  id: '/quiz/$slug',
+  path: '/quiz/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IHandleRoute = IHandleRouteImport.update({
   id: '/i/$handle',
   path: '/i/$handle',
@@ -120,6 +127,11 @@ const CSlugRoute = CSlugRouteImport.update({
 const ArtistSlugRoute = ArtistSlugRouteImport.update({
   id: '/artist/$slug',
   path: '/artist/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOgRoute = ApiOgRouteImport.update({
+  id: '/api/og',
+  path: '/api/og',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminXpRoute = AdminXpRouteImport.update({
@@ -281,9 +293,11 @@ export interface FileRoutesByFullPath {
   '/admin/review': typeof AdminReviewRoute
   '/admin/submissions': typeof AdminSubmissionsRoute
   '/admin/xp': typeof AdminXpRoute
+  '/api/og': typeof ApiOgRoute
   '/artist/$slug': typeof ArtistSlugRoute
   '/c/$slug': typeof CSlugRoute
   '/i/$handle': typeof IHandleRoute
+  '/quiz/$slug': typeof QuizSlugRoute
   '/u/$handle': typeof UHandleRoute
   '/admin/': typeof AdminIndexRoute
   '/api/admin/artists': typeof ApiAdminArtistsRouteWithChildren
@@ -325,9 +339,11 @@ export interface FileRoutesByTo {
   '/admin/review': typeof AdminReviewRoute
   '/admin/submissions': typeof AdminSubmissionsRoute
   '/admin/xp': typeof AdminXpRoute
+  '/api/og': typeof ApiOgRoute
   '/artist/$slug': typeof ArtistSlugRoute
   '/c/$slug': typeof CSlugRoute
   '/i/$handle': typeof IHandleRoute
+  '/quiz/$slug': typeof QuizSlugRoute
   '/u/$handle': typeof UHandleRoute
   '/admin': typeof AdminIndexRoute
   '/api/admin/artists': typeof ApiAdminArtistsRouteWithChildren
@@ -370,9 +386,11 @@ export interface FileRoutesById {
   '/admin/review': typeof AdminReviewRoute
   '/admin/submissions': typeof AdminSubmissionsRoute
   '/admin/xp': typeof AdminXpRoute
+  '/api/og': typeof ApiOgRoute
   '/artist/$slug': typeof ArtistSlugRoute
   '/c/$slug': typeof CSlugRoute
   '/i/$handle': typeof IHandleRoute
+  '/quiz/$slug': typeof QuizSlugRoute
   '/u/$handle': typeof UHandleRoute
   '/admin/': typeof AdminIndexRoute
   '/api/admin/artists': typeof ApiAdminArtistsRouteWithChildren
@@ -416,9 +434,11 @@ export interface FileRouteTypes {
     | '/admin/review'
     | '/admin/submissions'
     | '/admin/xp'
+    | '/api/og'
     | '/artist/$slug'
     | '/c/$slug'
     | '/i/$handle'
+    | '/quiz/$slug'
     | '/u/$handle'
     | '/admin/'
     | '/api/admin/artists'
@@ -460,9 +480,11 @@ export interface FileRouteTypes {
     | '/admin/review'
     | '/admin/submissions'
     | '/admin/xp'
+    | '/api/og'
     | '/artist/$slug'
     | '/c/$slug'
     | '/i/$handle'
+    | '/quiz/$slug'
     | '/u/$handle'
     | '/admin'
     | '/api/admin/artists'
@@ -504,9 +526,11 @@ export interface FileRouteTypes {
     | '/admin/review'
     | '/admin/submissions'
     | '/admin/xp'
+    | '/api/og'
     | '/artist/$slug'
     | '/c/$slug'
     | '/i/$handle'
+    | '/quiz/$slug'
     | '/u/$handle'
     | '/admin/'
     | '/api/admin/artists'
@@ -549,9 +573,11 @@ export interface RootRouteChildren {
   AdminReviewRoute: typeof AdminReviewRoute
   AdminSubmissionsRoute: typeof AdminSubmissionsRoute
   AdminXpRoute: typeof AdminXpRoute
+  ApiOgRoute: typeof ApiOgRoute
   ArtistSlugRoute: typeof ArtistSlugRoute
   CSlugRoute: typeof CSlugRoute
   IHandleRoute: typeof IHandleRoute
+  QuizSlugRoute: typeof QuizSlugRoute
   UHandleRoute: typeof UHandleRoute
   AdminIndexRoute: typeof AdminIndexRoute
   ApiAdminArtistsRoute: typeof ApiAdminArtistsRouteWithChildren
@@ -650,6 +676,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UHandleRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/quiz/$slug': {
+      id: '/quiz/$slug'
+      path: '/quiz/$slug'
+      fullPath: '/quiz/$slug'
+      preLoaderRoute: typeof QuizSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/i/$handle': {
       id: '/i/$handle'
       path: '/i/$handle'
@@ -669,6 +702,13 @@ declare module '@tanstack/react-router' {
       path: '/artist/$slug'
       fullPath: '/artist/$slug'
       preLoaderRoute: typeof ArtistSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/og': {
+      id: '/api/og'
+      path: '/api/og'
+      fullPath: '/api/og'
+      preLoaderRoute: typeof ApiOgRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/xp': {
@@ -946,9 +986,11 @@ const rootRouteChildren: RootRouteChildren = {
   AdminReviewRoute: AdminReviewRoute,
   AdminSubmissionsRoute: AdminSubmissionsRoute,
   AdminXpRoute: AdminXpRoute,
+  ApiOgRoute: ApiOgRoute,
   ArtistSlugRoute: ArtistSlugRoute,
   CSlugRoute: CSlugRoute,
   IHandleRoute: IHandleRoute,
+  QuizSlugRoute: QuizSlugRoute,
   UHandleRoute: UHandleRoute,
   AdminIndexRoute: AdminIndexRoute,
   ApiAdminArtistsRoute: ApiAdminArtistsRouteWithChildren,

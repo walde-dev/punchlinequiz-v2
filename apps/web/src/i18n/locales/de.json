@@ -280,6 +280,18 @@
       "tryAgain": "Beim nächsten besser."
     }
   },
+  "quiz": {
+    "eyebrow": "/ Artist-Quiz",
+    "title": "Das {{name}}-Quiz",
+    "barsCount": "{{count}} Bars",
+    "hook": "5 Bars. Wie viele erkennst du?",
+    "start": "Quiz starten",
+    "clearedEyebrow": "/ durchgespielt",
+    "clearedTitle": "Du hast {{name}} geknackt",
+    "clearedSubtitle": "Alle {{count}} Bars gelöst. Respekt.",
+    "clearedCta": "Nächstes Quiz",
+    "otherArtists": "Andere Artists"
+  },
   "community": {
     "eyebrow": "/ community",
     "joinTitle": "Komm in den Discord",

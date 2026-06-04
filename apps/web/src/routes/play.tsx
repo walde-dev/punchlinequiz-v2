@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute, Link, redirect } from "@tanstack/react-router"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { TFunction } from "i18next"
@@ -38,6 +38,7 @@ import {
   type SongReveal,
 } from "../lib/game"
 import { isAdminFn } from "../lib/session"
+import { QUIZ_MIN_BARS } from "../lib/quiz"
 import { seo } from "../lib/seo"
 import { isFirstRun, markPlayed } from "../lib/first-run"
 import { logEvent, newId, setInternalSession } from "../lib/track"
@@ -60,6 +61,12 @@ export const Route = createFileRoute("/play")({
       artistSlug ? getArtistContext({ data: { slug: artistSlug } }) : Promise.resolve(null),
       isAdminFn(),
     ])
+    // PUN-108: classic per-artist play now lives at /quiz/$slug for qualifying
+    // artists (≥15 bars). Redirect there; sub-threshold artists keep playing
+    // here as before, and cloze (finishing-lines) is never a quiz so it stays.
+    if (artistSlug && mode === "artist" && artistCtx && artistCtx.punchlineCount >= QUIZ_MIN_BARS) {
+      throw redirect({ to: "/quiz/$slug", params: { slug: artistSlug }, statusCode: 301 })
+    }
     if (artistSlug && (!artistCtx || artistCtx.punchlineCount === 0)) {
       return { round: null, artistCtx, mode, isAdmin: session.admin }
     }
@@ -106,16 +113,19 @@ function PlayPage() {
   )
 }
 
-function PlayInner({
+export function PlayInner({
   initialRound,
   artistCtx,
   playMode,
   isAdmin,
+  roundSize = ROUND_SIZE,
 }: {
   initialRound: Round
   artistCtx: ArtistContext | null
   playMode: "artist" | "cloze"
   isAdmin: boolean
+  /** Bars per run. Defaults to the cold-open 10; /quiz passes 5 (PUN-107). */
+  roundSize?: number
 }) {
   const { t } = useTranslation()
   const [round, setRound] = useState<Round>(initialRound)
@@ -431,8 +441,8 @@ function PlayInner({
       punchline_id: round.punchlineId,
       attempt_id: attemptIdRef.current,
     })
-    // After 10 punchlines, jump to the share-card summary instead of loading.
-    if (results.length >= ROUND_SIZE) {
+    // After a full run, jump to the share-card summary instead of loading.
+    if (results.length >= roundSize) {
       setPhase("session-complete")
       return
     }
@@ -460,7 +470,11 @@ function PlayInner({
     } catch (err) {
       console.error(err)
       logEvent("next_failed", { message: String(err) })
-      setPhase("revealing")
+      // Pool exhausted (e.g. a signed-in player has solved every remaining bar
+      // in this scope — PUN-103/107) or a transient fetch error. If they've
+      // already nailed at least one bar, end the run on the summary rather than
+      // dead-ending; otherwise stay on the current reveal.
+      setPhase(results.length > 0 ? "session-complete" : "revealing")
     }
   }
 
@@ -513,7 +527,7 @@ function PlayInner({
     )
   }
 
-  const isLastRound = results.length >= ROUND_SIZE
+  const isLastRound = results.length >= roundSize
   return (
     <div className="relative flex min-h-svh flex-col overflow-hidden">
       <AppHeader
@@ -531,7 +545,7 @@ function PlayInner({
           <AnonXpPill refreshKey={anonCtaKey} />
           <BarDisplay
             key={round.punchlineId}
-            roundSize={ROUND_SIZE}
+            roundSize={roundSize}
             results={results}
             line={
               // Once the cloze is solved, swap the blanked prompt for the

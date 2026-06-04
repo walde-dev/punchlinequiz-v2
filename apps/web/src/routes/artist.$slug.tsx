@@ -5,6 +5,7 @@ import { Button } from "@workspace/ui/components/button"
 
 import { AppHeader } from "../components/app-header"
 import { getArtistPageFn, type ArtistPage } from "../lib/artist"
+import { QUIZ_MIN_BARS } from "../lib/quiz"
 import {
   breadcrumbJsonLd,
   jsonLd,
@@ -108,7 +109,15 @@ function ArtistPageView() {
         <Button
           size="lg"
           className="cta-glow min-h-12 w-full max-w-xs text-base font-bold"
-          render={<Link to="/play" search={{ artist: a.slug }} />}
+          render={
+            // Qualifying artists (≥15 bars) get the named /quiz landing (PUN-108);
+            // smaller catalogs keep the classic artist-filtered /play.
+            a.barCount >= QUIZ_MIN_BARS ? (
+              <Link to="/quiz/$slug" params={{ slug: a.slug }} />
+            ) : (
+              <Link to="/play" search={{ artist: a.slug }} />
+            )
+          }
         >
           {t("artistPage.playCta", { name: a.name })}
         </Button>

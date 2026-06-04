@@ -6,7 +6,6 @@ import {
   artists,
   challengeAttempts,
   challenges,
-  dailyChallenges,
   punchlines,
   songs,
   users,
@@ -14,6 +13,7 @@ import {
 
 import { getActor } from "./auth"
 import { db } from "./db"
+import { hiddenDailyIds } from "./daily-pool"
 import { ensureUser, levelFor, loadLevels, type LevelInfo } from "./xp"
 
 /**
@@ -73,8 +73,6 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-const dailyScheduledIds = sql`(SELECT ${dailyChallenges.punchlineId} FROM ${dailyChallenges})`
-
 /** Generate a short URL-safe slug (base62-ish, lowercase + digits). */
 function makeSlug(len = 8): string {
   const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
@@ -98,7 +96,7 @@ export const createChallengeFn = createServerFn({ method: "POST" }).handler(
     const rows = await db
       .select({ id: punchlines.id })
       .from(punchlines)
-      .where(and(eq(punchlines.active, true), sql`${punchlines.id} NOT IN ${dailyScheduledIds}`))
+      .where(and(eq(punchlines.active, true), sql`${punchlines.id} NOT IN ${hiddenDailyIds()}`))
       .orderBy(sql`random()`)
       .limit(CHALLENGE_SIZE)
     if (rows.length < CHALLENGE_SIZE) throw new Error("Not enough bars to build a challenge")

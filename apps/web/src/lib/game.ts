@@ -1,19 +1,13 @@
 import { createServerFn } from "@tanstack/react-start"
 import { getRequest } from "@tanstack/react-start/server"
 import { and, eq, inArray, isNotNull, ne, notInArray, sql } from "drizzle-orm"
-import { artists, dailyChallenges, punchlines, songs, users } from "@workspace/db"
+import { artists, punchlines, songs, userPunchlineXp, users } from "@workspace/db"
 import { db } from "./db"
 import { getActor } from "./auth"
 import { accrueAnonPrimary, accrueAnonSongBonus } from "./anon-xp"
+import { hiddenDailyIds } from "./daily-pool"
 import { getServerSessionId } from "./log"
 import { grantPrimary, grantSongBonus, type XpGrantResult } from "./xp"
-
-/**
- * Subquery: ids of punchlines that have been scheduled (past or future) as a
- * daily challenge. These bars are kept out of the regular and cloze pools so
- * the daily stays special — they're only playable via /daily on their date.
- */
-const dailyScheduledIds = sql`(SELECT ${dailyChallenges.punchlineId} FROM ${dailyChallenges})`
 
 export type ArtistTile = {
   id: number
@@ -34,7 +28,7 @@ export const listPlayableArtists = createServerFn({ method: "GET" })
   )
   .handler(async ({ data }): Promise<ArtistTile[]> => {
     const punchlineConds = [eq(punchlines.active, true)]
-    punchlineConds.push(sql`${punchlines.id} NOT IN ${dailyScheduledIds}`)
+    punchlineConds.push(sql`${punchlines.id} NOT IN ${hiddenDailyIds()}`)
     if (data.mode === "cloze") {
       punchlineConds.push(isNotNull(punchlines.clozePrompt))
       punchlineConds.push(eq(punchlines.clozeEnabled, true))
@@ -347,7 +341,7 @@ export const getRound = createServerFn({ method: "GET" })
   .handler(async ({ data }): Promise<Round> => {
     const mode = data.mode ?? "artist"
     const conds = [eq(punchlines.active, true)]
-    conds.push(sql`${punchlines.id} NOT IN ${dailyScheduledIds}`)
+    conds.push(sql`${punchlines.id} NOT IN ${hiddenDailyIds()}`)
     if (data.excludeId) conds.push(ne(punchlines.id, data.excludeId))
     const excludeIds = (data.excludeIds ?? []).filter((n) => Number.isInteger(n) && n > 0)
     if (excludeIds.length > 0) conds.push(notInArray(punchlines.id, excludeIds))
@@ -355,6 +349,20 @@ export const getRound = createServerFn({ method: "GET" })
     if (mode === "cloze") {
       conds.push(isNotNull(punchlines.clozePrompt))
       conds.push(eq(punchlines.clozeEnabled, true))
+    }
+
+    // Solved-bar exclusion (PUN-103): a signed-in player is never re-served a
+    // bar they've already answered correctly. The user_punchline_xp row IS the
+    // solved record (written on the correct primary grant, idempotent; no row
+    // for a wrong answer — so missed bars can still come back). Random-draw
+    // only: getRound powers cold-open /play + /quiz; daily and challenge resolve
+    // fixed bars by id and never hit this path, so they stay exempt by design.
+    // Anonymous players (no clerkId) are unaffected and may repeat.
+    const solverClerkId = await getClerkIdOrNull()
+    if (solverClerkId) {
+      conds.push(
+        sql`${punchlines.id} NOT IN (SELECT ${userPunchlineXp.punchlineId} FROM ${userPunchlineXp} WHERE ${userPunchlineXp.clerkId} = ${solverClerkId})`,
+      )
     }
 
     function pick(extra: ReturnType<typeof eq>[]) {
