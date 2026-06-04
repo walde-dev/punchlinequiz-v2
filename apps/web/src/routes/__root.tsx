@@ -8,7 +8,7 @@ import i18n from "../i18n"
 import { OnboardingGate } from "../components/onboarding-gate"
 import { AnalyticsIdentity } from "../components/analytics-identity"
 import { getBootstrapFlagsFn } from "../lib/flags"
-import { DEFAULT_DESCRIPTION, DEFAULT_OG_IMAGE, SITE_NAME, absoluteUrl } from "../lib/seo"
+import { DEFAULT_DESCRIPTION, OG_DEFAULT_SUBTITLE, SITE_NAME, ogImageUrl } from "../lib/seo"
 import type { BootstrapFlags } from "../lib/flags"
 
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
@@ -38,11 +38,11 @@ export const Route = createRootRoute({
       { property: "og:type", content: "website" },
       { property: "og:title", content: SITE_NAME },
       { property: "og:description", content: DEFAULT_DESCRIPTION },
-      { property: "og:image", content: absoluteUrl(DEFAULT_OG_IMAGE) },
+      { property: "og:image", content: ogImageUrl({ title: SITE_NAME, subtitle: OG_DEFAULT_SUBTITLE }) },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: SITE_NAME },
       { name: "twitter:description", content: DEFAULT_DESCRIPTION },
-      { name: "twitter:image", content: absoluteUrl(DEFAULT_OG_IMAGE) },
+      { name: "twitter:image", content: ogImageUrl({ title: SITE_NAME, subtitle: OG_DEFAULT_SUBTITLE }) },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

@@ -12,10 +12,16 @@
 
 export const SITE_URL = "https://www.punchlinequiz.de"
 export const SITE_NAME = "punchlinequiz"
-/** Static default share image until per-entity OG cards land (Daily Share Card project). */
+/**
+ * Static last-resort share image. Used ONLY as the dynamic OG route's failure
+ * fallback (see routes/api/og.tsx) — every real page now defaults to a generated
+ * 1200×630 card via ogImageUrl(), not this 1:1 banner.
+ */
 export const DEFAULT_OG_IMAGE = "/banner-chains.png"
 export const DEFAULT_DESCRIPTION =
   "punchlinequiz — errate den Künstler hinter der Punchline. Das Quiz für deutschen Rap. Spiel täglich, fordere Freunde heraus."
+/** Default subtitle/CTA baked into auto-generated OG cards when none is given. */
+export const OG_DEFAULT_SUBTITLE = "Das Quiz für deutschen Rap"
 
 /** Absolute URL from a path or pass-through for an already-absolute URL. */
 export function absoluteUrl(pathOrUrl: string): string {
@@ -45,8 +51,12 @@ export type SeoInput = {
   description?: string
   /** Path for canonical + og:url, e.g. "/artist/kollegah". Omit → no canonical. */
   path?: string
-  /** og/twitter image (path or absolute). Defaults to the site banner. */
+  /** og/twitter image (path or absolute). Omit → an auto-generated dynamic card. */
   image?: string
+  /** Headline for the auto-generated OG card (when no `image`). Defaults to `title`. */
+  ogTitle?: string
+  /** Subtitle/CTA for the auto-generated OG card. Defaults to OG_DEFAULT_SUBTITLE. */
+  ogSubtitle?: string
   /** og:type — "website" (default), "music.musician", etc. */
   type?: string
   /** Emit robots noindex,follow (app-utility / non-catalog pages). */
@@ -62,7 +72,14 @@ export type SeoInput = {
 export function seo(input: SeoInput = {}): { meta: Tag[]; links: Tag[] } {
   const fullTitle = input.title ? `${input.title} · ${SITE_NAME}` : SITE_NAME
   const description = input.description ?? DEFAULT_DESCRIPTION
-  const image = absoluteUrl(input.image ?? DEFAULT_OG_IMAGE)
+  // Default to a generated 1200×630 branded card (headline + CTA, ~60KB) instead
+  // of the static 1:1 banner — fixes ratio/size/headline for every page at once.
+  const image = input.image
+    ? absoluteUrl(input.image)
+    : ogImageUrl({
+        title: input.ogTitle ?? input.title ?? SITE_NAME,
+        subtitle: input.ogSubtitle ?? OG_DEFAULT_SUBTITLE,
+      })
   const url = input.path ? absoluteUrl(input.path) : undefined
 
   const meta: Tag[] = [

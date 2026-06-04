@@ -17,6 +17,8 @@ export const Route = createFileRoute("/")({
       description:
         "Errate den Künstler hinter der Punchline. Das tägliche Quiz für deutschen Rap — spiel, sammle XP, fordere Freunde heraus.",
       path: "/",
+      ogTitle: "Errätst du die Punchline?",
+      ogSubtitle: "Das Quiz für deutschen Rap · Jetzt spielen",
     }),
     scripts: [jsonLd(websiteJsonLd()), jsonLd(organizationJsonLd())],
   }),
