@@ -1,3 +1,39 @@
+## UI Components — READ BEFORE WRITING ANY JSX
+
+**All UI primitives live in `@workspace/ui/components`. Use them. Never hand-roll one.**
+
+The shared library (`packages/ui`) is the single source of truth for styling. It is
+shadcn (base-ui + `base-maia` style), already rebranded to the app's look — dark, gold
+accent, `rounded-xl` controls, blurred popovers. The whole point is that **styling lives
+in the root component**, so call sites import and use, never re-style.
+
+Available today: `Button`, `Badge`, `Card`, `Table`, `Input`, `Textarea`, `Label`,
+`Select`, `Checkbox`, `Switch`, `Slider`, `Dialog`, `Sheet`, `Popover`, `Combobox`,
+`Command`, `InputGroup`.
+
+### Hard rules
+- **Never** write a raw `<input>`, `<textarea>`, or `<select>`. Import `Input` / `Textarea`
+  / `Select` from `@workspace/ui/components/*`. (ESLint enforces this in `apps/web`.)
+- **Never** hand-roll a modal/overlay (`fixed inset-0` + `role="dialog"` + Esc/outside-click
+  effects). Use `Dialog` (centered) or `Sheet` (edge drawer). They handle focus-trap,
+  scroll-lock, and a11y for you.
+- **Never** copy a `const inputCls = "rounded-xl border …"` Tailwind string into a file.
+  If you're styling a control inline, you're doing it wrong — the component already carries it.
+- **Don't** override the component's look with `className` for one-offs. `className` is for
+  layout (width, margin), not re-skinning. If a real variant is missing, add it to the
+  component in `packages/ui` so everyone gets it.
+
+### Missing a primitive?
+Add it to the library, not the app:
+```bash
+cd packages/ui && pnpm dlx shadcn@latest add <name> --yes   # decline overwriting existing files
+```
+Then rebrand its base classes to match the others (rounded-xl controls, `border-border/60`,
+`bg-background/60`, gold `focus-visible:ring-ring/50`, `bg-popover/95 backdrop-blur-sm`
+popovers, `bg-card` dialogs) so it's reusable with zero call-site overrides.
+
+See `docs/ui-components.md` for the full convention reference.
+
 ## Design Context
 
 ### Users

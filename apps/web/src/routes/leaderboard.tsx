@@ -4,6 +4,13 @@ import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@workspace/ui/components/button"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui/components/select"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { AppHeader } from "../components/app-header"
@@ -192,43 +199,27 @@ function ArtistPicker({
   const { t } = useTranslation()
   return (
     <div className="flex justify-center">
-      <div className="relative w-full max-w-xs">
-        <select
-          value={value ?? ""}
-          disabled={artists === null}
-          onChange={(e) => {
-            const id = Number(e.target.value)
-            if (Number.isInteger(id) && id > 0) onChange(id)
-          }}
-          className={cn(
-            "min-h-11 w-full appearance-none rounded-full border border-border/60 bg-card/60 pl-5 pr-11 text-sm font-bold text-foreground",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 disabled:opacity-50",
-          )}
-        >
-          <option value="" disabled>
-            {artists === null ? t("common.loading") : t("leaderboard.pickArtist")}
-          </option>
+      <Select
+        value={value == null ? null : String(value)}
+        disabled={artists === null}
+        onValueChange={(v) => {
+          const id = Number(v)
+          if (Number.isInteger(id) && id > 0) onChange(id)
+        }}
+      >
+        <SelectTrigger className="w-full max-w-xs">
+          <SelectValue
+            placeholder={artists === null ? t("common.loading") : t("leaderboard.pickArtist")}
+          />
+        </SelectTrigger>
+        <SelectContent>
           {(artists ?? []).map((a) => (
-            <option key={a.id} value={a.id}>
+            <SelectItem key={a.id} value={String(a.id)}>
               {a.name}
-            </option>
+            </SelectItem>
           ))}
-        </select>
-        <svg
-          aria-hidden="true"
-          className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-primary"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="m6 9 6 6 6-6" />
-        </svg>
-      </div>
+        </SelectContent>
+      </Select>
     </div>
   )
 }

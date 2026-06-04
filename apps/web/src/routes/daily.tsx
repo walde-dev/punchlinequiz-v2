@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@workspace/ui/components/button"
+import { Input } from "@workspace/ui/components/input"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { AnonymousXpCta } from "../components/anonymous-xp-cta"
@@ -543,8 +544,9 @@ function FreeTextStep({
         </span>
       </div>
       <p className="px-1 text-sm text-muted-foreground">{question}</p>
-      <input
+      <Input
         ref={inputRef}
+        size="hero"
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -554,11 +556,6 @@ function FreeTextStep({
         autoCapitalize="off"
         spellCheck={false}
         disabled={submitting}
-        className={cn(
-          "min-h-14 w-full rounded-full border bg-background/60 px-5 text-lg font-bold",
-          "border-border/60 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none",
-          "placeholder:text-muted-foreground/50 disabled:opacity-60"
-        )}
       />
       <div className="flex gap-2">
         {onSkip && (

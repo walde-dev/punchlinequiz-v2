@@ -1,7 +1,12 @@
-import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@workspace/ui/components/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@workspace/ui/components/dialog"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { Confetti } from "./confetti"
@@ -21,44 +26,21 @@ export function LevelUpModal({
 }) {
   const { t, i18n } = useTranslation()
 
-  useEffect(() => {
-    if (!level) return
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose()
-    }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [level, onClose])
-
   if (!level) return null
   const name = i18n.language.startsWith("de") ? level.nameDe : level.nameEn
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="level-up-title"
-      className="fixed inset-0 z-[200] flex items-center justify-center px-6"
-      onClick={onClose}
-      style={{ animation: "pq-fade-in 0.22s ease-out both" }}
-    >
-      <div
-        className="absolute inset-0 bg-black/85 backdrop-blur-sm"
-        aria-hidden="true"
-      />
-      <Confetti trigger={level.rank} />
-      <div
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      {/* Deliberate one-off celebratory surface — it's loud on purpose. base-ui
+          handles focus-trap, scroll-lock and Esc; the look is bespoke. */}
+      <DialogContent
+        showCloseButton={false}
         className={cn(
-          "relative flex flex-col items-center gap-5 rounded-3xl px-8 py-10 text-center",
-          "border border-primary/40 bg-gradient-to-b from-[#1a1a1a] to-[#0e0e0e]",
-          "shadow-[0_0_80px_-10px_rgba(251,191,36,0.6)]",
+          "max-w-md gap-5 border-primary/40 bg-gradient-to-b from-[#1a1a1a] to-[#0e0e0e] px-8 py-10 text-center",
+          "flex flex-col items-center shadow-[0_0_80px_-10px_rgba(251,191,36,0.6)] sm:max-w-md",
         )}
-        style={{
-          animation: "pq-pop-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both",
-          maxWidth: "min(90vw, 28rem)",
-        }}
-        onClick={(e) => e.stopPropagation()}
       >
+        <Confetti trigger={level.rank} />
         <span className="text-xs font-bold uppercase tracking-[0.22em] text-primary/80">
           {t("xp.levelUp.eyebrow")}
         </span>
@@ -79,8 +61,7 @@ export function LevelUpModal({
           <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
             {t("xp.levelUp.levelLabel")} {level.rank}
           </span>
-          <h2
-            id="level-up-title"
+          <DialogTitle
             className="font-extrabold tracking-tight text-primary text-balance"
             style={{
               fontSize: "clamp(2.5rem, 9vw, 4rem)",
@@ -89,11 +70,11 @@ export function LevelUpModal({
             }}
           >
             {name}
-          </h2>
+          </DialogTitle>
         </div>
-        <p className="max-w-xs text-sm text-muted-foreground text-balance">
+        <DialogDescription className="max-w-xs text-sm text-muted-foreground text-balance">
           {t("xp.levelUp.subtitle", { rank: name })}
-        </p>
+        </DialogDescription>
         <Button
           size="lg"
           onClick={onClose}
@@ -101,7 +82,7 @@ export function LevelUpModal({
         >
           {t("xp.levelUp.cta")}
         </Button>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

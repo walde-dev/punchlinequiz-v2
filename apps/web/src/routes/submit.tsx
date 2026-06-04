@@ -4,6 +4,8 @@ import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@workspace/ui/components/button"
+import { Input } from "@workspace/ui/components/input"
+import { Textarea } from "@workspace/ui/components/textarea"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { AppHeader } from "../components/app-header"
@@ -14,11 +16,6 @@ import { logEvent } from "../lib/track"
 export const Route = createFileRoute("/submit")({ component: SubmitPage, head: () => noindexSeo() })
 
 const ease = "cubic-bezier(0.16, 1, 0.3, 1)"
-
-const inputCls =
-  "w-full rounded-xl border border-border/60 bg-background/60 px-3 py-2 text-sm font-medium placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/60"
-const textareaCls =
-  "w-full resize-none rounded-xl border border-border/60 bg-background/60 px-3 py-2 text-base font-semibold placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/60"
 
 function SubmitPage() {
   const { isSignedIn } = useAuth()
@@ -145,13 +142,13 @@ function SubmitForm() {
       >
         <label className="flex flex-col gap-1.5">
           <span className="text-[11px] font-bold uppercase tracking-wide text-primary/80">{t("submit.lineLabel")}</span>
-          <textarea
+          <Textarea
             value={line}
             onChange={(e) => setLine(e.target.value)}
             rows={3}
             autoFocus
             placeholder={t("submit.linePlaceholder")}
-            className={textareaCls}
+            className="min-h-[4.5rem] text-base font-semibold"
           />
         </label>
 
@@ -193,7 +190,7 @@ function OptField({ label, value, onChange }: { label: string; value: string; on
   return (
     <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
       {label}
-      <input value={value} onChange={(e) => onChange(e.target.value)} className={inputCls} />
+      <Input value={value} onChange={(e) => onChange(e.target.value)} />
     </label>
   )
 }

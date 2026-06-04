@@ -3,6 +3,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@workspace/ui/components/button"
+import { Checkbox } from "@workspace/ui/components/checkbox"
+import { Input } from "@workspace/ui/components/input"
+import { Textarea } from "@workspace/ui/components/textarea"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { AdminShell } from "../../components/admin-shell"
@@ -343,30 +346,27 @@ function ReviewCard({
       </div>
 
       <Field label={t("admin.edit.line")}>
-        <textarea
+        <Textarea
           value={line}
           onChange={(e) => setLine(e.target.value)}
           rows={3}
-          className={textareaCls}
         />
       </Field>
 
       <Field label={t("admin.review.clozePrompt")}>
-        <textarea
+        <Textarea
           value={clozePrompt}
           onChange={(e) => setClozePrompt(e.target.value)}
           rows={2}
           placeholder={t("admin.review.clozePromptPlaceholder")}
-          className={textareaCls}
         />
       </Field>
 
       <Field label={t("admin.review.clozeAnswers")}>
-        <input
+        <Input
           value={clozeAnswers}
           onChange={(e) => setClozeAnswers(e.target.value)}
           placeholder={t("admin.review.clozeAnswersPlaceholder")}
-          className={inputCls}
         />
       </Field>
 
@@ -378,11 +378,9 @@ function ReviewCard({
             : "border-border/60 bg-background/40 text-muted-foreground",
         )}
       >
-        <input
-          type="checkbox"
+        <Checkbox
           checked={clozeEnabled}
-          onChange={(e) => setClozeEnabled(e.target.checked)}
-          className="accent-primary"
+          onCheckedChange={(v) => setClozeEnabled(v === true)}
         />
         <span className="flex flex-col">
           <span>{t("admin.review.playClozeTitle")}</span>
@@ -397,10 +395,9 @@ function ReviewCard({
       </Field>
 
       <Field label={t("admin.edit.song")}>
-        <input
+        <Input
           value={songTitle}
           onChange={(e) => setSongTitle(e.target.value)}
-          className={inputCls}
         />
       </Field>
 
@@ -479,11 +476,6 @@ function ReviewCard({
     </div>
   )
 }
-
-const textareaCls =
-  "w-full resize-none rounded-xl border border-border/60 bg-background/60 px-3 py-2 text-sm font-semibold placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-ring/60"
-const inputCls =
-  "w-full rounded-xl border border-border/60 bg-background/60 px-3 py-2 text-sm font-medium placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/60"
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (

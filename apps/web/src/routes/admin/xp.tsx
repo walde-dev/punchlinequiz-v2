@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@workspace/ui/components/button"
-import { cn } from "@workspace/ui/lib/utils"
+import { Input } from "@workspace/ui/components/input"
 
 import { AdminShell } from "../../components/admin-shell"
 import { isAdminFn } from "../../lib/session"
@@ -121,7 +121,7 @@ function AdminXpPage() {
                   <span className="text-sm font-semibold text-foreground">{t(f.labelKey)}</span>
                   <span className="text-[11px] text-muted-foreground">{t(f.hintKey)}</span>
                 </span>
-                <input
+                <Input
                   type="number"
                   min={0}
                   step={1}
@@ -129,10 +129,7 @@ function AdminXpPage() {
                   onChange={(e) =>
                     setRow({ ...row, [f.key]: Number(e.target.value) })
                   }
-                  className={cn(
-                    "h-10 w-28 rounded-full border border-border/60 bg-background/60 px-4 text-right font-bold tabular-nums",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
-                  )}
+                  className="w-28 text-right font-bold tabular-nums"
                 />
               </label>
             ))}

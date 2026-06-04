@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
+import { Dialog, DialogContent, DialogTitle } from "@workspace/ui/components/dialog"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { getArtistDetail, getLineDetail } from "../lib/analytics"
@@ -103,42 +104,28 @@ function DrawerShell({
   onClose: () => void
   children: React.ReactNode
 }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose()
-    }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [onClose])
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-background/80 backdrop-blur-sm md:items-center"
-      onClick={onClose}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={`${eyebrow}: ${title}`}
-        className="flex max-h-[88vh] w-full max-w-2xl flex-col gap-5 overflow-y-auto rounded-t-2xl border border-border/60 bg-card p-5 md:rounded-2xl"
-        // ease-out entrance (starts fast → feels responsive); never scale(0).
-        style={{ animation: "pq-fade-up 260ms cubic-bezier(0.16,1,0.3,1)" }}
-        onClick={(e) => e.stopPropagation()}
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent
+        showCloseButton={false}
+        className="flex max-h-[88vh] max-w-2xl flex-col gap-5 overflow-y-auto p-5 sm:max-w-2xl"
       >
         <header className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               {eyebrow}
             </p>
-            <h3 className="text-lg font-extrabold leading-snug tracking-tight">{title}</h3>
+            <DialogTitle className="text-lg font-extrabold leading-snug tracking-tight">
+              {title}
+            </DialogTitle>
           </div>
           <Button type="button" variant="ghost" size="sm" onClick={onClose} className="shrink-0">
             Schließen
           </Button>
         </header>
         {children}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 

@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@workspace/ui/components/button"
+import { Checkbox } from "@workspace/ui/components/checkbox"
+import { Input } from "@workspace/ui/components/input"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { AdminShell } from "../../components/admin-shell"
@@ -73,11 +75,9 @@ function AdminDailyPage() {
             </p>
           </div>
           <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={includePast}
-              onChange={(e) => setIncludePast(e.target.checked)}
-              className="accent-primary"
+              onCheckedChange={(v) => setIncludePast(v === true)}
             />
             {t("admin.daily.includePast")}
           </label>
@@ -243,19 +243,19 @@ function ScheduleForm({
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           {t("admin.daily.date")}
-          <input
+          <Input
             type="date"
             value={date}
             min={today}
             onChange={(e) => setDate(e.target.value)}
-            className="rounded-xl border border-border/60 bg-background/60 px-3 py-2 text-sm font-mono font-bold tabular-nums focus:outline-none focus:ring-2 focus:ring-ring/60"
+            className="font-mono font-bold tabular-nums"
           />
         </label>
         <div className="flex-1 min-w-[220px] flex flex-col gap-1">
           <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             {t("admin.daily.barSearch")}
           </span>
-          <input
+          <Input
             type="text"
             value={search}
             onChange={(e) => {
@@ -263,7 +263,6 @@ function ScheduleForm({
               if (picked) setPicked(null)
             }}
             placeholder={t("admin.daily.barSearchPlaceholder")}
-            className="rounded-xl border border-border/60 bg-background/60 px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring/60"
           />
         </div>
       </div>

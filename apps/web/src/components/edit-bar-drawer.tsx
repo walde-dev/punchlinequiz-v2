@@ -1,8 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@workspace/ui/components/button"
-import { cn } from "@workspace/ui/lib/utils"
+import { Checkbox } from "@workspace/ui/components/checkbox"
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@workspace/ui/components/dialog"
+import { Input } from "@workspace/ui/components/input"
+import { Textarea } from "@workspace/ui/components/textarea"
 
 import {
   patchBar,
@@ -43,16 +50,6 @@ export function EditBarDrawer({
   )
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
-  const overlayRef = useRef<HTMLDivElement>(null)
-
-  // Esc to close
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose()
-    }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [onClose])
 
   const correctArtist = useMemo(
     () => artists.find((a) => a.id === artistId) ?? null,
@@ -162,42 +159,26 @@ export function EditBarDrawer({
   }
 
   return (
-    <div
-      ref={overlayRef}
-      onClick={(e) => {
-        if (e.target === overlayRef.current) onClose()
-      }}
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center"
-      role="dialog"
-      aria-modal="true"
-    >
-      <div className="w-full max-w-lg overflow-hidden rounded-t-3xl border border-border/60 bg-card shadow-2xl sm:rounded-3xl">
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-lg gap-0 overflow-hidden p-0 sm:max-w-lg">
         <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
           <div className="flex flex-col">
             <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary/80">
               / {t("admin.edit.title", { id: bar.id })}
             </span>
-            <span className="text-sm font-semibold">
+            <DialogTitle className="text-sm font-semibold">
               {correctArtistName} <span className="opacity-50">·</span> {bar.songTitle}
-            </span>
+            </DialogTitle>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={t("admin.common.close")}
-            className="rounded-full p-1.5 text-muted-foreground hover:bg-muted/40 hover:text-foreground"
-          >
-            ✕
-          </button>
         </div>
 
         <div className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto px-5 py-4">
           <Field label={t("admin.edit.line")}>
-            <textarea
+            <Textarea
               value={line}
               onChange={(e) => setLine(e.target.value)}
               rows={3}
-              className="w-full resize-none rounded-xl border border-border/60 bg-background/60 px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring/60"
+              className="font-semibold"
             />
             <a
               href={`https://genius.com/search?q=${encodeURIComponent(
@@ -213,30 +194,26 @@ export function EditBarDrawer({
           </Field>
 
           <Field label={t("admin.edit.clozePrompt")}>
-            <textarea
+            <Textarea
               value={clozePrompt}
               onChange={(e) => setClozePrompt(e.target.value)}
               rows={2}
               placeholder={t("admin.edit.clozePromptPlaceholder")}
-              className="w-full resize-none rounded-xl border border-border/60 bg-background/60 px-3 py-2 text-sm font-medium placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-ring/60"
             />
           </Field>
 
           <Field label={t("admin.edit.clozeAnswers")}>
-            <input
+            <Input
               value={clozeAnswers}
               onChange={(e) => setClozeAnswers(e.target.value)}
               placeholder={t("admin.edit.clozeAnswersPlaceholder")}
-              className={textInputCls}
             />
           </Field>
 
           <label className="flex items-center gap-2 text-sm font-medium">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={clozeEnabled}
-              onChange={(e) => setClozeEnabled(e.target.checked)}
-              className="accent-primary"
+              onCheckedChange={(v) => setClozeEnabled(v === true)}
             />
             <span>
               {t("admin.edit.playCloze")}
@@ -252,28 +229,26 @@ export function EditBarDrawer({
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto]">
             <Field label={t("admin.edit.song")}>
-              <input
+              <Input
                 value={songTitle}
                 onChange={(e) => setSongTitle(e.target.value)}
-                className={textInputCls}
               />
             </Field>
             <Field label={t("admin.edit.year")}>
-              <input
+              <Input
                 value={releaseYear}
                 onChange={(e) => setReleaseYear(e.target.value)}
                 inputMode="numeric"
                 pattern="[0-9]*"
-                className={cn(textInputCls, "w-20")}
+                className="w-20"
               />
             </Field>
           </div>
 
           <Field label={t("admin.edit.album")}>
-            <input
+            <Input
               value={album}
               onChange={(e) => setAlbum(e.target.value)}
-              className={textInputCls}
               placeholder={t("admin.edit.albumEmptyHint")}
             />
           </Field>
@@ -306,21 +281,17 @@ export function EditBarDrawer({
           )}
 
           <label className="flex items-center gap-2 text-sm font-medium">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={active}
-              onChange={(e) => setActive(e.target.checked)}
-              className="accent-primary"
+              onCheckedChange={(v) => setActive(v === true)}
             />
             {t("admin.edit.activeLabel")}
           </label>
 
           <label className="flex items-center gap-2 text-sm font-medium">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={starter}
-              onChange={(e) => setStarter(e.target.checked)}
-              className="accent-primary"
+              onCheckedChange={(v) => setStarter(v === true)}
             />
             <span>
               {t("admin.edit.starterLabel")}
@@ -372,13 +343,10 @@ export function EditBarDrawer({
             </Button>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }
-
-const textInputCls =
-  "w-full rounded-xl border border-border/60 bg-background/60 px-3 py-2 text-sm font-medium text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/60"
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (

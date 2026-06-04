@@ -3,6 +3,8 @@ import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@workspace/ui/components/button"
+import { Input } from "@workspace/ui/components/input"
+import { Textarea } from "@workspace/ui/components/textarea"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { AdminShell } from "../../components/admin-shell"
@@ -72,11 +74,6 @@ function SubmissionsPage() {
   )
 }
 
-const inputCls =
-  "w-full rounded-xl border border-border/60 bg-background/60 px-3 py-2 text-sm font-medium placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/60"
-const textareaCls =
-  "w-full resize-none rounded-xl border border-border/60 bg-background/60 px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring/60"
-
 function SubmissionCard({ submission, onResolved }: { submission: SubmissionRow; onResolved: () => void }) {
   const { t } = useTranslation()
   const [artist, setArtist] = useState(submission.artistHint ?? "")
@@ -140,7 +137,7 @@ function SubmissionCard({ submission, onResolved }: { submission: SubmissionRow;
       </div>
 
       <Field label={t("admin.submissions.line")}>
-        <textarea value={line} onChange={(e) => setLine(e.target.value)} rows={3} className={textareaCls} />
+        <Textarea value={line} onChange={(e) => setLine(e.target.value)} rows={3} />
       </Field>
 
       {submission.note && (
@@ -151,24 +148,24 @@ function SubmissionCard({ submission, onResolved }: { submission: SubmissionRow;
 
       <div className="grid grid-cols-2 gap-3">
         <Field label={t("admin.submissions.artist")} hint={submission.artistHint}>
-          <input value={artist} onChange={(e) => setArtist(e.target.value)} className={inputCls} />
+          <Input value={artist} onChange={(e) => setArtist(e.target.value)} />
         </Field>
         <Field label={t("admin.submissions.song")} hint={submission.songHint}>
-          <input value={song} onChange={(e) => setSong(e.target.value)} className={inputCls} />
+          <Input value={song} onChange={(e) => setSong(e.target.value)} />
         </Field>
         <Field label={t("admin.submissions.distractor1")}>
-          <input value={d1} onChange={(e) => setD1(e.target.value)} className={inputCls} />
+          <Input value={d1} onChange={(e) => setD1(e.target.value)} />
         </Field>
         <Field label={t("admin.submissions.distractor2")}>
-          <input value={d2} onChange={(e) => setD2(e.target.value)} className={inputCls} />
+          <Input value={d2} onChange={(e) => setD2(e.target.value)} />
         </Field>
       </div>
 
       <Field label={t("admin.submissions.clozePrompt")}>
-        <input value={clozePrompt} onChange={(e) => setClozePrompt(e.target.value)} className={inputCls} />
+        <Input value={clozePrompt} onChange={(e) => setClozePrompt(e.target.value)} />
       </Field>
       <Field label={t("admin.submissions.answers")}>
-        <input value={answers} onChange={(e) => setAnswers(e.target.value)} className={inputCls} />
+        <Input value={answers} onChange={(e) => setAnswers(e.target.value)} />
       </Field>
 
       {err && <p className="text-xs text-destructive">{err}</p>}

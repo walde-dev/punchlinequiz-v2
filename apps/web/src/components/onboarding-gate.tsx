@@ -3,6 +3,17 @@ import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@workspace/ui/components/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@workspace/ui/components/dialog"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@workspace/ui/components/input-group"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { HANDLE_MAX, HANDLE_MIN, validateHandle } from "../lib/handle"
@@ -110,14 +121,13 @@ function OnboardingFlow() {
           : t("onboarding.hint", { min: HANDLE_MIN, max: HANDLE_MAX })
 
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-background/85 px-6 backdrop-blur-sm"
-      role="dialog"
-      aria-modal="true"
-      aria-label={t("onboarding.title")}
-    >
-      <div
-        className="flex w-full max-w-sm flex-col gap-5 rounded-3xl border border-border/60 bg-card/90 p-7 text-center"
+    // Forced gate: controlled open with a no-op onOpenChange so Esc / outside
+    // click can't dismiss it. It only closes by unmounting (phase → "hidden").
+    <Dialog open onOpenChange={() => {}}>
+      <DialogContent
+        showCloseButton={false}
+        aria-label={t("onboarding.title")}
+        className="max-w-sm gap-5 p-7 text-center sm:max-w-sm"
         style={{
           animation: `pq-pop-in 0.45s ${ease} both`,
           boxShadow: "0 0 60px color-mix(in oklch, var(--primary), transparent 80%)",
@@ -126,35 +136,41 @@ function OnboardingFlow() {
         <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-primary/80">
           {t("onboarding.eyebrow")}
         </span>
-        <h2 className="text-2xl font-extrabold tracking-tight text-balance">{t("onboarding.title")}</h2>
-        <p className="text-sm text-muted-foreground text-balance">{t("onboarding.subtitle")}</p>
+        <DialogTitle className="text-2xl font-extrabold tracking-tight text-balance">
+          {t("onboarding.title")}
+        </DialogTitle>
+        <DialogDescription className="text-sm text-muted-foreground text-balance">
+          {t("onboarding.subtitle")}
+        </DialogDescription>
 
         <div className="flex flex-col gap-2 text-left">
-          <div
+          <InputGroup
             className={cn(
-              "flex items-center gap-1 rounded-full border bg-background/60 px-4 py-3 transition-colors",
+              "h-auto rounded-full px-2 py-1.5",
               availability.state === "ok"
                 ? "border-primary/70"
                 : availability.state === "bad"
                   ? "border-destructive/60"
-                  : "border-border/60 focus-within:border-primary/60",
+                  : "border-border/60",
             )}
           >
-            <span className="select-none text-base font-bold text-primary">@</span>
-            <input
+            <InputGroupAddon align="inline-start">
+              <span className="select-none text-base font-bold text-primary">@</span>
+            </InputGroupAddon>
+            <InputGroupInput
               autoFocus
               value={value}
               maxLength={HANDLE_MAX}
               onChange={(e) => setValue(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && submit()}
               placeholder={t("onboarding.placeholder")}
-              className="min-w-0 flex-1 bg-transparent text-base font-bold tracking-tight text-foreground outline-none placeholder:font-medium placeholder:text-muted-foreground/60"
+              className="text-base font-bold tracking-tight placeholder:font-medium placeholder:text-muted-foreground/60"
               aria-label={t("onboarding.title")}
               autoComplete="off"
               autoCapitalize="off"
               spellCheck={false}
             />
-          </div>
+          </InputGroup>
           <span
             className={cn(
               "px-1 text-xs",
@@ -177,7 +193,7 @@ function OnboardingFlow() {
         >
           {submitting ? t("onboarding.claiming") : t("onboarding.cta")}
         </Button>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

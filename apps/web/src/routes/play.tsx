@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next"
 import type { TFunction } from "i18next"
 
 import { Button } from "@workspace/ui/components/button"
+import { Input } from "@workspace/ui/components/input"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { AnonXpPill } from "../components/anon-xp-pill"
@@ -975,8 +976,9 @@ function ClozeInput({
         </p>
       )}
 
-      <input
+      <Input
         ref={inputRef}
+        size="hero"
         type="text"
         value={value}
         onChange={(e) => setValue(e.target.value)}
@@ -987,11 +989,6 @@ function ClozeInput({
         spellCheck={false}
         disabled={submitting}
         aria-label={t("play.clozeAriaLabel")}
-        className={cn(
-          "w-full min-h-14 rounded-full border bg-background/60 px-5 text-lg font-bold",
-          "border-border/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
-          "placeholder:text-muted-foreground/50 disabled:opacity-60",
-        )}
       />
       <Button
         type="submit"
@@ -1064,8 +1061,9 @@ function SongGuess({
           submit(value)
         }}
       >
-        <input
+        <Input
           ref={inputRef}
+          size="pill"
           type="text"
           value={value}
           onChange={(e) => setValue(e.target.value)}
@@ -1076,11 +1074,6 @@ function SongGuess({
           spellCheck={false}
           disabled={submitting}
           aria-label={t("play.songAriaLabel")}
-          className={cn(
-            "w-full min-h-12 rounded-full border bg-background/60 px-5 text-base font-semibold",
-            "border-border/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
-            "placeholder:text-muted-foreground/50 disabled:opacity-60",
-          )}
         />
         <div className="flex w-full gap-2">
           <Button

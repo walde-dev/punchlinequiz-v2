@@ -17,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@workspace/ui/components/table"
+import { Input } from "@workspace/ui/components/input"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { AdminShell } from "../../components/admin-shell"
@@ -311,13 +312,13 @@ function AnalyticsPage() {
               </button>
             ))}
           </div>
-          <input
+          <Input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={view === "lines" ? "Line oder Artist suchen…" : "Artist suchen…"}
             aria-label={view === "lines" ? "Lines durchsuchen" : "Artists durchsuchen"}
-            className="w-full max-w-xs rounded-full border border-border/60 bg-card/60 px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring/60"
+            className="w-full max-w-xs"
           />
         </div>
 

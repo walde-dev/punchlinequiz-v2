@@ -2,6 +2,8 @@ import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@workspace/ui/components/button"
+import { Input } from "@workspace/ui/components/input"
+import { Slider } from "@workspace/ui/components/slider"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { createTag, fetchTags, type TagRow } from "../lib/admin-client"
@@ -126,14 +128,15 @@ export function TagEditor({
               <span className="w-28 shrink-0 truncate text-[11px] font-semibold uppercase tracking-wide text-primary">
                 {t.label}
               </span>
-              <input
-                type="range"
+              <Slider
                 min={0}
                 max={1}
                 step={0.05}
-                value={t.weight}
-                onChange={(e) => setWeight(t.slug, Number(e.target.value))}
-                className="flex-1 accent-primary"
+                value={[t.weight]}
+                onValueChange={(val) =>
+                  setWeight(t.slug, Array.isArray(val) ? val[0] : val)
+                }
+                className="flex-1"
               />
               <span className="w-10 text-right text-[11px] font-mono tabular-nums text-muted-foreground">
                 {t.weight.toFixed(2)}
@@ -145,7 +148,7 @@ export function TagEditor({
 
       {/* create new */}
       <div className="flex items-center gap-2">
-        <input
+        <Input
           type="text"
           value={newLabel}
           onChange={(e) => setNewLabel(e.target.value)}
@@ -156,7 +159,7 @@ export function TagEditor({
             }
           }}
           placeholder={t("admin.tags.newTagPlaceholder")}
-          className="flex-1 rounded-full border border-border/40 bg-background/40 px-3 py-1.5 text-xs font-medium placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/60"
+          className="flex-1"
         />
         <Button
           type="button"

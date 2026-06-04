@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
+import { Input } from "@workspace/ui/components/input"
 import { cn } from "@workspace/ui/lib/utils"
 
 export type ComboboxItem = {
@@ -22,9 +23,6 @@ type Props = {
   /** Min chars before triggering a search. Default 2. */
   minChars?: number
 }
-
-const inputCls =
-  "w-full rounded-xl border border-border/60 bg-background/60 px-3 py-2 text-sm font-medium text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/60"
 
 export function Combobox({
   value,
@@ -106,7 +104,7 @@ export function Combobox({
 
   return (
     <div ref={wrapRef} className={cn("relative", className)}>
-      <input
+      <Input
         ref={inputRef}
         type="text"
         value={value}
@@ -123,7 +121,7 @@ export function Combobox({
         aria-expanded={open}
         aria-controls={listboxId}
         aria-autocomplete="list"
-        className={inputCls}
+        className="w-full"
       />
       {open && (loading || hits.length > 0 || value.trim().length >= minChars) && (
         <ul

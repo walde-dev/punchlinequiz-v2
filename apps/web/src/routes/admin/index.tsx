@@ -3,6 +3,16 @@ import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@workspace/ui/components/button"
+import { Checkbox } from "@workspace/ui/components/checkbox"
+import { Input } from "@workspace/ui/components/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui/components/select"
+import { Textarea } from "@workspace/ui/components/textarea"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { isAdminFn } from "../../lib/session"
@@ -164,7 +174,7 @@ function AdminDashboard() {
 
         <div className="flex flex-col gap-2 rounded-2xl border border-border/40 bg-card/40 p-3">
           <div className="flex flex-wrap items-center gap-2">
-            <input
+            <Input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -172,9 +182,9 @@ function AdminDashboard() {
                 if (e.key === "Enter") refresh()
               }}
               placeholder={t("admin.dashboard.searchPlaceholder")}
-              className="flex-[2] min-w-[200px] rounded-full border border-border/60 bg-background/60 px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring/60"
+              className="flex-[2] min-w-[200px]"
             />
-            <input
+            <Input
               type="text"
               value={song}
               onChange={(e) => setSong(e.target.value)}
@@ -182,7 +192,7 @@ function AdminDashboard() {
                 if (e.key === "Enter") refresh()
               }}
               placeholder={t("admin.dashboard.filterSongPlaceholder")}
-              className="flex-1 min-w-[140px] rounded-full border border-border/60 bg-background/60 px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring/60"
+              className="flex-1 min-w-[140px]"
             />
             <Button type="button" variant="ghost" size="sm" onClick={() => refresh()}>
               {t("admin.common.search")}
@@ -204,23 +214,25 @@ function AdminDashboard() {
                 }}
               />
             </div>
-            <select
+            <Select
               value={reviewedFilter}
-              onChange={(e) =>
-                setReviewedFilter(e.target.value as "all" | "reviewed" | "unreviewed")
+              onValueChange={(v) =>
+                setReviewedFilter(v as "all" | "reviewed" | "unreviewed")
               }
-              className="rounded-full border border-border/60 bg-background/60 px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring/60"
             >
-              <option value="all">{t("admin.dashboard.filterReviewedAll")}</option>
-              <option value="reviewed">{t("admin.dashboard.filterReviewedYes")}</option>
-              <option value="unreviewed">{t("admin.dashboard.filterReviewedNo")}</option>
-            </select>
+              <SelectTrigger className="w-auto">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("admin.dashboard.filterReviewedAll")}</SelectItem>
+                <SelectItem value="reviewed">{t("admin.dashboard.filterReviewedYes")}</SelectItem>
+                <SelectItem value="unreviewed">{t("admin.dashboard.filterReviewedNo")}</SelectItem>
+              </SelectContent>
+            </Select>
             <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={includeInactive}
-                onChange={(e) => setIncludeInactive(e.target.checked)}
-                className="accent-primary"
+                onCheckedChange={(v) => setIncludeInactive(v === true)}
               />
               {t("admin.dashboard.showInactive")}
             </label>
@@ -346,8 +358,6 @@ function CreateBarForm({ onCreated }: { onCreated: () => Promise<void> }) {
     }
   }
 
-  const inputCls =
-    "w-full rounded-xl border border-border/60 bg-background/60 px-3 py-2 text-sm font-medium text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/60"
   const labelCls =
     "flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
 
@@ -383,12 +393,12 @@ function CreateBarForm({ onCreated }: { onCreated: () => Promise<void> }) {
       </div>
       <label className={labelCls}>
         {t("admin.create.barLabel")}
-        <textarea
+        <Textarea
           value={line}
           onChange={(e) => setLine(e.target.value)}
           required
           rows={2}
-          className={cn(inputCls, "resize-none font-semibold")}
+          className="font-semibold"
         />
       </label>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -404,16 +414,15 @@ function CreateBarForm({ onCreated }: { onCreated: () => Promise<void> }) {
       <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_auto]">
         <label className={labelCls}>
           {t("admin.create.albumOptional")}
-          <input value={album} onChange={(e) => setAlbum(e.target.value)} className={inputCls} />
+          <Input value={album} onChange={(e) => setAlbum(e.target.value)} />
         </label>
         <label className={labelCls}>
           {t("admin.create.yearOptional")}
-          <input
+          <Input
             value={year}
             onChange={(e) => setYear(e.target.value)}
             inputMode="numeric"
             pattern="[0-9]*"
-            className={inputCls}
           />
         </label>
         {coverUrl && (
@@ -611,19 +620,17 @@ function ArtistTagsPanel({ artists }: { artists: ArtistRow[] }) {
       {open && (
         <>
           <div className="flex flex-wrap items-center gap-2">
-            <input
+            <Input
               type="text"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               placeholder={t("admin.tags.filterPlaceholder")}
-              className="flex-1 min-w-[180px] rounded-full border border-border/60 bg-background/60 px-3 py-1.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-ring/60"
+              className="flex-1 min-w-[180px]"
             />
             <label className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={showUntaggedOnly}
-                onChange={(e) => setShowUntaggedOnly(e.target.checked)}
-                className="accent-primary"
+                onCheckedChange={(v) => setShowUntaggedOnly(v === true)}
               />
               {t("admin.tags.untaggedOnly")}
             </label>

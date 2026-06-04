@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@workspace/ui/components/button"
+import { Input } from "@workspace/ui/components/input"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { AdminShell } from "../../components/admin-shell"
@@ -144,33 +145,33 @@ function AdminLevelsPage() {
                   ;(e.currentTarget as HTMLImageElement).style.visibility = "hidden"
                 }}
               />
-              <input
+              <Input
                 type="number"
                 min={0}
                 step={50}
                 value={r.threshold}
                 onChange={(e) => update(i, { threshold: Number(e.target.value) })}
-                className="h-9 rounded-full border border-border/60 bg-background/60 px-3 text-right font-bold tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                className="text-right font-bold tabular-nums"
               />
-              <input
+              <Input
                 type="text"
                 value={r.nameDe}
                 onChange={(e) => update(i, { nameDe: e.target.value })}
-                className="h-9 rounded-full border border-border/60 bg-background/60 px-3 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                className="font-semibold"
                 placeholder="Rookie"
               />
-              <input
+              <Input
                 type="text"
                 value={r.nameEn}
                 onChange={(e) => update(i, { nameEn: e.target.value })}
-                className="h-9 rounded-full border border-border/60 bg-background/60 px-3 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                className="font-semibold"
                 placeholder="Rookie"
               />
-              <input
+              <Input
                 type="text"
                 value={r.accent}
                 onChange={(e) => update(i, { accent: e.target.value })}
-                className="h-9 rounded-full border border-border/60 bg-background/60 px-3 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                className="text-xs font-semibold"
               />
               <button
                 type="button"
