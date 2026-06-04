@@ -70,6 +70,32 @@ export async function fetchBars(opts: {
 }
 
 /**
+ * Fetch *every* bar (active + inactive) by paging through the API, which
+ * caps each request at 200 rows. Used by the admin table, which filters
+ * client-side and caches the full set (see admin index `loadAll`).
+ */
+export async function fetchAllBars(): Promise<{ items: BarRow[]; total: number }> {
+  const pageSize = 200
+  const all: BarRow[] = []
+  let offset = 0
+  let total = 0
+  // Hard ceiling so a misbehaving API can never spin forever.
+  for (let page = 0; page < 200; page++) {
+    const url = new URL("/api/admin/bars", window.location.origin)
+    url.searchParams.set("includeInactive", "true")
+    url.searchParams.set("limit", String(pageSize))
+    url.searchParams.set("offset", String(offset))
+    const res = await fetch(url, { credentials: "same-origin" })
+    const body = await jsonOrThrow<{ items: BarRow[]; total: number }>(res)
+    all.push(...body.items)
+    total = body.total
+    if (body.items.length < pageSize || all.length >= total) break
+    offset += pageSize
+  }
+  return { items: all, total }
+}
+
+/**
  * Fetch the next un-reviewed bar (single, random pick) excluding any
  * client-side session-skipped IDs. Returns null when the queue is empty.
  */

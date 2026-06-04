@@ -1,16 +1,35 @@
 import { createFileRoute, redirect } from "@tanstack/react-router"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { RiRefreshLine } from "@remixicon/react"
 
+import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
+import { Checkbox } from "@workspace/ui/components/checkbox"
+import { Input } from "@workspace/ui/components/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui/components/select"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@workspace/ui/components/table"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { isAdminFn } from "../../lib/session"
 import type { ArtistRow, ArtistTagRow, BarRow } from "../../lib/admin-client"
 import {
+  fetchAllBars,
   fetchArtists,
   fetchArtistTags,
-  fetchBars,
   createArtist,
   createBar,
   getDeezerTrack,
@@ -34,90 +53,126 @@ export const Route = createFileRoute("/admin/")({
   },
 })
 
+type StatusFilter = "all" | "reviewed" | "unreviewed"
+
+/**
+ * Module-level cache of the full bar + artist set. Survives navigation away
+ * and back so re-entering the dashboard is instant; the "reload" button
+ * forces a fresh server fetch.
+ */
+let dashboardCache: { bars: BarRow[]; artists: ArtistRow[]; at: number } | null = null
+
 function AdminDashboard() {
   const { t } = useTranslation()
-  const [bars, setBars] = useState<BarRow[]>([])
-  const [artists, setArtists] = useState<ArtistRow[]>([])
-  const [loading, setLoading] = useState(true)
+  const [allBars, setAllBars] = useState<BarRow[]>(dashboardCache?.bars ?? [])
+  const [artists, setArtists] = useState<ArtistRow[]>(dashboardCache?.artists ?? [])
+  const [loading, setLoading] = useState(!dashboardCache)
+  const [refreshing, setRefreshing] = useState(false)
   const [search, setSearch] = useState("")
-  const [song, setSong] = useState("")
   const [artistFilterId, setArtistFilterId] = useState<number | null>(null)
   const [artistFilterName, setArtistFilterName] = useState("")
-  const [reviewedFilter, setReviewedFilter] = useState<"all" | "reviewed" | "unreviewed">("all")
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
   const [includeInactive, setIncludeInactive] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [showCreateArtist, setShowCreateArtist] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
-  // Overrides let callers (e.g. reset) fetch with values that haven't been
-  // committed to state yet, since setState is async.
-  async function refresh(override?: {
-    search?: string
-    song?: string
-    artistId?: number | null
-    reviewedFilter?: "all" | "reviewed" | "unreviewed"
-  }) {
-    const s = override?.search ?? search
-    const so = override?.song ?? song
-    const aid = override?.artistId !== undefined ? override.artistId : artistFilterId
-    const rf = override?.reviewedFilter ?? reviewedFilter
-    setLoading(true)
+  // Pull the full set once (paged) and cache it. `force` re-fetches from the
+  // server (hard refresh) while keeping the current rows on screen.
+  async function loadAll(force = false) {
+    if (force) setRefreshing(true)
+    else setLoading(true)
     setErr(null)
     try {
-      const [b, a] = await Promise.all([
-        fetchBars({
-          search: s,
-          song: so,
-          artistId: aid ?? undefined,
-          includeInactive,
-          reviewed: rf === "reviewed" ? true : rf === "unreviewed" ? false : undefined,
-        }),
-        fetchArtists(),
-      ])
-      setBars(b.items)
+      const [b, a] = await Promise.all([fetchAllBars(), fetchArtists()])
+      dashboardCache = { bars: b.items, artists: a.items, at: Date.now() }
+      setAllBars(b.items)
       setArtists(a.items)
     } catch (e) {
       setErr(String(e))
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
   }
 
-  // Dropdown/checkbox filters re-fetch immediately; text inputs use Enter / Search.
   useEffect(() => {
-    refresh()
+    if (!dashboardCache) loadAll()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [includeInactive, artistFilterId, reviewedFilter])
+  }, [])
+
+  const statusItems = useMemo(
+    () => [
+      { value: "all", label: t("admin.dashboard.filterReviewedAll") },
+      { value: "reviewed", label: t("admin.dashboard.filterReviewedYes") },
+      { value: "unreviewed", label: t("admin.dashboard.filterReviewedNo") },
+    ],
+    [t],
+  )
 
   const resetFilters = () => {
     setSearch("")
-    setSong("")
     setArtistFilterName("")
-    setReviewedFilter("all")
     setArtistFilterId(null)
-    refresh({ search: "", song: "", artistId: null, reviewedFilter: "all" })
+    setStatusFilter("all")
+    setIncludeInactive(false)
   }
   const hasActiveFilters =
-    Boolean(search) ||
-    Boolean(song) ||
+    Boolean(search.trim()) ||
     artistFilterId != null ||
-    reviewedFilter !== "all"
+    statusFilter !== "all" ||
+    includeInactive
 
-  const editingBar = editingId != null ? bars.find((b) => b.id === editingId) ?? null : null
-  const artistName = (id: number) => artists.find((a) => a.id === id)?.name ?? `#${id}`
+  const artistName = useMemo(() => {
+    const byId = new Map(artists.map((a) => [a.id, a.name]))
+    return (id: number) => byId.get(id) ?? `#${id}`
+  }, [artists])
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return allBars.filter((b) => {
+      if (!includeInactive && !b.active) return false
+      if (statusFilter === "reviewed" && !b.reviewed) return false
+      if (statusFilter === "unreviewed" && b.reviewed) return false
+      if (artistFilterId != null && b.artistId !== artistFilterId) return false
+      if (q) {
+        const hay = `${b.line} ${b.artistName} ${b.songTitle} ${b.songAlbum ?? ""}`.toLowerCase()
+        if (!hay.includes(q)) return false
+      }
+      return true
+    })
+  }, [allBars, search, includeInactive, statusFilter, artistFilterId])
+
+  const editingBar = editingId != null ? allBars.find((b) => b.id === editingId) ?? null : null
 
   return (
     <AdminShell>
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
-        <div className="flex items-end justify-between gap-3">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+        <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="text-2xl font-extrabold tracking-tight">{t("admin.dashboard.barsTitle")}</h1>
             <p className="text-sm text-muted-foreground">
-              {loading ? t("admin.common.loading") : t("admin.dashboard.hitsCount", { count: bars.length })}
+              {loading
+                ? t("admin.common.loading")
+                : t("admin.dashboard.showing", {
+                    shown: filtered.length,
+                    total: allBars.length,
+                  })}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => loadAll(true)}
+              disabled={loading || refreshing}
+              className="font-semibold"
+            >
+              <RiRefreshLine className={cn(refreshing && "animate-spin")} />
+              {refreshing ? t("admin.common.loading") : t("admin.dashboard.reload")}
+            </Button>
             <Button
               type="button"
               variant="ghost"
@@ -146,7 +201,7 @@ function AdminDashboard() {
           <CreateArtistForm
             onCreated={async () => {
               setShowCreateArtist(false)
-              await refresh()
+              await loadAll(true)
             }}
           />
         )}
@@ -157,135 +212,141 @@ function AdminDashboard() {
           <CreateBarForm
             onCreated={async () => {
               setShowCreate(false)
-              await refresh()
+              await loadAll(true)
             }}
           />
         )}
 
-        <div className="flex flex-col gap-2 rounded-2xl border border-border/40 bg-card/40 p-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") refresh()
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border/40 bg-card/40 p-3">
+          <Input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t("admin.dashboard.searchPlaceholder")}
+            className="flex-[2] min-w-[200px]"
+          />
+          <div className="min-w-[200px] flex-1">
+            <FilterArtistCombobox
+              artists={artists}
+              value={artistFilterName}
+              onChange={(name) => {
+                setArtistFilterName(name)
+                // Typing a free string clears any exact-id pick.
+                if (artistFilterId != null) setArtistFilterId(null)
               }}
-              placeholder={t("admin.dashboard.searchPlaceholder")}
-              className="flex-[2] min-w-[200px] rounded-full border border-border/60 bg-background/60 px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring/60"
-            />
-            <input
-              type="text"
-              value={song}
-              onChange={(e) => setSong(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") refresh()
+              onPick={(a) => {
+                setArtistFilterName(a.name)
+                setArtistFilterId(a.id)
               }}
-              placeholder={t("admin.dashboard.filterSongPlaceholder")}
-              className="flex-1 min-w-[140px] rounded-full border border-border/60 bg-background/60 px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring/60"
             />
-            <Button type="button" variant="ghost" size="sm" onClick={() => refresh()}>
-              {t("admin.common.search")}
-            </Button>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="min-w-[200px] flex-1">
-              <FilterArtistCombobox
-                artists={artists}
-                value={artistFilterName}
-                onChange={(name) => {
-                  setArtistFilterName(name)
-                  // Typing a free string clears any exact-id pick.
-                  if (artistFilterId != null) setArtistFilterId(null)
-                }}
-                onPick={(a) => {
-                  setArtistFilterName(a.name)
-                  setArtistFilterId(a.id)
-                }}
-              />
-            </div>
-            <select
-              value={reviewedFilter}
-              onChange={(e) =>
-                setReviewedFilter(e.target.value as "all" | "reviewed" | "unreviewed")
-              }
-              className="rounded-full border border-border/60 bg-background/60 px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring/60"
+          <Select
+            items={statusItems}
+            value={statusFilter}
+            onValueChange={(v) => setStatusFilter(v as StatusFilter)}
+          >
+            <SelectTrigger size="sm" className="min-w-[150px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {statusItems.map((it) => (
+                <SelectItem key={it.value} value={it.value}>
+                  {it.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+            <Checkbox
+              checked={includeInactive}
+              onCheckedChange={(checked) => setIncludeInactive(checked === true)}
+            />
+            {t("admin.dashboard.showInactive")}
+          </label>
+          {hasActiveFilters && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={resetFilters}
+              className="text-xs font-semibold text-muted-foreground"
             >
-              <option value="all">{t("admin.dashboard.filterReviewedAll")}</option>
-              <option value="reviewed">{t("admin.dashboard.filterReviewedYes")}</option>
-              <option value="unreviewed">{t("admin.dashboard.filterReviewedNo")}</option>
-            </select>
-            <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-              <input
-                type="checkbox"
-                checked={includeInactive}
-                onChange={(e) => setIncludeInactive(e.target.checked)}
-                className="accent-primary"
-              />
-              {t("admin.dashboard.showInactive")}
-            </label>
-            {hasActiveFilters && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={resetFilters}
-                className="text-xs font-semibold text-muted-foreground"
-              >
-                {t("admin.dashboard.resetFilters")}
-              </Button>
-            )}
-          </div>
+              {t("admin.dashboard.resetFilters")}
+            </Button>
+          )}
         </div>
 
         {err && <p className="text-xs text-destructive">{err}</p>}
 
-        <ul className="flex flex-col divide-y divide-border/40 rounded-2xl border border-border/40 bg-card/40">
-          {bars.map((b) => (
-            <li
-              key={b.id}
-              className={cn(
-                "flex flex-col gap-1 px-4 py-3 transition-colors hover:bg-card/80",
-                !b.active && "opacity-50",
+        <div className="rounded-2xl border border-border/40 bg-card/40">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("admin.dashboard.colBar")}</TableHead>
+                <TableHead>{t("admin.dashboard.colArtist")}</TableHead>
+                <TableHead>{t("admin.dashboard.colSong")}</TableHead>
+                <TableHead>{t("admin.dashboard.colYear")}</TableHead>
+                <TableHead>{t("admin.dashboard.vs")}</TableHead>
+                <TableHead>{t("admin.dashboard.colStatus")}</TableHead>
+                <TableHead className="text-right" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((b) => (
+                <TableRow key={b.id} className={cn(!b.active && "opacity-50")}>
+                  <TableCell className="max-w-[420px] whitespace-normal">
+                    <span className="font-semibold leading-snug text-foreground">{b.line}</span>
+                    <span className="ml-1.5 text-[10px] text-muted-foreground/40">#{b.id}</span>
+                  </TableCell>
+                  <TableCell className="font-semibold text-primary">{b.artistName}</TableCell>
+                  <TableCell className="text-muted-foreground">{b.songTitle}</TableCell>
+                  <TableCell className="tabular-nums text-muted-foreground">
+                    {b.releaseYear ?? "—"}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      <Badge variant="muted">{artistName(b.distractor1Id)}</Badge>
+                      <Badge variant="muted">{artistName(b.distractor2Id)}</Badge>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {!b.active && (
+                        <Badge variant="outline">{t("admin.dashboard.badgeInactive")}</Badge>
+                      )}
+                      <Badge variant={b.reviewed ? "default" : "muted"}>
+                        {b.reviewed
+                          ? t("admin.dashboard.badgeReviewed")
+                          : t("admin.dashboard.badgeOpen")}
+                      </Badge>
+                      {b.starter && (
+                        <Badge variant="outline">{t("admin.dashboard.badgeStarter")}</Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditingId(b.id)}
+                      className="text-xs font-semibold"
+                    >
+                      {t("admin.common.edit")}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {!loading && filtered.length === 0 && (
+                <TableRow className="hover:bg-transparent">
+                  <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                    {t("admin.dashboard.noBars")}
+                  </TableCell>
+                </TableRow>
               )}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <p className="text-sm font-semibold leading-snug text-foreground">{b.line}</p>
-                  <p className="text-xs text-muted-foreground">
-                    <span className="font-semibold text-primary">{b.artistName}</span>
-                    <span className="opacity-60"> · {b.songTitle}</span>
-                    {b.releaseYear && <span className="opacity-50"> · {b.releaseYear}</span>}
-                    <span className="opacity-40"> · #{b.id}</span>
-                  </p>
-                  <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide">
-                    <span className="text-muted-foreground/60">{t("admin.dashboard.vs")}</span>
-                    <span className="rounded-full border border-border/50 bg-background/40 px-2 py-0.5 text-muted-foreground">
-                      {artistName(b.distractor1Id)}
-                    </span>
-                    <span className="rounded-full border border-border/50 bg-background/40 px-2 py-0.5 text-muted-foreground">
-                      {artistName(b.distractor2Id)}
-                    </span>
-                  </div>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setEditingId(b.id)}
-                  className="shrink-0 text-xs font-semibold"
-                >
-                  {t("admin.common.edit")}
-                </Button>
-              </div>
-            </li>
-          ))}
-          {!loading && bars.length === 0 && (
-            <li className="px-4 py-8 text-center text-sm text-muted-foreground">
-              {t("admin.dashboard.noBars")}
-            </li>
-          )}
-        </ul>
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       {editingBar && (
@@ -295,7 +356,7 @@ function AdminDashboard() {
           onClose={() => setEditingId(null)}
           onSaved={async () => {
             setEditingId(null)
-            await refresh()
+            await loadAll(true)
           }}
         />
       )}
