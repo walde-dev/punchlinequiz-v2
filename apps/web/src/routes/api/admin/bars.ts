@@ -62,6 +62,7 @@ export const Route = createFileRoute("/api/admin/bars")({
           await requireAdmin(request)
           const url = new URL(request.url)
           const artistQ = url.searchParams.get("artist")
+          const artistIdQ = Number(url.searchParams.get("artistId") ?? "")
           const songQ = url.searchParams.get("song")
           const searchQ = url.searchParams.get("search")
           const limit = Math.min(
@@ -76,7 +77,11 @@ export const Route = createFileRoute("/api/admin/bars")({
 
           const conds = []
           if (!includeInactive) conds.push(eq(punchlines.active, true))
-          if (artistQ) conds.push(ilike(artists.name, `%${artistQ}%`))
+          if (Number.isInteger(artistIdQ) && artistIdQ > 0) {
+            conds.push(eq(artists.id, artistIdQ))
+          } else if (artistQ) {
+            conds.push(ilike(artists.name, `%${artistQ}%`))
+          }
           if (songQ) conds.push(ilike(songs.title, `%${songQ}%`))
           if (searchQ) conds.push(ilike(punchlines.line, `%${searchQ}%`))
           if (reviewedParam === "true") conds.push(eq(punchlines.reviewed, true))

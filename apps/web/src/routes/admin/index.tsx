@@ -40,18 +40,39 @@ function AdminDashboard() {
   const [artists, setArtists] = useState<ArtistRow[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
+  const [song, setSong] = useState("")
+  const [artistFilterId, setArtistFilterId] = useState<number | null>(null)
+  const [artistFilterName, setArtistFilterName] = useState("")
+  const [reviewedFilter, setReviewedFilter] = useState<"all" | "reviewed" | "unreviewed">("all")
   const [includeInactive, setIncludeInactive] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [showCreateArtist, setShowCreateArtist] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
-  async function refresh() {
+  // Overrides let callers (e.g. reset) fetch with values that haven't been
+  // committed to state yet, since setState is async.
+  async function refresh(override?: {
+    search?: string
+    song?: string
+    artistId?: number | null
+    reviewedFilter?: "all" | "reviewed" | "unreviewed"
+  }) {
+    const s = override?.search ?? search
+    const so = override?.song ?? song
+    const aid = override?.artistId !== undefined ? override.artistId : artistFilterId
+    const rf = override?.reviewedFilter ?? reviewedFilter
     setLoading(true)
     setErr(null)
     try {
       const [b, a] = await Promise.all([
-        fetchBars({ search, includeInactive }),
+        fetchBars({
+          search: s,
+          song: so,
+          artistId: aid ?? undefined,
+          includeInactive,
+          reviewed: rf === "reviewed" ? true : rf === "unreviewed" ? false : undefined,
+        }),
         fetchArtists(),
       ])
       setBars(b.items)
@@ -63,10 +84,25 @@ function AdminDashboard() {
     }
   }
 
+  // Dropdown/checkbox filters re-fetch immediately; text inputs use Enter / Search.
   useEffect(() => {
     refresh()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [includeInactive])
+  }, [includeInactive, artistFilterId, reviewedFilter])
+
+  const resetFilters = () => {
+    setSearch("")
+    setSong("")
+    setArtistFilterName("")
+    setReviewedFilter("all")
+    setArtistFilterId(null)
+    refresh({ search: "", song: "", artistId: null, reviewedFilter: "all" })
+  }
+  const hasActiveFilters =
+    Boolean(search) ||
+    Boolean(song) ||
+    artistFilterId != null ||
+    reviewedFilter !== "all"
 
   const editingBar = editingId != null ? bars.find((b) => b.id === editingId) ?? null : null
   const artistName = (id: number) => artists.find((a) => a.id === id)?.name ?? `#${id}`
@@ -126,29 +162,80 @@ function AdminDashboard() {
           />
         )}
 
-        <div className="flex flex-wrap items-center gap-2">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") refresh()
-            }}
-            placeholder={t("admin.dashboard.searchPlaceholder")}
-            className="flex-1 min-w-[200px] rounded-full border border-border/60 bg-card/60 px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring/60"
-          />
-          <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+        <div className="flex flex-col gap-2 rounded-2xl border border-border/40 bg-card/40 p-3">
+          <div className="flex flex-wrap items-center gap-2">
             <input
-              type="checkbox"
-              checked={includeInactive}
-              onChange={(e) => setIncludeInactive(e.target.checked)}
-              className="accent-primary"
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") refresh()
+              }}
+              placeholder={t("admin.dashboard.searchPlaceholder")}
+              className="flex-[2] min-w-[200px] rounded-full border border-border/60 bg-background/60 px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring/60"
             />
-            {t("admin.dashboard.showInactive")}
-          </label>
-          <Button type="button" variant="ghost" size="sm" onClick={refresh}>
-            {t("admin.common.search")}
-          </Button>
+            <input
+              type="text"
+              value={song}
+              onChange={(e) => setSong(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") refresh()
+              }}
+              placeholder={t("admin.dashboard.filterSongPlaceholder")}
+              className="flex-1 min-w-[140px] rounded-full border border-border/60 bg-background/60 px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring/60"
+            />
+            <Button type="button" variant="ghost" size="sm" onClick={() => refresh()}>
+              {t("admin.common.search")}
+            </Button>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="min-w-[200px] flex-1">
+              <FilterArtistCombobox
+                artists={artists}
+                value={artistFilterName}
+                onChange={(name) => {
+                  setArtistFilterName(name)
+                  // Typing a free string clears any exact-id pick.
+                  if (artistFilterId != null) setArtistFilterId(null)
+                }}
+                onPick={(a) => {
+                  setArtistFilterName(a.name)
+                  setArtistFilterId(a.id)
+                }}
+              />
+            </div>
+            <select
+              value={reviewedFilter}
+              onChange={(e) =>
+                setReviewedFilter(e.target.value as "all" | "reviewed" | "unreviewed")
+              }
+              className="rounded-full border border-border/60 bg-background/60 px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring/60"
+            >
+              <option value="all">{t("admin.dashboard.filterReviewedAll")}</option>
+              <option value="reviewed">{t("admin.dashboard.filterReviewedYes")}</option>
+              <option value="unreviewed">{t("admin.dashboard.filterReviewedNo")}</option>
+            </select>
+            <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={includeInactive}
+                onChange={(e) => setIncludeInactive(e.target.checked)}
+                className="accent-primary"
+              />
+              {t("admin.dashboard.showInactive")}
+            </label>
+            {hasActiveFilters && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={resetFilters}
+                className="text-xs font-semibold text-muted-foreground"
+              >
+                {t("admin.dashboard.resetFilters")}
+              </Button>
+            )}
+          </div>
         </div>
 
         {err && <p className="text-xs text-destructive">{err}</p>}
@@ -698,6 +785,44 @@ function ArtistTagsDrawer({
         </div>
       </div>
     </div>
+  )
+}
+
+/**
+ * Filter-only combobox over artists already in the DB (local, no Deezer call).
+ * Picking an item filters bars by that artist's exact id.
+ */
+function FilterArtistCombobox({
+  artists,
+  value,
+  onChange,
+  onPick,
+}: {
+  artists: ArtistRow[]
+  value: string
+  onChange: (v: string) => void
+  onPick: (a: ArtistRow) => void
+}) {
+  const { t } = useTranslation()
+  return (
+    <Combobox
+      value={value}
+      onChange={onChange}
+      onPick={(item) => {
+        const a = artists.find((x) => String(x.id) === item.key)
+        if (a) onPick(a)
+        else onChange(item.label)
+      }}
+      minChars={1}
+      search={async (q): Promise<ComboboxItem[]> => {
+        const needle = q.trim().toLowerCase()
+        return artists
+          .filter((a) => a.name.toLowerCase().includes(needle))
+          .slice(0, 50)
+          .map((a) => ({ key: String(a.id), label: a.name, imageUrl: a.imageUrl }))
+      }}
+      placeholder={t("admin.dashboard.filterArtistPlaceholder")}
+    />
   )
 }
 

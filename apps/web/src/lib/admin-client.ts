@@ -50,12 +50,18 @@ async function jsonOrThrow<T>(res: Response): Promise<T> {
 
 export async function fetchBars(opts: {
   search?: string
+  artist?: string
+  artistId?: number
+  song?: string
   includeInactive?: boolean
   limit?: number
   reviewed?: boolean
 }): Promise<{ items: BarRow[]; total: number }> {
   const url = new URL("/api/admin/bars", window.location.origin)
   if (opts.search?.trim()) url.searchParams.set("search", opts.search.trim())
+  if (opts.artistId && opts.artistId > 0) url.searchParams.set("artistId", String(opts.artistId))
+  else if (opts.artist?.trim()) url.searchParams.set("artist", opts.artist.trim())
+  if (opts.song?.trim()) url.searchParams.set("song", opts.song.trim())
   if (opts.includeInactive) url.searchParams.set("includeInactive", "true")
   if (opts.reviewed !== undefined) url.searchParams.set("reviewed", String(opts.reviewed))
   url.searchParams.set("limit", String(opts.limit ?? 100))
