@@ -524,7 +524,7 @@ function PlayInner({
       <div className="pq-spotlight pointer-events-none absolute inset-0" aria-hidden="true" />
 
       <main className="relative flex flex-1 flex-col px-5 pt-20 pb-8 md:px-8">
-        <div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-between gap-8">
+        <div className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-6">
           {/* Persistent "X XP banked" signup pill (PUN-99). Refetches the live
               total after each correct answer (anonCtaKey bumps then). */}
           <AnonXpPill refreshKey={anonCtaKey} />

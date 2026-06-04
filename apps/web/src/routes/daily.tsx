@@ -264,7 +264,7 @@ function DailyInner({ daily }: { daily: DailyChallenge }) {
       />
 
       <main className="relative flex flex-1 flex-col px-5 pt-20 pb-8 md:px-8">
-        <div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-between gap-8">
+        <div className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-6">
           <BarDisplay
             line={daily.line}
             shakeKey={wrongShake}
