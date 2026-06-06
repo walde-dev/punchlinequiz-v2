@@ -173,7 +173,13 @@ export const getDailyChallenge = createServerFn({ method: "GET" })
  */
 export const submitDailyArtistGuess = createServerFn({ method: "POST" })
   .inputValidator(
-    (d: { punchlineId: number; artistId: number; date: string }) => d
+    (d: {
+      punchlineId: number
+      artistId: number
+      date: string
+      /** False once the player has already missed at least once today. */
+      firstTry: boolean
+    }) => d
   )
   .handler(async ({ data }): Promise<DailyArtistGuessResult> => {
     const rows = await db
@@ -192,8 +198,16 @@ export const submitDailyArtistGuess = createServerFn({ method: "POST" })
     const isCorrect = r.correctArtistId === data.artistId
     let xp: XpGrantResult | null = null
     const clerkId = await getClerkIdOrNull()
-    if (clerkId && isValidIsoDate(data.date)) {
-      xp = await grantDailyArtist({ clerkId, date: data.date, isCorrect })
+    // Only the correct pick spends the day and grants xp. A wrong pick lets the
+    // player guess again, so it must NOT insert the idempotent daily row —
+    // otherwise the eventual correct pick would be swallowed as a duplicate.
+    if (isCorrect && clerkId && isValidIsoDate(data.date)) {
+      xp = await grantDailyArtist({
+        clerkId,
+        date: data.date,
+        isCorrect: true,
+        firstTry: data.firstTry,
+      })
     }
     return {
       isCorrect,

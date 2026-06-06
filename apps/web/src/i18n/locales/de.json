@@ -255,6 +255,7 @@
     "oneShot": "Ein Versuch",
     "subtext": "Heute. Eine Bar.",
     "questionArtist": "Wer hat das gerappt?",
+    "artistRetry": "Nicht ganz. Wer dann?",
     "questionSong": "Welcher Song ist das?",
     "songPlaceholder": "Song-Titel eingeben…",
     "dateAria": "Datum {{date}}",
@@ -277,6 +278,7 @@
     },
     "wordleAria": "{{label}}: {{result}}",
     "wordleCorrect": "richtig",
+    "wordleRetry": "knapp",
     "wordleWrong": "falsch"
   },
   "finishing": {

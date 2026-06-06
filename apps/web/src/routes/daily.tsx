@@ -46,9 +46,14 @@ export const Route = createFileRoute("/daily")({
 
 const ease = "cubic-bezier(0.16, 1, 0.3, 1)"
 
+/** 🟩 first try · 🟨 got it after a miss · 🟥 never got it (only on bail). */
+type ArtistTier = "first" | "retry" | "missed"
+
 type LocalState = {
   artistId: number
   artistCorrect: boolean
+  /** Optional for back-compat with rows written before three-tier landed. */
+  artistTier?: ArtistTier
   songGuess: string
   songCorrect: boolean
   artistName: string
@@ -93,18 +98,22 @@ function DailyInner({ daily }: { daily: DailyChallenge }) {
   const { t } = useTranslation()
   const initialStored = useMemo(() => readLocal(daily.date), [daily.date])
   const [phase, setPhase] = useState<Phase>(initialStored ? "done" : "artist")
-  const [pickedArtistId, setPickedArtistId] = useState<number | null>(
-    initialStored?.artistId ?? null
-  )
+  // Wrong picks stay on screen, eliminated; the day only advances on a hit.
+  const [wrongArtistIds, setWrongArtistIds] = useState<Array<number>>([])
+  const [pendingArtistId, setPendingArtistId] = useState<number | null>(null)
   const [songGuess, setSongGuess] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [artistResult, setArtistResult] = useState<{
     isCorrect: boolean
+    tier: ArtistTier
     correctArtist: DailyArtistChoice
   } | null>(
     initialStored
       ? {
           isCorrect: initialStored.artistCorrect,
+          tier:
+            initialStored.artistTier ??
+            (initialStored.artistCorrect ? "first" : "missed"),
           correctArtist: {
             id: initialStored.artistId,
             name: initialStored.artistName,
@@ -174,11 +183,15 @@ function DailyInner({ daily }: { daily: DailyChallenge }) {
 
   async function onArtistPick(choice: DailyArtistChoice) {
     if (submitting || phase !== "artist") return
-    setPickedArtistId(choice.id)
+    if (wrongArtistIds.includes(choice.id)) return
+    const firstTry = wrongArtistIds.length === 0
+    const attempt = wrongArtistIds.length + 1
+    setPendingArtistId(choice.id)
     setSubmitting(true)
     logEvent("daily_artist_submitted", {
       daily_date: daily.date,
       artist_id: choice.id,
+      attempt,
     })
     try {
       const res = await submitDailyArtistGuess({
@@ -186,27 +199,36 @@ function DailyInner({ daily }: { daily: DailyChallenge }) {
           punchlineId: daily.punchlineId,
           artistId: choice.id,
           date: daily.date,
+          firstTry,
         },
       })
-      setArtistResult(res)
-      consumeXp(res.xp, res.isCorrect)
       logEvent("daily_artist_revealed", {
         daily_date: daily.date,
         punchline_id: daily.punchlineId,
         is_correct: res.isCorrect,
+        attempt,
         artist_id: choice.id,
         correct_artist_id: res.correctArtist.id,
       })
       if (res.isCorrect) {
+        // Their success moment — reveal the artist, then the song prompt.
+        setArtistResult({
+          isCorrect: true,
+          tier: firstTry ? "first" : "retry",
+          correctArtist: res.correctArtist,
+        })
+        consumeXp(res.xp, true)
         setConfettiKey((k) => k + 1)
+        setPhase("song")
       } else {
+        // No block — eliminate the miss and let them go again.
+        setWrongArtistIds((ids) => [...ids, choice.id])
         setWrongShake((s) => s + 1)
       }
-      setPhase("song")
     } catch (err) {
       console.error(err)
-      setPickedArtistId(null)
     } finally {
+      setPendingArtistId(null)
       setSubmitting(false)
     }
   }
@@ -236,10 +258,11 @@ function DailyInner({ daily }: { daily: DailyChallenge }) {
       if (res.isCorrect) {
         setConfettiKey((k) => k + 1)
       }
-      if (artistResult && pickedArtistId != null) {
+      if (artistResult) {
         writeLocal(daily.date, {
-          artistId: pickedArtistId,
+          artistId: artistResult.correctArtist.id,
           artistCorrect: artistResult.isCorrect,
+          artistTier: artistResult.tier,
           songGuess: trimmed,
           songCorrect: res.isCorrect,
           artistName: artistResult.correctArtist.name,
@@ -280,7 +303,8 @@ function DailyInner({ daily }: { daily: DailyChallenge }) {
               <ArtistChoices
                 choices={daily.choices}
                 onPick={onArtistPick}
-                pickedId={pickedArtistId}
+                wrongIds={wrongArtistIds}
+                pendingId={pendingArtistId}
                 disabled={submitting}
               />
             )}
@@ -405,15 +429,18 @@ function renderBarLines(line: string): React.ReactNode {
 function ArtistChoices({
   choices,
   onPick,
-  pickedId,
+  wrongIds,
+  pendingId,
   disabled,
 }: {
   choices: Array<DailyArtistChoice>
   onPick: (c: DailyArtistChoice) => void
-  pickedId: number | null
+  wrongIds: Array<number>
+  pendingId: number | null
   disabled: boolean
 }) {
   const { t } = useTranslation()
+  const missed = wrongIds.length > 0
   return (
     <div
       className="flex flex-col gap-3"
@@ -423,28 +450,29 @@ function ArtistChoices({
         <span className="text-[11px] font-bold tracking-[0.16em] text-primary/80 uppercase">
           {t("daily.eyebrowArtist")}
         </span>
-        <span className="text-[11px] font-bold tracking-[0.16em] text-muted-foreground/60 uppercase">
-          {t("daily.oneShot")}
-        </span>
       </div>
       <p className="px-1 text-sm text-muted-foreground">
-        {t("daily.questionArtist")}
+        {missed ? t("daily.artistRetry") : t("daily.questionArtist")}
       </p>
       {choices.map((c, i) => {
-        const isSelected = pickedId === c.id
+        const isWrong = wrongIds.includes(c.id)
+        const isPending = pendingId === c.id
         return (
           <button
             key={c.id}
             type="button"
             onClick={() => onPick(c)}
-            disabled={disabled || pickedId !== null}
-            aria-pressed={isSelected}
+            disabled={disabled || isWrong}
             className={cn(
               "group relative flex min-h-14 w-full items-center gap-3 rounded-full px-4 py-3",
               "border bg-card/60 text-left text-base font-semibold transition-all",
-              "hover:border-primary/40 hover:bg-card focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none",
-              "disabled:cursor-not-allowed disabled:opacity-60",
-              isSelected ? "border-primary bg-primary/10" : "border-border/60"
+              "focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none",
+              "disabled:cursor-not-allowed",
+              isWrong
+                ? "border-destructive/40 bg-destructive/5 text-muted-foreground/70 line-through opacity-60"
+                : isPending
+                  ? "border-primary bg-primary/10"
+                  : "border-border/60 hover:border-primary/40 hover:bg-card disabled:opacity-60"
             )}
             style={{
               animation: `pq-fade-up 0.5s ${ease} ${0.2 + i * 0.07}s both`,
@@ -454,11 +482,17 @@ function ArtistChoices({
             <span className="flex-1">{c.name}</span>
             <span
               className={cn(
-                "h-2 w-2 rounded-full transition-all",
-                isSelected ? "scale-125 bg-primary" : "bg-muted-foreground/30"
+                "flex h-5 w-5 items-center justify-center text-sm font-bold transition-all",
+                isWrong
+                  ? "text-destructive/70"
+                  : isPending
+                    ? "text-primary"
+                    : "text-muted-foreground/30"
               )}
               aria-hidden="true"
-            />
+            >
+              {isWrong ? "✕" : isPending ? "…" : ""}
+            </span>
           </button>
         )
       })}
@@ -592,6 +626,7 @@ function DailyResult({
   daily: DailyChallenge
   artistResult: {
     isCorrect: boolean
+    tier: ArtistTier
     correctArtist: { id: number; name: string; imageUrl: string | null }
   }
   songResult: {
@@ -615,7 +650,13 @@ function DailyResult({
       : { label: t("daily.verdict.wrongLabel"), line: t("daily.verdict.wrong") }
 
   const shareText = useMemo(() => {
-    const grid = `${artistResult.isCorrect ? "🟩" : "🟥"}${songResult.isCorrect ? "🟩" : "🟥"}`
+    const artistCell =
+      artistResult.tier === "missed"
+        ? "🟥"
+        : artistResult.tier === "retry"
+          ? "🟨"
+          : "🟩"
+    const grid = `${artistCell}${songResult.isCorrect ? "🟩" : "🟥"}`
     return `punchline/quiz daily #${daily.number}\n${grid}\npunchlinequiz.de/daily`
   }, [artistResult, songResult, daily.number])
 
@@ -663,7 +704,7 @@ function DailyResult({
         {verdict.label}
       </span>
 
-      <WordleGrid artist={artistResult.isCorrect} song={songResult.isCorrect} />
+      <WordleGrid artistTier={artistResult.tier} song={songResult.isCorrect} />
 
       <AlbumArt
         artistImage={daily.artistImageUrl}
@@ -725,12 +766,25 @@ function DailyResult({
   )
 }
 
-function WordleGrid({ artist, song }: { artist: boolean; song: boolean }) {
+function WordleGrid({
+  artistTier,
+  song,
+}: {
+  artistTier: ArtistTier
+  song: boolean
+}) {
   const { t } = useTranslation()
-  const cells = [
-    { label: "Artist", correct: artist },
-    { label: "Song", correct: song },
+  const artistState: CellState =
+    artistTier === "missed" ? "wrong" : artistTier === "retry" ? "retry" : "hit"
+  const cells: Array<{ label: string; state: CellState }> = [
+    { label: "Artist", state: artistState },
+    { label: "Song", state: song ? "hit" : "wrong" },
   ]
+  const resultKey: Record<CellState, string> = {
+    hit: "daily.wordleCorrect",
+    retry: "daily.wordleRetry",
+    wrong: "daily.wordleWrong",
+  }
   return (
     <div className="flex items-center gap-2">
       {cells.map((c) => (
@@ -738,23 +792,25 @@ function WordleGrid({ artist, song }: { artist: boolean; song: boolean }) {
           key={c.label}
           className={cn(
             "flex h-14 w-14 items-center justify-center rounded-lg border-2 text-xs font-bold tracking-wide uppercase",
-            c.correct
+            c.state === "hit"
               ? "border-primary/80 bg-primary/20 text-primary"
-              : "border-destructive/50 bg-destructive/15 text-destructive/80"
+              : c.state === "retry"
+                ? "border-primary/40 bg-primary/10 text-primary/70"
+                : "border-destructive/50 bg-destructive/15 text-destructive/80"
           )}
           aria-label={t("daily.wordleAria", {
             label: c.label,
-            result: c.correct
-              ? t("daily.wordleCorrect")
-              : t("daily.wordleWrong"),
+            result: t(resultKey[c.state]),
           })}
         >
-          {c.correct ? "✓" : "✕"}
+          {c.state === "wrong" ? "✕" : "✓"}
         </div>
       ))}
     </div>
   )
 }
+
+type CellState = "hit" | "retry" | "wrong"
 
 function AlbumArt({
   artistImage,
