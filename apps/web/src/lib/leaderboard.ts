@@ -192,13 +192,19 @@ export async function getLeaderboard(input: {
       .select({ count: sql<number>`count(*)::int` })
       .from(punchlines)
       .innerJoin(songs, eq(songs.id, punchlines.songId))
-      .where(and(eq(punchlines.active, true), eq(songs.artistId, artistId)))
+      .where(
+        and(
+          eq(punchlines.active, true),
+          eq(punchlines.reviewed, true),
+          eq(songs.artistId, artistId)
+        )
+      )
     totalActiveLines = total
 
     topRows = await rawRows<Row>(sql`
       SELECT u.clerk_id, u.handle, u.image_url, u.total_xp, count(*)::int AS metric
       FROM ${userPunchlineXp} up
-      JOIN ${punchlines} p ON p.id = up.punchline_id AND p.active
+      JOIN ${punchlines} p ON p.id = up.punchline_id AND p.active AND p.reviewed
       JOIN ${songs} s ON s.id = p.song_id AND s.artist_id = ${artistId}
       JOIN ${users} u ON u.clerk_id = up.clerk_id AND u.handle IS NOT NULL
       GROUP BY u.clerk_id, u.handle, u.image_url, u.total_xp
@@ -227,13 +233,13 @@ export async function getLeaderboard(input: {
     const [{ count: total }] = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(punchlines)
-      .where(eq(punchlines.active, true))
+      .where(and(eq(punchlines.active, true), eq(punchlines.reviewed, true)))
     totalActiveLines = total
 
     topRows = await rawRows<Row>(sql`
       SELECT u.clerk_id, u.handle, u.image_url, u.total_xp, count(*)::int AS metric
       FROM ${userPunchlineXp} up
-      JOIN ${punchlines} p ON p.id = up.punchline_id AND p.active
+      JOIN ${punchlines} p ON p.id = up.punchline_id AND p.active AND p.reviewed
       JOIN ${users} u ON u.clerk_id = up.clerk_id AND u.handle IS NOT NULL
       GROUP BY u.clerk_id, u.handle, u.image_url, u.total_xp
       ORDER BY metric DESC, u.total_xp DESC
@@ -350,7 +356,7 @@ async function computeMe(args: {
       WITH cnt AS (
         SELECT up.clerk_id, count(*)::int AS c
         FROM ${userPunchlineXp} up
-        JOIN ${punchlines} p ON p.id = up.punchline_id AND p.active
+        JOIN ${punchlines} p ON p.id = up.punchline_id AND p.active AND p.reviewed
         JOIN ${users} u ON u.clerk_id = up.clerk_id AND u.handle IS NOT NULL
         GROUP BY up.clerk_id
       )
@@ -368,7 +374,8 @@ async function computeMe(args: {
           punchlines,
           and(
             eq(punchlines.id, userPunchlineXp.punchlineId),
-            eq(punchlines.active, true)
+            eq(punchlines.active, true),
+            eq(punchlines.reviewed, true)
           )
         )
         .innerJoin(
