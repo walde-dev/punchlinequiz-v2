@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { SignInButton, useAuth } from "@clerk/tanstack-react-start"
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@workspace/ui/components/button"
@@ -162,11 +162,15 @@ function SubmitForm() {
         </button>
 
         {showOptional && (
-          <div className="flex flex-col gap-3 rounded-2xl border border-border/40 bg-card/30 p-4">
-            <OptField label={t("submit.artistHint")} value={artistHint} onChange={setArtistHint} />
-            <OptField label={t("submit.songHint")} value={songHint} onChange={setSongHint} />
-            <OptField label={t("submit.answer")} value={answer} onChange={setAnswer} />
-            <OptField label={t("submit.clozePrompt")} value={clozePrompt} onChange={setClozePrompt} />
+          <div className="flex flex-col gap-5 rounded-2xl border border-border/40 bg-card/30 p-4">
+            <OptGroup title={t("submit.groupMcTitle")} hint={t("submit.groupMcHint")}>
+              <OptField label={t("submit.artistHint")} value={artistHint} onChange={setArtistHint} />
+              <OptField label={t("submit.songHint")} value={songHint} onChange={setSongHint} />
+            </OptGroup>
+            <OptGroup title={t("submit.groupClozeTitle")} hint={t("submit.groupClozeHint")}>
+              <OptField label={t("submit.answer")} value={answer} onChange={setAnswer} />
+              <OptField label={t("submit.clozePrompt")} value={clozePrompt} onChange={setClozePrompt} />
+            </OptGroup>
             <OptField label={t("submit.note")} value={note} onChange={setNote} />
           </div>
         )}
@@ -183,6 +187,18 @@ function SubmitForm() {
         </Button>
       </form>
     </main>
+  )
+}
+
+function OptGroup({ title, hint, children }: { title: string; hint: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-0.5">
+        <span className="text-[11px] font-bold uppercase tracking-wide text-primary/80">{title}</span>
+        <span className="text-xs font-medium text-muted-foreground">{hint}</span>
+      </div>
+      {children}
+    </div>
   )
 }
 
