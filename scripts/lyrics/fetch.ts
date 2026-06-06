@@ -15,17 +15,21 @@ interface Args {
   artist: string
   songs: number
   force: boolean
+  artistId: number | null
 }
 
 function parseArgs(argv: string[]): Args {
-  const args: Args = { artist: "", songs: 30, force: false }
+  const args: Args = { artist: "", songs: 30, force: false, artistId: null }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
     if (a === "--artist") args.artist = argv[++i] ?? ""
     else if (a === "--songs") args.songs = Number(argv[++i] ?? 30)
+    else if (a === "--artist-id") args.artistId = Number(argv[++i] ?? "") || null
     else if (a === "--force") args.force = true
     else if (a === "-h" || a === "--help") {
-      console.log("Usage: pnpm lyrics:fetch --artist <name> [--songs 30] [--force]")
+      console.log(
+        "Usage: pnpm lyrics:fetch --artist <name> [--artist-id <geniusId>] [--songs 30] [--force]",
+      )
       process.exit(0)
     }
   }
@@ -53,21 +57,30 @@ async function main() {
   const lyricsDir = path.join(dir, "lyrics")
   ensureDir(lyricsDir)
 
-  console.log(`→ searching Genius for "${args.artist}"`)
-  const hits = await searchSongs(args.artist)
-  if (hits.length === 0) {
-    console.error("no results")
-    process.exit(1)
+  let artistId: number
+  if (args.artistId != null) {
+    // Explicit Genius artist id — bypasses the name search entirely. Use this
+    // when the name is ambiguous (e.g. "Cro" resolves to 2Pac on Genius).
+    artistId = args.artistId
+    console.log(`→ using explicit artist id ${artistId} for "${args.artist}"`)
+  } else {
+    console.log(`→ searching Genius for "${args.artist}"`)
+    const hits = await searchSongs(args.artist)
+    if (hits.length === 0) {
+      console.error("no results")
+      process.exit(1)
+    }
+
+    // Resolve the artist id from the most popular hit that matches the name.
+    const target = hits.find(
+      (h) => h.primaryArtist.toLowerCase() === args.artist.toLowerCase(),
+    ) ?? hits[0]!
+    console.log(`→ artist id ${target.artistId} (${target.primaryArtist})`)
+    artistId = target.artistId
   }
 
-  // Resolve the artist id from the most popular hit that matches the name.
-  const target = hits.find(
-    (h) => h.primaryArtist.toLowerCase() === args.artist.toLowerCase(),
-  ) ?? hits[0]!
-  console.log(`→ artist id ${target.artistId} (${target.primaryArtist})`)
-
   console.log(`→ fetching top ${args.songs} songs`)
-  const songs = await artistSongs(target.artistId, args.songs)
+  const songs = await artistSongs(artistId, args.songs)
   console.log(`  got ${songs.length} songs`)
 
   const records: SongRecord[] = []

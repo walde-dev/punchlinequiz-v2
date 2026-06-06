@@ -1,146 +1,2583 @@
 {
-  "$schema": "Edit freely. Each artist maps to an array of {tag, weight (0..1)} entries. Categories: city (frankfurt, berlin, koeln, hamburg, muenchen, ruhrgebiet, stuttgart, hessen, oesterreich), style (wordplay, street, melodic, trap, drill, old-school, battle, pop-rap, conscious, gangsta), mood (braggadocio, love, introspective, hard, funny, party), era (00s, 10s, 20s), language (slang, multilingual, hochdeutsch, dialect). Add tags as needed — pickDistractors scores by shared tag * product of weights.",
+  "$schema": "Mirror of the DB artist tags (admin UI is the source of truth; the distractor picker reads the DB, not this file). Regenerate from /api/admin/artists/:id/tags. Categories: city (frankfurt, berlin, koeln/nrw, hamburg, muenchen, stuttgart, hessen, ost, oesterreich), style (wordplay, street, trap, drill, melodic, autotune, rage, old-school, battle, pop-rap, conscious, gangsta, dancehall, dance), scene/crew (187, balkan), mood (braggadocio, love, introspective, hard, funny, party, emo, gym, alcohol, drugs, violence), era (00s, 10s, 20s), language (slang, multilingual), other (female, black). Each artist maps to {tag, weight 0..1}; pickDistractors scores by shared tag * product of weights.",
   "artists": {
-    "Kollegah": [
-      { "tag": "hessen", "weight": 0.8 },
-      { "tag": "wordplay", "weight": 1.0 },
-      { "tag": "braggadocio", "weight": 1.0 },
-      { "tag": "battle", "weight": 0.9 },
-      { "tag": "hard", "weight": 0.8 },
-      { "tag": "10s", "weight": 1.0 },
-      { "tag": "gangsta", "weight": 0.7 }
+    "$OHO BANI": [
+      {
+        "tag": "20s",
+        "weight": 1
+      },
+      {
+        "tag": "rage",
+        "weight": 0.9
+      },
+      {
+        "tag": "berlin",
+        "weight": 0.7
+      },
+      {
+        "tag": "trap",
+        "weight": 0.7
+      }
     ],
-    "Farid Bang": [
-      { "tag": "nrw", "weight": 0.9 },
-      { "tag": "battle", "weight": 0.9 },
-      { "tag": "braggadocio", "weight": 0.9 },
-      { "tag": "hard", "weight": 0.9 },
-      { "tag": "gangsta", "weight": 0.8 },
-      { "tag": "10s", "weight": 0.9 }
+    "01099": [
+      {
+        "tag": "20s",
+        "weight": 1
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.8
+      },
+      {
+        "tag": "ost",
+        "weight": 0.8
+      },
+      {
+        "tag": "trap",
+        "weight": 0.8
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.5
+      }
     ],
-    "Haftbefehl": [
-      { "tag": "frankfurt", "weight": 1.0 },
-      { "tag": "street", "weight": 1.0 },
-      { "tag": "multilingual", "weight": 0.9 },
-      { "tag": "slang", "weight": 1.0 },
-      { "tag": "hard", "weight": 0.8 },
-      { "tag": "gangsta", "weight": 0.9 }
-    ],
-    "Celo & Abdi": [
-      { "tag": "frankfurt", "weight": 1.0 },
-      { "tag": "street", "weight": 0.9 },
-      { "tag": "multilingual", "weight": 0.8 },
-      { "tag": "slang", "weight": 0.9 },
-      { "tag": "hard", "weight": 0.7 }
-    ],
-    "Olexesh": [
-      { "tag": "street", "weight": 0.8 },
-      { "tag": "multilingual", "weight": 0.7 },
-      { "tag": "10s", "weight": 0.9 }
-    ],
-    "SSIO": [
-      { "tag": "nrw", "weight": 0.9 },
-      { "tag": "funny", "weight": 0.9 },
-      { "tag": "wordplay", "weight": 0.8 },
-      { "tag": "braggadocio", "weight": 0.8 },
-      { "tag": "slang", "weight": 0.7 },
-      { "tag": "10s", "weight": 0.9 }
-    ],
-    "Sido": [
-      { "tag": "berlin", "weight": 1.0 },
-      { "tag": "street", "weight": 0.7 },
-      { "tag": "old-school", "weight": 0.9 },
-      { "tag": "00s", "weight": 1.0 },
-      { "tag": "10s", "weight": 0.7 },
-      { "tag": "funny", "weight": 0.6 }
-    ],
-    "Bushido": [
-      { "tag": "berlin", "weight": 1.0 },
-      { "tag": "hard", "weight": 0.8 },
-      { "tag": "battle", "weight": 0.7 },
-      { "tag": "braggadocio", "weight": 0.8 },
-      { "tag": "old-school", "weight": 0.9 },
-      { "tag": "00s", "weight": 1.0 },
-      { "tag": "gangsta", "weight": 0.8 }
-    ],
-    "Fler": [
-      { "tag": "berlin", "weight": 1.0 },
-      { "tag": "hard", "weight": 0.7 },
-      { "tag": "old-school", "weight": 0.8 },
-      { "tag": "00s", "weight": 0.9 },
-      { "tag": "braggadocio", "weight": 0.7 }
-    ],
-    "Massiv": [
-      { "tag": "berlin", "weight": 0.9 },
-      { "tag": "street", "weight": 0.7 },
-      { "tag": "00s", "weight": 0.8 },
-      { "tag": "10s", "weight": 0.7 }
-    ],
-    "RAF Camora": [
-      { "tag": "oesterreich", "weight": 0.9 },
-      { "tag": "trap", "weight": 1.0 },
-      { "tag": "melodic", "weight": 0.8 },
-      { "tag": "10s", "weight": 0.9 },
-      { "tag": "20s", "weight": 0.9 }
-    ],
-    "Bonez MC": [
-      { "tag": "hamburg", "weight": 1.0 },
-      { "tag": "trap", "weight": 0.9 },
-      { "tag": "melodic", "weight": 0.8 },
-      { "tag": "street", "weight": 0.7 },
-      { "tag": "10s", "weight": 0.9 },
-      { "tag": "20s", "weight": 0.8 }
-    ],
-    "Gzuz": [
-      { "tag": "hamburg", "weight": 1.0 },
-      { "tag": "street", "weight": 0.9 },
-      { "tag": "hard", "weight": 0.8 },
-      { "tag": "gangsta", "weight": 0.8 },
-      { "tag": "10s", "weight": 0.9 }
-    ],
-    "Capital Bra": [
-      { "tag": "berlin", "weight": 0.8 },
-      { "tag": "trap", "weight": 0.9 },
-      { "tag": "melodic", "weight": 0.7 },
-      { "tag": "multilingual", "weight": 0.6 },
-      { "tag": "10s", "weight": 0.9 },
-      { "tag": "20s", "weight": 0.8 }
-    ],
-    "Luciano": [
-      { "tag": "stuttgart", "weight": 0.8 },
-      { "tag": "trap", "weight": 0.9 },
-      { "tag": "melodic", "weight": 0.8 },
-      { "tag": "20s", "weight": 0.9 }
+    "Ali As": [
+      {
+        "tag": "10s",
+        "weight": 0.9
+      },
+      {
+        "tag": "muenchen",
+        "weight": 0.8
+      },
+      {
+        "tag": "wordplay",
+        "weight": 0.8
+      },
+      {
+        "tag": "conscious",
+        "weight": 0.7
+      }
     ],
     "Apache 207": [
-      { "tag": "melodic", "weight": 1.0 },
-      { "tag": "pop-rap", "weight": 1.0 },
-      { "tag": "love", "weight": 0.7 },
-      { "tag": "20s", "weight": 1.0 }
+      {
+        "tag": "20s",
+        "weight": 1
+      },
+      {
+        "tag": "melodic",
+        "weight": 1
+      },
+      {
+        "tag": "pop-rap",
+        "weight": 1
+      },
+      {
+        "tag": "love",
+        "weight": 0.7
+      }
     ],
-    "OG Keemo": [
-      { "tag": "wordplay", "weight": 0.9 },
-      { "tag": "conscious", "weight": 0.8 },
-      { "tag": "introspective", "weight": 0.8 },
-      { "tag": "20s", "weight": 0.9 }
+    "Asche": [
+      {
+        "tag": "hard",
+        "weight": 0.9
+      },
+      {
+        "tag": "street",
+        "weight": 0.9
+      },
+      {
+        "tag": "battle",
+        "weight": 0.8
+      },
+      {
+        "tag": "gangsta",
+        "weight": 0.8
+      },
+      {
+        "tag": "wordplay",
+        "weight": 0.8
+      }
     ],
-    "Edgar Wasser": [
-      { "tag": "wordplay", "weight": 1.0 },
-      { "tag": "funny", "weight": 0.8 },
-      { "tag": "conscious", "weight": 0.7 },
-      { "tag": "10s", "weight": 0.9 }
+    "Ayliva": [
+      {
+        "tag": "20s",
+        "weight": 1
+      },
+      {
+        "tag": "female",
+        "weight": 1
+      },
+      {
+        "tag": "love",
+        "weight": 1
+      },
+      {
+        "tag": "melodic",
+        "weight": 1
+      },
+      {
+        "tag": "pop-rap",
+        "weight": 0.9
+      }
     ],
-    "Megaloh": [
-      { "tag": "berlin", "weight": 0.7 },
-      { "tag": "conscious", "weight": 0.9 },
-      { "tag": "wordplay", "weight": 0.7 },
-      { "tag": "10s", "weight": 0.9 }
+    "Azad": [
+      {
+        "tag": "00s",
+        "weight": 1
+      },
+      {
+        "tag": "frankfurt",
+        "weight": 0.9
+      },
+      {
+        "tag": "street",
+        "weight": 0.9
+      },
+      {
+        "tag": "gangsta",
+        "weight": 0.8
+      },
+      {
+        "tag": "hard",
+        "weight": 0.8
+      },
+      {
+        "tag": "hessen",
+        "weight": 0.8
+      },
+      {
+        "tag": "10s",
+        "weight": 0.7
+      }
+    ],
+    "Azet": [
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.9
+      },
+      {
+        "tag": "trap",
+        "weight": 0.9
+      },
+      {
+        "tag": "balkan",
+        "weight": 0.9
+      },
+      {
+        "tag": "20s",
+        "weight": 0.8
+      },
+      {
+        "tag": "autotune",
+        "weight": 0.8
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.7
+      },
+      {
+        "tag": "street",
+        "weight": 0.7
+      },
+      {
+        "tag": "drugs",
+        "weight": 0.6
+      }
+    ],
+    "Badmómzjay": [
+      {
+        "tag": "20s",
+        "weight": 1
+      },
+      {
+        "tag": "female",
+        "weight": 1
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.8
+      },
+      {
+        "tag": "trap",
+        "weight": 0.8
+      },
+      {
+        "tag": "berlin",
+        "weight": 0.7
+      },
+      {
+        "tag": "pop-rap",
+        "weight": 0.7
+      },
+      {
+        "tag": "10s",
+        "weight": 0.6
+      }
+    ],
+    "Bausa": [
+      {
+        "tag": "10s",
+        "weight": 0.9
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.9
+      },
+      {
+        "tag": "pop-rap",
+        "weight": 0.9
+      },
+      {
+        "tag": "20s",
+        "weight": 0.8
+      },
+      {
+        "tag": "love",
+        "weight": 0.7
+      },
+      {
+        "tag": "stuttgart",
+        "weight": 0.7
+      }
+    ],
+    "Bonez MC": [
+      {
+        "tag": "187",
+        "weight": 1
+      },
+      {
+        "tag": "hamburg",
+        "weight": 1
+      },
+      {
+        "tag": "10s",
+        "weight": 0.9
+      },
+      {
+        "tag": "trap",
+        "weight": 0.9
+      },
+      {
+        "tag": "20s",
+        "weight": 0.8
+      },
+      {
+        "tag": "gangsta",
+        "weight": 0.8
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.8
+      },
+      {
+        "tag": "street",
+        "weight": 0.7
+      },
+      {
+        "tag": "slang",
+        "weight": 0.6
+      }
+    ],
+    "Bushido": [
+      {
+        "tag": "00s",
+        "weight": 1
+      },
+      {
+        "tag": "berlin",
+        "weight": 1
+      },
+      {
+        "tag": "old-school",
+        "weight": 0.9
+      },
+      {
+        "tag": "braggadocio",
+        "weight": 0.8
+      },
+      {
+        "tag": "gangsta",
+        "weight": 0.8
+      },
+      {
+        "tag": "hard",
+        "weight": 0.8
+      },
+      {
+        "tag": "street",
+        "weight": 0.8
+      },
+      {
+        "tag": "10s",
+        "weight": 0.7
+      },
+      {
+        "tag": "battle",
+        "weight": 0.7
+      }
+    ],
+    "Caney030": [
+      {
+        "tag": "20s",
+        "weight": 1
+      },
+      {
+        "tag": "berlin",
+        "weight": 1
+      },
+      {
+        "tag": "rage",
+        "weight": 0.9
+      },
+      {
+        "tag": "trap",
+        "weight": 0.8
+      }
+    ],
+    "Capital Bra": [
+      {
+        "tag": "10s",
+        "weight": 0.9
+      },
+      {
+        "tag": "trap",
+        "weight": 0.9
+      },
+      {
+        "tag": "20s",
+        "weight": 0.8
+      },
+      {
+        "tag": "berlin",
+        "weight": 0.8
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.8
+      },
+      {
+        "tag": "pop-rap",
+        "weight": 0.8
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.7
+      },
+      {
+        "tag": "street",
+        "weight": 0.6
+      }
+    ],
+    "CAPO": [
+      {
+        "tag": "10s",
+        "weight": 0.9
+      },
+      {
+        "tag": "frankfurt",
+        "weight": 0.9
+      },
+      {
+        "tag": "street",
+        "weight": 0.9
+      },
+      {
+        "tag": "trap",
+        "weight": 0.9
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.8
+      },
+      {
+        "tag": "20s",
+        "weight": 0.7
+      },
+      {
+        "tag": "hessen",
+        "weight": 0.7
+      }
+    ],
+    "Casper": [
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "introspective",
+        "weight": 0.9
+      },
+      {
+        "tag": "emo",
+        "weight": 0.8
+      },
+      {
+        "tag": "conscious",
+        "weight": 0.7
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.7
+      }
+    ],
+    "Celo": [
+      {
+        "tag": "frankfurt",
+        "weight": 1
+      },
+      {
+        "tag": "hessen",
+        "weight": 0.9
+      },
+      {
+        "tag": "street",
+        "weight": 0.9
+      },
+      {
+        "tag": "10s",
+        "weight": 0.8
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.8
+      }
+    ],
+    "Celo & Abdi": [
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "frankfurt",
+        "weight": 1
+      },
+      {
+        "tag": "hessen",
+        "weight": 0.9
+      },
+      {
+        "tag": "slang",
+        "weight": 0.9
+      },
+      {
+        "tag": "street",
+        "weight": 0.9
+      },
+      {
+        "tag": "20s",
+        "weight": 0.8
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.8
+      },
+      {
+        "tag": "hard",
+        "weight": 0.7
+      }
+    ],
+    "Cro": [
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "melodic",
+        "weight": 1
+      },
+      {
+        "tag": "pop-rap",
+        "weight": 1
+      },
+      {
+        "tag": "love",
+        "weight": 0.8
+      },
+      {
+        "tag": "stuttgart",
+        "weight": 0.8
+      },
+      {
+        "tag": "20s",
+        "weight": 0.7
+      }
+    ],
+    "Curse": [
+      {
+        "tag": "00s",
+        "weight": 1
+      },
+      {
+        "tag": "conscious",
+        "weight": 1
+      },
+      {
+        "tag": "old-school",
+        "weight": 0.9
+      },
+      {
+        "tag": "introspective",
+        "weight": 0.8
+      },
+      {
+        "tag": "wordplay",
+        "weight": 0.8
+      }
+    ],
+    "Dante YN": [
+      {
+        "tag": "20s",
+        "weight": 1
+      },
+      {
+        "tag": "trap",
+        "weight": 0.9
+      },
+      {
+        "tag": "rage",
+        "weight": 0.9
+      },
+      {
+        "tag": "slang",
+        "weight": 0.8
+      }
+    ],
+    "Dardan": [
+      {
+        "tag": "10s",
+        "weight": 0.9
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.9
+      },
+      {
+        "tag": "balkan",
+        "weight": 0.9
+      },
+      {
+        "tag": "20s",
+        "weight": 0.8
+      },
+      {
+        "tag": "autotune",
+        "weight": 0.8
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.8
+      },
+      {
+        "tag": "pop-rap",
+        "weight": 0.8
+      }
+    ],
+    "Dcvdns": [
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "funny",
+        "weight": 1
+      },
+      {
+        "tag": "wordplay",
+        "weight": 0.9
+      },
+      {
+        "tag": "battle",
+        "weight": 0.8
+      }
+    ],
+    "Dendemann": [
+      {
+        "tag": "00s",
+        "weight": 1
+      },
+      {
+        "tag": "wordplay",
+        "weight": 1
+      },
+      {
+        "tag": "old-school",
+        "weight": 0.9
+      },
+      {
+        "tag": "10s",
+        "weight": 0.8
+      },
+      {
+        "tag": "conscious",
+        "weight": 0.8
+      },
+      {
+        "tag": "hamburg",
+        "weight": 0.8
+      },
+      {
+        "tag": "funny",
+        "weight": 0.7
+      }
+    ],
+    "Domiziana": [
+      {
+        "tag": "20s",
+        "weight": 1
+      },
+      {
+        "tag": "female",
+        "weight": 1
+      },
+      {
+        "tag": "dance",
+        "weight": 0.9
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.9
+      },
+      {
+        "tag": "pop-rap",
+        "weight": 0.8
+      }
+    ],
+    "Eko Fresh": [
+      {
+        "tag": "00s",
+        "weight": 1
+      },
+      {
+        "tag": "nrw",
+        "weight": 0.9
+      },
+      {
+        "tag": "old-school",
+        "weight": 0.9
+      },
+      {
+        "tag": "10s",
+        "weight": 0.8
+      },
+      {
+        "tag": "battle",
+        "weight": 0.8
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.8
+      },
+      {
+        "tag": "wordplay",
+        "weight": 0.8
+      },
+      {
+        "tag": "funny",
+        "weight": 0.7
+      }
+    ],
+    "Eno": [
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "balkan",
+        "weight": 0.9
+      },
+      {
+        "tag": "autotune",
+        "weight": 0.8
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.8
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.8
+      },
+      {
+        "tag": "trap",
+        "weight": 0.8
+      },
+      {
+        "tag": "20s",
+        "weight": 0.7
+      },
+      {
+        "tag": "love",
+        "weight": 0.6
+      },
+      {
+        "tag": "nrw",
+        "weight": 0.6
+      }
+    ],
+    "Farid Bang": [
+      {
+        "tag": "10s",
+        "weight": 0.9
+      },
+      {
+        "tag": "battle",
+        "weight": 0.9
+      },
+      {
+        "tag": "braggadocio",
+        "weight": 0.9
+      },
+      {
+        "tag": "hard",
+        "weight": 0.9
+      },
+      {
+        "tag": "nrw",
+        "weight": 0.9
+      },
+      {
+        "tag": "gangsta",
+        "weight": 0.8
+      },
+      {
+        "tag": "gym",
+        "weight": 0.8
+      },
+      {
+        "tag": "wordplay",
+        "weight": 0.7
+      }
+    ],
+    "Favorite": [
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "battle",
+        "weight": 1
+      },
+      {
+        "tag": "wordplay",
+        "weight": 1
+      },
+      {
+        "tag": "hard",
+        "weight": 0.8
+      },
+      {
+        "tag": "funny",
+        "weight": 0.7
+      }
+    ],
+    "Fero47": [
+      {
+        "tag": "20s",
+        "weight": 1
+      },
+      {
+        "tag": "autotune",
+        "weight": 0.9
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.9
+      },
+      {
+        "tag": "trap",
+        "weight": 0.9
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.7
+      }
+    ],
+    "Fler": [
+      {
+        "tag": "berlin",
+        "weight": 1
+      },
+      {
+        "tag": "00s",
+        "weight": 0.9
+      },
+      {
+        "tag": "old-school",
+        "weight": 0.8
+      },
+      {
+        "tag": "braggadocio",
+        "weight": 0.7
+      },
+      {
+        "tag": "hard",
+        "weight": 0.7
+      },
+      {
+        "tag": "10s",
+        "weight": 0.6
+      }
+    ],
+    "Frauenarzt": [
+      {
+        "tag": "00s",
+        "weight": 1
+      },
+      {
+        "tag": "berlin",
+        "weight": 0.9
+      },
+      {
+        "tag": "old-school",
+        "weight": 0.9
+      },
+      {
+        "tag": "party",
+        "weight": 0.9
+      },
+      {
+        "tag": "funny",
+        "weight": 0.8
+      }
+    ],
+    "Genetikk": [
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.8
+      },
+      {
+        "tag": "nrw",
+        "weight": 0.8
+      },
+      {
+        "tag": "wordplay",
+        "weight": 0.8
+      },
+      {
+        "tag": "trap",
+        "weight": 0.7
+      }
+    ],
+    "Gzuz": [
+      {
+        "tag": "187",
+        "weight": 1
+      },
+      {
+        "tag": "hamburg",
+        "weight": 1
+      },
+      {
+        "tag": "10s",
+        "weight": 0.9
+      },
+      {
+        "tag": "street",
+        "weight": 0.9
+      },
+      {
+        "tag": "gangsta",
+        "weight": 0.8
+      },
+      {
+        "tag": "hard",
+        "weight": 0.8
+      }
+    ],
+    "Haftbefehl": [
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "frankfurt",
+        "weight": 1
+      },
+      {
+        "tag": "slang",
+        "weight": 1
+      },
+      {
+        "tag": "street",
+        "weight": 1
+      },
+      {
+        "tag": "gangsta",
+        "weight": 0.9
+      },
+      {
+        "tag": "hessen",
+        "weight": 0.9
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.9
+      },
+      {
+        "tag": "20s",
+        "weight": 0.8
+      },
+      {
+        "tag": "hard",
+        "weight": 0.8
+      }
+    ],
+    "Hava": [
+      {
+        "tag": "20s",
+        "weight": 1
+      },
+      {
+        "tag": "female",
+        "weight": 1
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.9
+      },
+      {
+        "tag": "balkan",
+        "weight": 0.9
+      },
+      {
+        "tag": "autotune",
+        "weight": 0.8
+      },
+      {
+        "tag": "pop-rap",
+        "weight": 0.8
+      },
+      {
+        "tag": "trap",
+        "weight": 0.8
+      },
+      {
+        "tag": "10s",
+        "weight": 0.7
+      },
+      {
+        "tag": "love",
+        "weight": 0.7
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.7
+      }
+    ],
+    "JAW": [
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "wordplay",
+        "weight": 0.9
+      },
+      {
+        "tag": "battle",
+        "weight": 0.8
+      },
+      {
+        "tag": "berlin",
+        "weight": 0.7
+      },
+      {
+        "tag": "conscious",
+        "weight": 0.7
+      },
+      {
+        "tag": "introspective",
+        "weight": 0.7
+      },
+      {
+        "tag": "20s",
+        "weight": 0.6
+      }
+    ],
+    "Jazeek": [
+      {
+        "tag": "20s",
+        "weight": 1
+      },
+      {
+        "tag": "dance",
+        "weight": 0.9
+      },
+      {
+        "tag": "autotune",
+        "weight": 0.8
+      },
+      {
+        "tag": "love",
+        "weight": 0.8
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.8
+      },
+      {
+        "tag": "slang",
+        "weight": 0.7
+      }
+    ],
+    "Juju": [
+      {
+        "tag": "20s",
+        "weight": 1
+      },
+      {
+        "tag": "female",
+        "weight": 1
+      },
+      {
+        "tag": "berlin",
+        "weight": 0.8
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.8
+      },
+      {
+        "tag": "trap",
+        "weight": 0.8
+      },
+      {
+        "tag": "10s",
+        "weight": 0.6
+      }
+    ],
+    "K.I.Z": [
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "berlin",
+        "weight": 1
+      },
+      {
+        "tag": "funny",
+        "weight": 1
+      },
+      {
+        "tag": "wordplay",
+        "weight": 0.9
+      },
+      {
+        "tag": "00s",
+        "weight": 0.8
+      },
+      {
+        "tag": "20s",
+        "weight": 0.8
+      },
+      {
+        "tag": "battle",
+        "weight": 0.7
+      }
+    ],
+    "Karate Andi": [
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "alcohol",
+        "weight": 0.8
+      },
+      {
+        "tag": "berlin",
+        "weight": 0.8
+      },
+      {
+        "tag": "drugs",
+        "weight": 0.8
+      },
+      {
+        "tag": "funny",
+        "weight": 0.8
+      },
+      {
+        "tag": "wordplay",
+        "weight": 0.8
+      }
+    ],
+    "Katja Krasavice": [
+      {
+        "tag": "20s",
+        "weight": 1
+      },
+      {
+        "tag": "female",
+        "weight": 1
+      },
+      {
+        "tag": "pop-rap",
+        "weight": 1
+      },
+      {
+        "tag": "party",
+        "weight": 0.9
+      },
+      {
+        "tag": "berlin",
+        "weight": 0.6
+      }
+    ],
+    "Kollegah": [
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "braggadocio",
+        "weight": 1
+      },
+      {
+        "tag": "wordplay",
+        "weight": 1
+      },
+      {
+        "tag": "battle",
+        "weight": 0.9
+      },
+      {
+        "tag": "gym",
+        "weight": 0.8
+      },
+      {
+        "tag": "hard",
+        "weight": 0.8
+      },
+      {
+        "tag": "hessen",
+        "weight": 0.8
+      },
+      {
+        "tag": "gangsta",
+        "weight": 0.7
+      }
+    ],
+    "Kontra K": [
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "20s",
+        "weight": 0.9
+      },
+      {
+        "tag": "berlin",
+        "weight": 0.9
+      },
+      {
+        "tag": "hard",
+        "weight": 0.9
+      },
+      {
+        "tag": "street",
+        "weight": 0.9
+      },
+      {
+        "tag": "gym",
+        "weight": 0.8
+      }
+    ],
+    "Kool Savas": [
+      {
+        "tag": "00s",
+        "weight": 1
+      },
+      {
+        "tag": "battle",
+        "weight": 1
+      },
+      {
+        "tag": "berlin",
+        "weight": 1
+      },
+      {
+        "tag": "old-school",
+        "weight": 1
+      },
+      {
+        "tag": "wordplay",
+        "weight": 1
+      },
+      {
+        "tag": "braggadocio",
+        "weight": 0.9
+      }
+    ],
+    "Kurdo": [
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "street",
+        "weight": 0.9
+      },
+      {
+        "tag": "gangsta",
+        "weight": 0.8
+      },
+      {
+        "tag": "hard",
+        "weight": 0.8
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.8
+      },
+      {
+        "tag": "20s",
+        "weight": 0.7
+      }
+    ],
+    "Laas": [
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "old-school",
+        "weight": 0.9
+      },
+      {
+        "tag": "rhymes",
+        "weight": 0.9
+      },
+      {
+        "tag": "wordplay",
+        "weight": 0.9
+      },
+      {
+        "tag": "battle",
+        "weight": 0.8
+      },
+      {
+        "tag": "berlin",
+        "weight": 0.8
+      }
+    ],
+    "Lacazette": [
+      {
+        "tag": "20s",
+        "weight": 0.9
+      },
+      {
+        "tag": "hard",
+        "weight": 0.9
+      },
+      {
+        "tag": "street",
+        "weight": 0.9
+      },
+      {
+        "tag": "gangsta",
+        "weight": 0.8
+      },
+      {
+        "tag": "slang",
+        "weight": 0.8
+      },
+      {
+        "tag": "drugs",
+        "weight": 0.7
+      }
+    ],
+    "Longus Mongus": [
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "funny",
+        "weight": 1
+      },
+      {
+        "tag": "20s",
+        "weight": 0.8
+      },
+      {
+        "tag": "berlin",
+        "weight": 0.8
+      }
+    ],
+    "Loredana": [
+      {
+        "tag": "20s",
+        "weight": 1
+      },
+      {
+        "tag": "female",
+        "weight": 1
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.9
+      },
+      {
+        "tag": "balkan",
+        "weight": 0.9
+      },
+      {
+        "tag": "autotune",
+        "weight": 0.8
+      },
+      {
+        "tag": "pop-rap",
+        "weight": 0.8
+      },
+      {
+        "tag": "trap",
+        "weight": 0.8
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.7
+      }
+    ],
+    "Luciano": [
+      {
+        "tag": "drill",
+        "weight": 0.9
+      },
+      {
+        "tag": "trap",
+        "weight": 0.9
+      },
+      {
+        "tag": "berlin",
+        "weight": 0.8
+      },
+      {
+        "tag": "black",
+        "weight": 0.8
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.8
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.7
+      }
+    ],
+    "LX": [
+      {
+        "tag": "187",
+        "weight": 1
+      },
+      {
+        "tag": "hamburg",
+        "weight": 1
+      },
+      {
+        "tag": "street",
+        "weight": 0.9
+      },
+      {
+        "tag": "gangsta",
+        "weight": 0.8
+      },
+      {
+        "tag": "10s",
+        "weight": 0.7
+      },
+      {
+        "tag": "20s",
+        "weight": 0.7
+      },
+      {
+        "tag": "trap",
+        "weight": 0.7
+      }
+    ],
+    "Majoe": [
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "gym",
+        "weight": 0.9
+      },
+      {
+        "tag": "braggadocio",
+        "weight": 0.8
+      },
+      {
+        "tag": "hard",
+        "weight": 0.8
+      },
+      {
+        "tag": "nrw",
+        "weight": 0.8
+      },
+      {
+        "tag": "battle",
+        "weight": 0.7
+      },
+      {
+        "tag": "gangsta",
+        "weight": 0.7
+      }
+    ],
+    "Makko": [
+      {
+        "tag": "20s",
+        "weight": 1
+      },
+      {
+        "tag": "melodic",
+        "weight": 1
+      },
+      {
+        "tag": "emo",
+        "weight": 0.9
+      },
+      {
+        "tag": "introspective",
+        "weight": 0.9
+      },
+      {
+        "tag": "rage",
+        "weight": 0.8
+      },
+      {
+        "tag": "drugs",
+        "weight": 0.7
+      },
+      {
+        "tag": "love",
+        "weight": 0.7
+      }
     ],
     "Marteria": [
-      { "tag": "conscious", "weight": 0.8 },
-      { "tag": "wordplay", "weight": 0.8 },
-      { "tag": "10s", "weight": 0.9 },
-      { "tag": "20s", "weight": 0.7 }
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "conscious",
+        "weight": 0.8
+      },
+      {
+        "tag": "ost",
+        "weight": 0.8
+      },
+      {
+        "tag": "wordplay",
+        "weight": 0.8
+      },
+      {
+        "tag": "20s",
+        "weight": 0.7
+      }
+    ],
+    "Massiv": [
+      {
+        "tag": "10s",
+        "weight": 0.9
+      },
+      {
+        "tag": "berlin",
+        "weight": 0.9
+      },
+      {
+        "tag": "street",
+        "weight": 0.9
+      },
+      {
+        "tag": "gangsta",
+        "weight": 0.8
+      },
+      {
+        "tag": "hard",
+        "weight": 0.8
+      },
+      {
+        "tag": "00s",
+        "weight": 0.7
+      }
+    ],
+    "Maxwell": [
+      {
+        "tag": "187",
+        "weight": 1
+      },
+      {
+        "tag": "10s",
+        "weight": 0.9
+      },
+      {
+        "tag": "20s",
+        "weight": 0.9
+      },
+      {
+        "tag": "hamburg",
+        "weight": 0.9
+      },
+      {
+        "tag": "funny",
+        "weight": 0.8
+      },
+      {
+        "tag": "black",
+        "weight": 0.7
+      },
+      {
+        "tag": "drugs",
+        "weight": 0.7
+      }
+    ],
+    "MC Bomber": [
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "berlin",
+        "weight": 0.9
+      },
+      {
+        "tag": "funny",
+        "weight": 0.9
+      },
+      {
+        "tag": "hard",
+        "weight": 0.8
+      },
+      {
+        "tag": "party",
+        "weight": 0.8
+      },
+      {
+        "tag": "alcohol",
+        "weight": 0.7
+      },
+      {
+        "tag": "drugs",
+        "weight": 0.7
+      }
+    ],
+    "Megaloh": [
+      {
+        "tag": "10s",
+        "weight": 0.9
+      },
+      {
+        "tag": "conscious",
+        "weight": 0.9
+      },
+      {
+        "tag": "black",
+        "weight": 0.8
+      },
+      {
+        "tag": "berlin",
+        "weight": 0.7
+      },
+      {
+        "tag": "introspective",
+        "weight": 0.7
+      },
+      {
+        "tag": "wordplay",
+        "weight": 0.7
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.6
+      }
+    ],
+    "Mero": [
+      {
+        "tag": "20s",
+        "weight": 1
+      },
+      {
+        "tag": "autotune",
+        "weight": 0.9
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.9
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.9
+      },
+      {
+        "tag": "trap",
+        "weight": 0.9
+      },
+      {
+        "tag": "10s",
+        "weight": 0.8
+      }
+    ],
+    "Miami Yacine": [
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "nrw",
+        "weight": 0.9
+      },
+      {
+        "tag": "trap",
+        "weight": 0.9
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.8
+      },
+      {
+        "tag": "20s",
+        "weight": 0.7
+      },
+      {
+        "tag": "drugs",
+        "weight": 0.7
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.7
+      },
+      {
+        "tag": "street",
+        "weight": 0.7
+      }
+    ],
+    "Money Boy": [
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "funny",
+        "weight": 1
+      },
+      {
+        "tag": "trap",
+        "weight": 0.8
+      },
+      {
+        "tag": "party",
+        "weight": 0.8
+      },
+      {
+        "tag": "oesterreich",
+        "weight": 0.8
+      },
+      {
+        "tag": "20s",
+        "weight": 0.7
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.6
+      }
+    ],
+    "Nimo": [
+      {
+        "tag": "frankfurt",
+        "weight": 1
+      },
+      {
+        "tag": "10s",
+        "weight": 0.9
+      },
+      {
+        "tag": "20s",
+        "weight": 0.9
+      },
+      {
+        "tag": "street",
+        "weight": 0.9
+      },
+      {
+        "tag": "trap",
+        "weight": 0.9
+      },
+      {
+        "tag": "hessen",
+        "weight": 0.8
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.8
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.7
+      },
+      {
+        "tag": "slang",
+        "weight": 0.7
+      },
+      {
+        "tag": "drugs",
+        "weight": 0.6
+      }
+    ],
+    "Nina Chuba": [
+      {
+        "tag": "20s",
+        "weight": 1
+      },
+      {
+        "tag": "female",
+        "weight": 1
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.9
+      },
+      {
+        "tag": "pop-rap",
+        "weight": 0.9
+      },
+      {
+        "tag": "hamburg",
+        "weight": 0.8
+      }
+    ],
+    "OG Keemo": [
+      {
+        "tag": "20s",
+        "weight": 0.9
+      },
+      {
+        "tag": "wordplay",
+        "weight": 0.9
+      },
+      {
+        "tag": "black",
+        "weight": 0.8
+      },
+      {
+        "tag": "conscious",
+        "weight": 0.8
+      },
+      {
+        "tag": "introspective",
+        "weight": 0.8
+      },
+      {
+        "tag": "drugs",
+        "weight": 0.7
+      },
+      {
+        "tag": "street",
+        "weight": 0.7
+      },
+      {
+        "tag": "violence",
+        "weight": 0.7
+      }
+    ],
+    "Olexesh": [
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "frankfurt",
+        "weight": 0.9
+      },
+      {
+        "tag": "hessen",
+        "weight": 0.8
+      },
+      {
+        "tag": "street",
+        "weight": 0.8
+      },
+      {
+        "tag": "20s",
+        "weight": 0.7
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.7
+      }
+    ],
+    "Pajel": [
+      {
+        "tag": "20s",
+        "weight": 1
+      },
+      {
+        "tag": "trap",
+        "weight": 0.9
+      },
+      {
+        "tag": "rage",
+        "weight": 0.9
+      },
+      {
+        "tag": "drill",
+        "weight": 0.8
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.8
+      },
+      {
+        "tag": "black",
+        "weight": 0.7
+      }
+    ],
+    "Pashanim": [
+      {
+        "tag": "20s",
+        "weight": 1
+      },
+      {
+        "tag": "berlin",
+        "weight": 1
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.9
+      },
+      {
+        "tag": "trap",
+        "weight": 0.9
+      },
+      {
+        "tag": "slang",
+        "weight": 0.7
+      },
+      {
+        "tag": "10s",
+        "weight": 0.6
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.6
+      },
+      {
+        "tag": "street",
+        "weight": 0.6
+      }
+    ],
+    "Paula Hartmann": [
+      {
+        "tag": "20s",
+        "weight": 1
+      },
+      {
+        "tag": "emo",
+        "weight": 0.9
+      },
+      {
+        "tag": "introspective",
+        "weight": 0.9
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.9
+      },
+      {
+        "tag": "berlin",
+        "weight": 0.8
+      },
+      {
+        "tag": "love",
+        "weight": 0.8
+      }
+    ],
+    "RAF Camora": [
+      {
+        "tag": "trap",
+        "weight": 1
+      },
+      {
+        "tag": "10s",
+        "weight": 0.9
+      },
+      {
+        "tag": "20s",
+        "weight": 0.9
+      },
+      {
+        "tag": "oesterreich",
+        "weight": 0.9
+      },
+      {
+        "tag": "dancehall",
+        "weight": 0.8
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.8
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.7
+      },
+      {
+        "tag": "pop-rap",
+        "weight": 0.7
+      }
+    ],
+    "reezy": [
+      {
+        "tag": "20s",
+        "weight": 1
+      },
+      {
+        "tag": "autotune",
+        "weight": 0.9
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.9
+      },
+      {
+        "tag": "trap",
+        "weight": 0.9
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.8
+      },
+      {
+        "tag": "stuttgart",
+        "weight": 0.8
+      },
+      {
+        "tag": "black",
+        "weight": 0.7
+      },
+      {
+        "tag": "love",
+        "weight": 0.7
+      }
+    ],
+    "RIN": [
+      {
+        "tag": "20s",
+        "weight": 1
+      },
+      {
+        "tag": "melodic",
+        "weight": 1
+      },
+      {
+        "tag": "10s",
+        "weight": 0.8
+      },
+      {
+        "tag": "pop-rap",
+        "weight": 0.8
+      },
+      {
+        "tag": "introspective",
+        "weight": 0.7
+      },
+      {
+        "tag": "stuttgart",
+        "weight": 0.7
+      },
+      {
+        "tag": "love",
+        "weight": 0.6
+      }
+    ],
+    "Sa4": [
+      {
+        "tag": "187",
+        "weight": 1
+      },
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "20s",
+        "weight": 0.8
+      },
+      {
+        "tag": "hamburg",
+        "weight": 0.8
+      },
+      {
+        "tag": "hard",
+        "weight": 0.8
+      },
+      {
+        "tag": "street",
+        "weight": 0.8
+      }
+    ],
+    "Samra": [
+      {
+        "tag": "20s",
+        "weight": 1
+      },
+      {
+        "tag": "berlin",
+        "weight": 0.9
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.9
+      },
+      {
+        "tag": "trap",
+        "weight": 0.9
+      },
+      {
+        "tag": "autotune",
+        "weight": 0.8
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.8
+      },
+      {
+        "tag": "drugs",
+        "weight": 0.7
+      },
+      {
+        "tag": "love",
+        "weight": 0.7
+      },
+      {
+        "tag": "street",
+        "weight": 0.7
+      },
+      {
+        "tag": "alcohol",
+        "weight": 0.6
+      }
+    ],
+    "Samy Deluxe": [
+      {
+        "tag": "00s",
+        "weight": 1
+      },
+      {
+        "tag": "old-school",
+        "weight": 1
+      },
+      {
+        "tag": "hamburg",
+        "weight": 0.9
+      },
+      {
+        "tag": "wordplay",
+        "weight": 0.9
+      },
+      {
+        "tag": "battle",
+        "weight": 0.7
+      },
+      {
+        "tag": "conscious",
+        "weight": 0.7
+      }
+    ],
+    "Shindy": [
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "braggadocio",
+        "weight": 1
+      },
+      {
+        "tag": "20s",
+        "weight": 0.8
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.8
+      },
+      {
+        "tag": "pop-rap",
+        "weight": 0.7
+      },
+      {
+        "tag": "love",
+        "weight": 0.6
+      },
+      {
+        "tag": "stuttgart",
+        "weight": 0.6
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.5
+      }
+    ],
+    "Shirin David": [
+      {
+        "tag": "20s",
+        "weight": 1
+      },
+      {
+        "tag": "female",
+        "weight": 1
+      },
+      {
+        "tag": "pop-rap",
+        "weight": 1
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.8
+      },
+      {
+        "tag": "10s",
+        "weight": 0.7
+      },
+      {
+        "tag": "braggadocio",
+        "weight": 0.7
+      }
+    ],
+    "Sido": [
+      {
+        "tag": "00s",
+        "weight": 1
+      },
+      {
+        "tag": "berlin",
+        "weight": 1
+      },
+      {
+        "tag": "old-school",
+        "weight": 0.9
+      },
+      {
+        "tag": "10s",
+        "weight": 0.7
+      },
+      {
+        "tag": "street",
+        "weight": 0.7
+      },
+      {
+        "tag": "funny",
+        "weight": 0.6
+      }
+    ],
+    "Ski Aggu": [
+      {
+        "tag": "20s",
+        "weight": 1
+      },
+      {
+        "tag": "berlin",
+        "weight": 1
+      },
+      {
+        "tag": "funny",
+        "weight": 1
+      },
+      {
+        "tag": "alcohol",
+        "weight": 0.8
+      },
+      {
+        "tag": "party",
+        "weight": 0.8
+      },
+      {
+        "tag": "pop-rap",
+        "weight": 0.7
+      },
+      {
+        "tag": "drugs",
+        "weight": 0.6
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.6
+      }
+    ],
+    "SpongeBozz": [
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "battle",
+        "weight": 1
+      },
+      {
+        "tag": "hard",
+        "weight": 0.9
+      },
+      {
+        "tag": "wordplay",
+        "weight": 0.9
+      },
+      {
+        "tag": "funny",
+        "weight": 0.6
+      }
+    ],
+    "SSIO": [
+      {
+        "tag": "10s",
+        "weight": 0.9
+      },
+      {
+        "tag": "funny",
+        "weight": 0.9
+      },
+      {
+        "tag": "nrw",
+        "weight": 0.9
+      },
+      {
+        "tag": "braggadocio",
+        "weight": 0.8
+      },
+      {
+        "tag": "wordplay",
+        "weight": 0.8
+      },
+      {
+        "tag": "slang",
+        "weight": 0.7
+      }
+    ],
+    "Summer Cem": [
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "20s",
+        "weight": 0.8
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.8
+      },
+      {
+        "tag": "nrw",
+        "weight": 0.8
+      },
+      {
+        "tag": "trap",
+        "weight": 0.8
+      },
+      {
+        "tag": "braggadocio",
+        "weight": 0.7
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.7
+      }
+    ],
+    "Sun Diego": [
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "battle",
+        "weight": 1
+      },
+      {
+        "tag": "wordplay",
+        "weight": 1
+      },
+      {
+        "tag": "20s",
+        "weight": 0.8
+      },
+      {
+        "tag": "hard",
+        "weight": 0.8
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.7
+      }
+    ],
+    "Symba": [
+      {
+        "tag": "20s",
+        "weight": 0.9
+      },
+      {
+        "tag": "berlin",
+        "weight": 0.8
+      },
+      {
+        "tag": "braggadocio",
+        "weight": 0.8
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.8
+      },
+      {
+        "tag": "trap",
+        "weight": 0.8
+      }
+    ],
+    "t-low": [
+      {
+        "tag": "20s",
+        "weight": 1
+      },
+      {
+        "tag": "autotune",
+        "weight": 1
+      },
+      {
+        "tag": "melodic",
+        "weight": 1
+      },
+      {
+        "tag": "rage",
+        "weight": 1
+      },
+      {
+        "tag": "trap",
+        "weight": 0.9
+      },
+      {
+        "tag": "drugs",
+        "weight": 0.8
+      },
+      {
+        "tag": "emo",
+        "weight": 0.8
+      },
+      {
+        "tag": "love",
+        "weight": 0.6
+      }
+    ],
+    "Trettmann": [
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.9
+      },
+      {
+        "tag": "ost",
+        "weight": 0.8
+      },
+      {
+        "tag": "20s",
+        "weight": 0.7
+      },
+      {
+        "tag": "dancehall",
+        "weight": 0.7
+      },
+      {
+        "tag": "trap",
+        "weight": 0.7
+      },
+      {
+        "tag": "conscious",
+        "weight": 0.6
+      },
+      {
+        "tag": "introspective",
+        "weight": 0.6
+      }
+    ],
+    "UFO361": [
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "berlin",
+        "weight": 1
+      },
+      {
+        "tag": "trap",
+        "weight": 1
+      },
+      {
+        "tag": "20s",
+        "weight": 0.9
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.9
+      },
+      {
+        "tag": "braggadocio",
+        "weight": 0.7
+      },
+      {
+        "tag": "drugs",
+        "weight": 0.7
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.6
+      }
+    ],
+    "Veysel": [
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "street",
+        "weight": 1
+      },
+      {
+        "tag": "frankfurt",
+        "weight": 0.9
+      },
+      {
+        "tag": "gangsta",
+        "weight": 0.9
+      },
+      {
+        "tag": "hard",
+        "weight": 0.8
+      },
+      {
+        "tag": "hessen",
+        "weight": 0.8
+      },
+      {
+        "tag": "20s",
+        "weight": 0.7
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.7
+      },
+      {
+        "tag": "slang",
+        "weight": 0.7
+      }
+    ],
+    "Xatar": [
+      {
+        "tag": "10s",
+        "weight": 1
+      },
+      {
+        "tag": "gangsta",
+        "weight": 1
+      },
+      {
+        "tag": "street",
+        "weight": 1
+      },
+      {
+        "tag": "nrw",
+        "weight": 0.9
+      },
+      {
+        "tag": "hard",
+        "weight": 0.8
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.8
+      },
+      {
+        "tag": "00s",
+        "weight": 0.7
+      },
+      {
+        "tag": "20s",
+        "weight": 0.7
+      },
+      {
+        "tag": "old-school",
+        "weight": 0.7
+      }
+    ],
+    "Zartmann": [
+      {
+        "tag": "20s",
+        "weight": 1
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.9
+      },
+      {
+        "tag": "emo",
+        "weight": 0.8
+      },
+      {
+        "tag": "love",
+        "weight": 0.8
+      },
+      {
+        "tag": "pop-rap",
+        "weight": 0.8
+      }
+    ],
+    "Zuna": [
+      {
+        "tag": "20s",
+        "weight": 1
+      },
+      {
+        "tag": "trap",
+        "weight": 0.9
+      },
+      {
+        "tag": "balkan",
+        "weight": 0.9
+      },
+      {
+        "tag": "autotune",
+        "weight": 0.8
+      },
+      {
+        "tag": "multilingual",
+        "weight": 0.8
+      },
+      {
+        "tag": "melodic",
+        "weight": 0.8
+      },
+      {
+        "tag": "dancehall",
+        "weight": 0.7
+      },
+      {
+        "tag": "drugs",
+        "weight": 0.7
+      },
+      {
+        "tag": "street",
+        "weight": 0.7
+      }
     ]
   }
 }
