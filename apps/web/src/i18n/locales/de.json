@@ -539,7 +539,9 @@
       "submissions": "Einreichungen",
       "analytics": "Analytics",
       "activity": "Aktivität",
-      "onboarding": "Onboarding"
+      "onboarding": "Onboarding",
+      "conversion": "Conversion",
+      "lines": "Bars"
     },
     "onboarding": {
       "eyebrow": "/ onboarding test",

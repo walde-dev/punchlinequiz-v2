@@ -539,7 +539,9 @@
       "submissions": "Submissions",
       "analytics": "Analytics",
       "activity": "Activity",
-      "onboarding": "Onboarding"
+      "onboarding": "Onboarding",
+      "conversion": "Conversion",
+      "lines": "Lines"
     },
     "onboarding": {
       "eyebrow": "/ onboarding test",

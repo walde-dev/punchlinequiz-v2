@@ -37,6 +37,7 @@ import { Route as AdminLevelsRouteImport } from './routes/admin/levels'
 import { Route as AdminDailyRouteImport } from './routes/admin/daily'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin/analytics'
 import { Route as AdminActivityRouteImport } from './routes/admin/activity'
+import { Route as AdminAnalyticsIndexRouteImport } from './routes/admin/analytics.index'
 import { Route as ApiSentryDiscordRouteImport } from './routes/api/sentry/discord'
 import { Route as ApiDiscordInteractionsRouteImport } from './routes/api/discord/interactions'
 import { Route as ApiCronRetentionReportRouteImport } from './routes/api/cron/retention-report'
@@ -49,6 +50,7 @@ import { Route as ApiAdminLevelsRouteImport } from './routes/api/admin/levels'
 import { Route as ApiAdminDailyRouteImport } from './routes/api/admin/daily'
 import { Route as ApiAdminBarsRouteImport } from './routes/api/admin/bars'
 import { Route as ApiAdminArtistsRouteImport } from './routes/api/admin/artists'
+import { Route as AdminAnalyticsLinesRouteImport } from './routes/admin/analytics.lines'
 import { Route as ApiAdminSubmissionsIdRouteImport } from './routes/api/admin/submissions.$id'
 import { Route as ApiAdminSongsIdRouteImport } from './routes/api/admin/songs.$id'
 import { Route as ApiAdminSearchTracksRouteImport } from './routes/api/admin/search.tracks'
@@ -199,6 +201,11 @@ const AdminActivityRoute = AdminActivityRouteImport.update({
   path: '/admin/activity',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminAnalyticsIndexRoute = AdminAnalyticsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminAnalyticsRoute,
+} as any)
 const ApiSentryDiscordRoute = ApiSentryDiscordRouteImport.update({
   id: '/api/sentry/discord',
   path: '/api/sentry/discord',
@@ -258,6 +265,11 @@ const ApiAdminArtistsRoute = ApiAdminArtistsRouteImport.update({
   id: '/api/admin/artists',
   path: '/api/admin/artists',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAnalyticsLinesRoute = AdminAnalyticsLinesRouteImport.update({
+  id: '/lines',
+  path: '/lines',
+  getParentRoute: () => AdminAnalyticsRoute,
 } as any)
 const ApiAdminSubmissionsIdRoute = ApiAdminSubmissionsIdRouteImport.update({
   id: '/$id',
@@ -319,7 +331,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/submit': typeof SubmitRoute
   '/admin/activity': typeof AdminActivityRoute
-  '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/analytics': typeof AdminAnalyticsRouteWithChildren
   '/admin/daily': typeof AdminDailyRoute
   '/admin/levels': typeof AdminLevelsRoute
   '/admin/login': typeof AdminLoginRoute
@@ -334,6 +346,7 @@ export interface FileRoutesByFullPath {
   '/quiz/$slug': typeof QuizSlugRoute
   '/u/$handle': typeof UHandleRoute
   '/admin/': typeof AdminIndexRoute
+  '/admin/analytics/lines': typeof AdminAnalyticsLinesRoute
   '/api/admin/artists': typeof ApiAdminArtistsRouteWithChildren
   '/api/admin/bars': typeof ApiAdminBarsRouteWithChildren
   '/api/admin/daily': typeof ApiAdminDailyRouteWithChildren
@@ -346,6 +359,7 @@ export interface FileRoutesByFullPath {
   '/api/cron/retention-report': typeof ApiCronRetentionReportRoute
   '/api/discord/interactions': typeof ApiDiscordInteractionsRoute
   '/api/sentry/discord': typeof ApiSentryDiscordRoute
+  '/admin/analytics/': typeof AdminAnalyticsIndexRoute
   '/api/admin/artists/$id': typeof ApiAdminArtistsIdRouteWithChildren
   '/api/admin/bars/$id': typeof ApiAdminBarsIdRoute
   '/api/admin/daily/$id': typeof ApiAdminDailyIdRoute
@@ -370,7 +384,6 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/submit': typeof SubmitRoute
   '/admin/activity': typeof AdminActivityRoute
-  '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/daily': typeof AdminDailyRoute
   '/admin/levels': typeof AdminLevelsRoute
   '/admin/login': typeof AdminLoginRoute
@@ -385,6 +398,7 @@ export interface FileRoutesByTo {
   '/quiz/$slug': typeof QuizSlugRoute
   '/u/$handle': typeof UHandleRoute
   '/admin': typeof AdminIndexRoute
+  '/admin/analytics/lines': typeof AdminAnalyticsLinesRoute
   '/api/admin/artists': typeof ApiAdminArtistsRouteWithChildren
   '/api/admin/bars': typeof ApiAdminBarsRouteWithChildren
   '/api/admin/daily': typeof ApiAdminDailyRouteWithChildren
@@ -397,6 +411,7 @@ export interface FileRoutesByTo {
   '/api/cron/retention-report': typeof ApiCronRetentionReportRoute
   '/api/discord/interactions': typeof ApiDiscordInteractionsRoute
   '/api/sentry/discord': typeof ApiSentryDiscordRoute
+  '/admin/analytics': typeof AdminAnalyticsIndexRoute
   '/api/admin/artists/$id': typeof ApiAdminArtistsIdRouteWithChildren
   '/api/admin/bars/$id': typeof ApiAdminBarsIdRoute
   '/api/admin/daily/$id': typeof ApiAdminDailyIdRoute
@@ -422,7 +437,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/submit': typeof SubmitRoute
   '/admin/activity': typeof AdminActivityRoute
-  '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/analytics': typeof AdminAnalyticsRouteWithChildren
   '/admin/daily': typeof AdminDailyRoute
   '/admin/levels': typeof AdminLevelsRoute
   '/admin/login': typeof AdminLoginRoute
@@ -437,6 +452,7 @@ export interface FileRoutesById {
   '/quiz/$slug': typeof QuizSlugRoute
   '/u/$handle': typeof UHandleRoute
   '/admin/': typeof AdminIndexRoute
+  '/admin/analytics/lines': typeof AdminAnalyticsLinesRoute
   '/api/admin/artists': typeof ApiAdminArtistsRouteWithChildren
   '/api/admin/bars': typeof ApiAdminBarsRouteWithChildren
   '/api/admin/daily': typeof ApiAdminDailyRouteWithChildren
@@ -449,6 +465,7 @@ export interface FileRoutesById {
   '/api/cron/retention-report': typeof ApiCronRetentionReportRoute
   '/api/discord/interactions': typeof ApiDiscordInteractionsRoute
   '/api/sentry/discord': typeof ApiSentryDiscordRoute
+  '/admin/analytics/': typeof AdminAnalyticsIndexRoute
   '/api/admin/artists/$id': typeof ApiAdminArtistsIdRouteWithChildren
   '/api/admin/bars/$id': typeof ApiAdminBarsIdRoute
   '/api/admin/daily/$id': typeof ApiAdminDailyIdRoute
@@ -490,6 +507,7 @@ export interface FileRouteTypes {
     | '/quiz/$slug'
     | '/u/$handle'
     | '/admin/'
+    | '/admin/analytics/lines'
     | '/api/admin/artists'
     | '/api/admin/bars'
     | '/api/admin/daily'
@@ -502,6 +520,7 @@ export interface FileRouteTypes {
     | '/api/cron/retention-report'
     | '/api/discord/interactions'
     | '/api/sentry/discord'
+    | '/admin/analytics/'
     | '/api/admin/artists/$id'
     | '/api/admin/bars/$id'
     | '/api/admin/daily/$id'
@@ -526,7 +545,6 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/submit'
     | '/admin/activity'
-    | '/admin/analytics'
     | '/admin/daily'
     | '/admin/levels'
     | '/admin/login'
@@ -541,6 +559,7 @@ export interface FileRouteTypes {
     | '/quiz/$slug'
     | '/u/$handle'
     | '/admin'
+    | '/admin/analytics/lines'
     | '/api/admin/artists'
     | '/api/admin/bars'
     | '/api/admin/daily'
@@ -553,6 +572,7 @@ export interface FileRouteTypes {
     | '/api/cron/retention-report'
     | '/api/discord/interactions'
     | '/api/sentry/discord'
+    | '/admin/analytics'
     | '/api/admin/artists/$id'
     | '/api/admin/bars/$id'
     | '/api/admin/daily/$id'
@@ -592,6 +612,7 @@ export interface FileRouteTypes {
     | '/quiz/$slug'
     | '/u/$handle'
     | '/admin/'
+    | '/admin/analytics/lines'
     | '/api/admin/artists'
     | '/api/admin/bars'
     | '/api/admin/daily'
@@ -604,6 +625,7 @@ export interface FileRouteTypes {
     | '/api/cron/retention-report'
     | '/api/discord/interactions'
     | '/api/sentry/discord'
+    | '/admin/analytics/'
     | '/api/admin/artists/$id'
     | '/api/admin/bars/$id'
     | '/api/admin/daily/$id'
@@ -629,7 +651,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SubmitRoute: typeof SubmitRoute
   AdminActivityRoute: typeof AdminActivityRoute
-  AdminAnalyticsRoute: typeof AdminAnalyticsRoute
+  AdminAnalyticsRoute: typeof AdminAnalyticsRouteWithChildren
   AdminDailyRoute: typeof AdminDailyRoute
   AdminLevelsRoute: typeof AdminLevelsRoute
   AdminLoginRoute: typeof AdminLoginRoute
@@ -860,6 +882,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminActivityRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/analytics/': {
+      id: '/admin/analytics/'
+      path: '/'
+      fullPath: '/admin/analytics/'
+      preLoaderRoute: typeof AdminAnalyticsIndexRouteImport
+      parentRoute: typeof AdminAnalyticsRoute
+    }
     '/api/sentry/discord': {
       id: '/api/sentry/discord'
       path: '/api/sentry/discord'
@@ -944,6 +973,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminArtistsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/analytics/lines': {
+      id: '/admin/analytics/lines'
+      path: '/lines'
+      fullPath: '/admin/analytics/lines'
+      preLoaderRoute: typeof AdminAnalyticsLinesRouteImport
+      parentRoute: typeof AdminAnalyticsRoute
+    }
     '/api/admin/submissions/$id': {
       id: '/api/admin/submissions/$id'
       path: '/$id'
@@ -1009,6 +1045,20 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AdminAnalyticsRouteChildren {
+  AdminAnalyticsLinesRoute: typeof AdminAnalyticsLinesRoute
+  AdminAnalyticsIndexRoute: typeof AdminAnalyticsIndexRoute
+}
+
+const AdminAnalyticsRouteChildren: AdminAnalyticsRouteChildren = {
+  AdminAnalyticsLinesRoute: AdminAnalyticsLinesRoute,
+  AdminAnalyticsIndexRoute: AdminAnalyticsIndexRoute,
+}
+
+const AdminAnalyticsRouteWithChildren = AdminAnalyticsRoute._addFileChildren(
+  AdminAnalyticsRouteChildren,
+)
 
 interface ApiAdminArtistsIdRouteChildren {
   ApiAdminArtistsIdTagsRoute: typeof ApiAdminArtistsIdTagsRoute
@@ -1082,7 +1132,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SubmitRoute: SubmitRoute,
   AdminActivityRoute: AdminActivityRoute,
-  AdminAnalyticsRoute: AdminAnalyticsRoute,
+  AdminAnalyticsRoute: AdminAnalyticsRouteWithChildren,
   AdminDailyRoute: AdminDailyRoute,
   AdminLevelsRoute: AdminLevelsRoute,
   AdminLoginRoute: AdminLoginRoute,
