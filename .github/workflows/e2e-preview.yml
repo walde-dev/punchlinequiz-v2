@@ -1,0 +1,50 @@
+name: E2E (preview)
+
+# Runs the Playwright smoke against the Vercel deployment once it's live, rather
+# than a local server: the app uses the Neon-serverless driver, which can't
+# connect to a plain Postgres container, so a deployed URL (with its real Neon
+# DB + Clerk) is the only faithful target. Vercel reports each deploy via the
+# GitHub `deployment_status` event; we run on success and point Playwright at
+# the deploy's target_url. No DB/Clerk secrets needed here.
+on:
+  deployment_status:
+
+jobs:
+  smoke:
+    name: e2e smoke (play)
+    # Only when a deploy succeeded and exposed a URL. Covers preview (PRs) and
+    # production (push to main) deploys alike.
+    if: >-
+      github.event.deployment_status.state == 'success' &&
+      github.event.deployment_status.target_url != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.deployment.sha }}
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browser
+        run: pnpm --filter web exec playwright install --with-deps chromium
+
+      - name: Smoke the deployment
+        run: pnpm e2e
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ github.event.deployment_status.target_url }}
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7

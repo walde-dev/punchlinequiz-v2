@@ -30,38 +30,37 @@ Run the whole gate locally before pushing:
 pnpm typecheck && pnpm lint && pnpm test && pnpm build
 ```
 
-### `e2e` — play smoke
-One Chromium test ([`apps/web/e2e/play.smoke.spec.ts`](../apps/web/e2e/play.smoke.spec.ts))
-that boots the real app against a throwaway seeded Postgres and confirms the
-`/play` page serves an interactive round. This exercises SSR + the `getRound`
-server-fn + the database — if a deploy is fundamentally broken, it fails.
+### `e2e` — play smoke (against the Vercel preview)
+A separate workflow ([`.github/workflows/e2e-preview.yml`](../.github/workflows/e2e-preview.yml))
+runs one Chromium test ([`apps/web/e2e/play.smoke.spec.ts`](../apps/web/e2e/play.smoke.spec.ts))
+that loads `/play` on the **deployed** app and confirms it serves an interactive
+round. This exercises SSR + the `getRound` server-fn + the real database — if a
+deploy is fundamentally broken, it fails.
 
-It runs in **dev mode** (`pnpm dev`) on purpose: dev reliably runs SSR +
-server-fns without guessing the Nitro output path, and the production *build* is
-already covered by the `quality` job.
+**Why against the deploy, not a local server:** the app's DB layer uses the
+Neon-serverless driver, which only speaks to a remote Neon/Vercel Postgres over
+HTTP/WS — it can't connect to a plain Postgres service container. So instead of
+faking a DB, the smoke targets the real Vercel deployment (which has its own
+Neon DB + Clerk env). It also means the check literally gates "did this commit
+deploy to something that works."
 
-**It soft-skips until Clerk test keys are present** — the app throws at boot
-without `VITE_CLERK_PUBLISHABLE_KEY`, so the job logs a notice and passes until
-you wire the secrets.
+**How it triggers:** Vercel reports each deploy via the GitHub
+`deployment_status` event; the workflow runs on `state == 'success'` and points
+Playwright at the deploy's `target_url`. No DB or Clerk secrets are needed in
+CI — the deployed app brings its own. (This requires Vercel's Git integration,
+which is already on — preview deploys show up as the `Vercel` check on PRs.)
 
-To enable it, add two **GitHub Actions secrets** (use Clerk **test** keys,
-`pk_test_…` / `sk_test_…`). Either in the UI — repo **Settings → Secrets and
-variables → Actions → New repository secret** — or via `gh`:
+Run it locally — needs no extra setup, your `.env` already has a Neon
+`DATABASE_URL` + Clerk keys, and Playwright boots `pnpm dev` for you:
 
 ```bash
-gh secret set VITE_CLERK_PUBLISHABLE_KEY   # paste pk_test_…
-gh secret set CLERK_SECRET_KEY             # paste sk_test_…
+pnpm e2e
 ```
 
-The Postgres schema is created with `db:push` and filled by `db:seed` (artists,
-songs, ~30 playable bars). The smoke plays anonymously and asserts client-side
-interactivity, so it doesn't depend on the XP-config rows. If you extend it to
-assert server-side XP grants, seed `xp_config` / `levels` too.
-
-Run it locally (needs a local DB + Clerk test keys in `.env`):
+Or point it at any deployed URL:
 
 ```bash
-pnpm e2e          # Playwright boots `pnpm dev` for you
+PLAYWRIGHT_BASE_URL=https://your-preview.vercel.app pnpm e2e
 ```
 
 ## Turbo remote cache (optional, recommended)
