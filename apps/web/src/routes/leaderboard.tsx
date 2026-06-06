@@ -44,6 +44,12 @@ const EMPTY = (board: LeaderboardBoard, window: LeaderboardWindow): LeaderboardR
   me: null,
 })
 
+// Cache key for a board view. Only XP varies by window; only Artist varies by
+// artistId — so the other boards collapse to a single key and never refetch
+// once seen this session.
+const cacheKey = (board: LeaderboardBoard, window: LeaderboardWindow, artistId: number | null): string =>
+  board === "xp" ? `xp:${window}` : board === "artist" ? `artist:${artistId}` : board
+
 function LeaderboardPage() {
   const { initial } = Route.useLoaderData()
   const { t } = useTranslation()
@@ -55,6 +61,11 @@ function LeaderboardPage() {
   const [data, setData] = useState<LeaderboardResult>(initial)
   const [loading, setLoading] = useState(false)
   const first = useRef(true)
+  // Per-session result cache. Seeded with the loader's all-time XP board so the
+  // first view is instant; revisited tabs render from here with no refetch.
+  const cache = useRef<Map<string, LeaderboardResult>>(
+    new Map([[cacheKey("xp", "alltime", null), initial]]),
+  )
 
   // Lazy-load the artist list the first time the Artists board is opened.
   useEffect(() => {
@@ -73,17 +84,33 @@ function LeaderboardPage() {
     // Friends requires sign-in; artist requires a selected artist. In those
     // "nothing to fetch yet" states, show the prompt instead of querying.
     if (board === "friends" && !isSignedIn) {
+      setLoading(false)
       setData(EMPTY("friends", "weekly"))
       return
     }
     if (board === "artist" && artistId == null) {
+      setLoading(false)
       setData(EMPTY("artist", "alltime"))
       return
     }
+    // Cache hit → render instantly, no fetch, no skeleton.
+    const key = cacheKey(board, window, artistId)
+    const cached = cache.current.get(key)
+    if (cached) {
+      setLoading(false)
+      setData(cached)
+      return
+    }
+    // Cache miss → show the skeleton (not the previous tab's stale rows) while
+    // the new board loads.
     let active = true
     setLoading(true)
     getLeaderboardFn({ data: { board, window, artistId: artistId ?? undefined } })
-      .then((r) => active && setData(r))
+      .then((r) => {
+        if (!active) return
+        cache.current.set(key, r)
+        setData(r)
+      })
       .finally(() => active && setLoading(false))
     return () => {
       active = false
@@ -147,9 +174,15 @@ function LeaderboardPage() {
           <SignInPrompt message={t("leaderboard.friendsSignIn")} cta={t("nav.signIn")} />
         ) : showArtistPrompt ? (
           <p className="py-12 text-center text-sm text-muted-foreground">{t("leaderboard.pickArtist")}</p>
+        ) : loading ? (
+          <section className="flex flex-col gap-2" aria-busy="true">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <SkeletonRow key={i} />
+            ))}
+          </section>
         ) : (
           <section
-            className={cn("flex flex-col gap-2 transition-opacity duration-200", loading && "opacity-50")}
+            className="flex flex-col gap-2"
             style={{ animation: `pq-fade-up 0.5s ${ease} 0.12s both` }}
           >
             {data.top.length === 0 ? (
@@ -176,7 +209,7 @@ function LeaderboardPage() {
       </main>
 
       {/* Sticky "your rank" row when outside the visible top list */}
-      {data.me && !data.me.inTop && !showSignIn && !showArtistPrompt && (
+      {data.me && !data.me.inTop && !loading && !showSignIn && !showArtistPrompt && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-primary/30 bg-background/95 px-5 py-3 backdrop-blur-sm md:px-8">
           <div className="mx-auto w-full max-w-xl">
             <Row entry={data.me} board={data.board} totalLines={data.totalActiveLines} highlight />
@@ -327,6 +360,23 @@ function Row({
         {subLabel && <span className="text-[10px] font-bold tabular-nums text-primary">{subLabel}</span>}
       </div>
     </Link>
+  )
+}
+
+function SkeletonRow() {
+  return (
+    <div
+      aria-hidden="true"
+      className="flex animate-pulse items-center gap-3 rounded-2xl border border-border/40 bg-card/30 px-3 py-2.5"
+    >
+      <span className="h-4 w-7 shrink-0" />
+      <div className="h-9 w-9 shrink-0 rounded-full bg-foreground/10" />
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <div className="h-3.5 w-28 rounded bg-foreground/10" />
+        <div className="h-2.5 w-16 rounded bg-foreground/10" />
+      </div>
+      <div className="h-4 w-14 shrink-0 rounded bg-foreground/10" />
+    </div>
   )
 }
 
