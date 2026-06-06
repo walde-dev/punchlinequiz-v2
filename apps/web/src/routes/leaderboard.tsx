@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, Link } from "@tanstack/react-router"
 import { SignInButton, useAuth } from "@clerk/tanstack-react-start"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -297,10 +297,13 @@ function Row({
     isCount && totalLines ? `${Math.round((entry.metric / totalLines) * 100)}%` : null
 
   return (
-    <div
+    <Link
+      to="/u/$handle"
+      params={{ handle: entry.handle }}
+      onClick={() => logEvent("leaderboard_profile_click", { board, handle: entry.handle, rank: entry.rank })}
       className={cn(
-        "flex items-center gap-3 rounded-2xl border px-3 py-2.5",
-        highlight ? "border-primary/70 bg-primary/10" : "border-border/40 bg-card/30",
+        "flex items-center gap-3 rounded-2xl border px-3 py-2.5 transition-colors hover:border-primary/50",
+        highlight ? "border-primary/70 bg-primary/10" : "border-border/40 bg-card/30 hover:bg-card/50",
       )}
     >
       <span
@@ -323,7 +326,7 @@ function Row({
         <span className="text-sm font-extrabold tabular-nums text-foreground">{metricLabel}</span>
         {subLabel && <span className="text-[10px] font-bold tabular-nums text-primary">{subLabel}</span>}
       </div>
-    </div>
+    </Link>
   )
 }
 
