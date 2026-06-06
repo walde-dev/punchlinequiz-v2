@@ -36,6 +36,7 @@ import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as AdminLevelsRouteImport } from './routes/admin/levels'
 import { Route as AdminDailyRouteImport } from './routes/admin/daily'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin/analytics'
+import { Route as AdminActivityRouteImport } from './routes/admin/activity'
 import { Route as ApiSentryDiscordRouteImport } from './routes/api/sentry/discord'
 import { Route as ApiDiscordInteractionsRouteImport } from './routes/api/discord/interactions'
 import { Route as ApiCronDiscordDailyRouteImport } from './routes/api/cron/discord-daily'
@@ -192,6 +193,11 @@ const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
   path: '/admin/analytics',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminActivityRoute = AdminActivityRouteImport.update({
+  id: '/admin/activity',
+  path: '/admin/activity',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSentryDiscordRoute = ApiSentryDiscordRouteImport.update({
   id: '/api/sentry/discord',
   path: '/api/sentry/discord',
@@ -306,6 +312,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/submit': typeof SubmitRoute
+  '/admin/activity': typeof AdminActivityRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/daily': typeof AdminDailyRoute
   '/admin/levels': typeof AdminLevelsRoute
@@ -355,6 +362,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/submit': typeof SubmitRoute
+  '/admin/activity': typeof AdminActivityRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/daily': typeof AdminDailyRoute
   '/admin/levels': typeof AdminLevelsRoute
@@ -405,6 +413,7 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/submit': typeof SubmitRoute
+  '/admin/activity': typeof AdminActivityRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/daily': typeof AdminDailyRoute
   '/admin/levels': typeof AdminLevelsRoute
@@ -456,6 +465,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/sitemap.xml'
     | '/submit'
+    | '/admin/activity'
     | '/admin/analytics'
     | '/admin/daily'
     | '/admin/levels'
@@ -505,6 +515,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/sitemap.xml'
     | '/submit'
+    | '/admin/activity'
     | '/admin/analytics'
     | '/admin/daily'
     | '/admin/levels'
@@ -554,6 +565,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/sitemap.xml'
     | '/submit'
+    | '/admin/activity'
     | '/admin/analytics'
     | '/admin/daily'
     | '/admin/levels'
@@ -604,6 +616,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SubmitRoute: typeof SubmitRoute
+  AdminActivityRoute: typeof AdminActivityRoute
   AdminAnalyticsRoute: typeof AdminAnalyticsRoute
   AdminDailyRoute: typeof AdminDailyRoute
   AdminLevelsRoute: typeof AdminLevelsRoute
@@ -827,6 +840,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAnalyticsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/activity': {
+      id: '/admin/activity'
+      path: '/admin/activity'
+      fullPath: '/admin/activity'
+      preLoaderRoute: typeof AdminActivityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/sentry/discord': {
       id: '/api/sentry/discord'
       path: '/api/sentry/discord'
@@ -1041,6 +1061,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SubmitRoute: SubmitRoute,
+  AdminActivityRoute: AdminActivityRoute,
   AdminAnalyticsRoute: AdminAnalyticsRoute,
   AdminDailyRoute: AdminDailyRoute,
   AdminLevelsRoute: AdminLevelsRoute,
