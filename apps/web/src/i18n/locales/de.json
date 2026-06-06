@@ -541,7 +541,13 @@
       "activity": "Aktivität",
       "onboarding": "Onboarding",
       "conversion": "Conversion",
-      "lines": "Bars"
+      "lines": "Lines",
+      "sections": {
+        "content": "Inhalte",
+        "analytics": "Analytics",
+        "config": "Konfiguration"
+      },
+      "openApp": "App öffnen"
     },
     "onboarding": {
       "eyebrow": "/ onboarding test",
