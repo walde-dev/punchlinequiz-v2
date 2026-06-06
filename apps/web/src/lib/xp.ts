@@ -341,11 +341,21 @@ export async function grantSongBonus(input: {
 
 /**
  * Daily artist grant. First call inserts the row; second call for the same
- * date (same user) is a no-op via the unique index. Daily grants do NOT
- * touch user_punchline_xp so the bar stays earnable in /play later.
+ * date (same user) is a no-op via the unique index.
+ *
+ * A correct daily solve also mirrors a zero-XP row into user_punchline_xp so
+ * the bar counts toward the completion board / profile lines-solved — the
+ * daily is otherwise the ONE place a bar can be solved without ever crediting
+ * completion (today's daily is hidden from /play, so it could never be earned
+ * there). The mirror's xp is 0 on purpose: the daily's XP is already booked in
+ * user_daily_xp + users.total_xp, and the weekly/friends boards UNION both
+ * ledgers, so a non-zero value would double-count. Trade-off: the bar no longer
+ * reappears in /play after its date passes (the solved-bar exclusion now sees
+ * it), which is the correct "solved is solved" behaviour.
  */
 export async function grantDailyArtist(input: {
   clerkId: string
+  punchlineId: number
   date: string
   isCorrect: boolean
   /**
@@ -355,7 +365,7 @@ export async function grantDailyArtist(input: {
    */
   firstTry?: boolean
 }): Promise<XpGrantResult> {
-  const { clerkId, date, isCorrect, firstTry = true } = input
+  const { clerkId, punchlineId, date, isCorrect, firstTry = true } = input
   await ensureUser(clerkId)
   const cfg = await loadXpConfig()
   const sortedLevels = await loadLevels()
@@ -433,6 +443,23 @@ export async function grantDailyArtist(input: {
 
   // First correct daily answer also confirms a pending referral (PUN-72).
   if (isCorrect) await confirmReferralOnActivation(clerkId, cfg).catch(() => {})
+
+  // Mirror the solve into user_punchline_xp so the daily bar counts toward
+  // completion (see the function doc). Zero XP, idempotent, non-fatal: a
+  // failure here must not fail the daily grant the player already earned.
+  if (isCorrect) {
+    await db
+      .insert(userPunchlineXp)
+      .values({
+        clerkId,
+        punchlineId,
+        primaryMode: "artist",
+        xpAwarded: 0,
+        streakAtAward: newStreak,
+      })
+      .onConflictDoNothing()
+      .catch(() => {})
+  }
 
   const prev = levelFor(userRow.totalXp, sortedLevels)
   const after = levelFor(userRow.totalXp + total, sortedLevels)
@@ -586,7 +613,10 @@ export async function getProfileSnapshot(
     })
     .from(userPunchlineXp)
     .innerJoin(punchlines, eq(punchlines.id, userPunchlineXp.punchlineId))
-    .where(eq(userPunchlineXp.clerkId, clerkId))
+    // xp > 0 hides zero-XP daily mirror rows (see grantDailyArtist) — the
+    // "recently earned" list is about XP-bearing /play solves; daily progress
+    // shows via daysCompleted/streak. Mirrors still count in linesConquered.
+    .where(and(eq(userPunchlineXp.clerkId, clerkId), gt(userPunchlineXp.xpAwarded, 0)))
     .orderBy(desc(userPunchlineXp.createdAt))
     .limit(10)
 
