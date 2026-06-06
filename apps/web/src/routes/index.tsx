@@ -13,6 +13,7 @@ export const Route = createFileRoute("/")({
   component: HomePage,
   head: () => ({
     ...seo({
+      title: "Teste dein Rap-Wissen",
       description:
         "Errate den Künstler hinter der Punchline. Das tägliche Quiz für deutschen Rap — spiel, sammle XP, fordere Freunde heraus.",
       path: "/",
