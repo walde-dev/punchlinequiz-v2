@@ -125,13 +125,6 @@
   },
   "home": {
     "hero": "Errätst du die Punchline?",
-    "subtitle": "Zwei Spielmodi. Welcher liegt dir?",
-    "signInBanner": {
-      "eyebrow": "/ XP & Ränge",
-      "headline": "Spiel dich nach oben.",
-      "sub": "XP sammeln, Streaks halten, im Ranking klettern.",
-      "cta": "Anmelden"
-    },
     "betaBadge": "Public Beta",
     "betaNotice": "Das Spiel ist noch in Entwicklung. Feedback ist willkommen.",
     "madeWith": "Deutschrap, Bar für Bar.",
@@ -152,7 +145,17 @@
       "clozeDesc": "Das letzte Wort der Bar fehlt. Tipp es ein.",
       "clozeMeta": "{{count}} Bars · {{artists}} Artists",
       "clozeAria": "Finishing-Lines-Modus — Vervollständige die Bar ({{count}} Bars, {{artists}} Artists)",
-      "perArtist": "Pro Artist spielen"
+      "perArtist": "Pro Artist spielen",
+      "dailyTitle": "Daily",
+      "dailyDesc": "Eine Bar, ein Versuch. Jeden Tag neu."
+    },
+    "dailyBadge": "heute #{{number}}",
+    "signIn": {
+      "prompt": "Schon dabei?",
+      "action": "Anmelden — XP & Streaks sichern"
+    },
+    "more": {
+      "perArtist": "Pro Artist"
     }
   },
   "bar": {

@@ -125,13 +125,6 @@
   },
   "home": {
     "hero": "Guess the punchline?",
-    "subtitle": "Two game modes. Pick your style.",
-    "signInBanner": {
-      "eyebrow": "/ XP & ranks",
-      "headline": "Play your way up.",
-      "sub": "Earn XP, keep streaks, climb the ranks.",
-      "cta": "Sign in"
-    },
     "betaBadge": "Public Beta",
     "betaNotice": "The game is still in development. Feedback welcome.",
     "madeWith": "German rap, bar by bar.",
@@ -152,7 +145,17 @@
       "clozeDesc": "The bar's last word is missing. Type it in.",
       "clozeMeta": "{{count}} bars · {{artists}} artists",
       "clozeAria": "Finishing-lines mode — Finish the bar ({{count}} bars, {{artists}} artists)",
-      "perArtist": "Play by artist"
+      "perArtist": "Play by artist",
+      "dailyTitle": "Daily",
+      "dailyDesc": "One bar, one try. New every day."
+    },
+    "dailyBadge": "today #{{number}}",
+    "signIn": {
+      "prompt": "Already in?",
+      "action": "Sign in — keep your XP & streaks"
+    },
+    "more": {
+      "perArtist": "By artist"
     }
   },
   "bar": {
