@@ -25,6 +25,8 @@
  *  - session replay ON, masking form inputs only — see PUN-45. Sampling / min-duration
  *    live in the PostHog project settings (see docs/posthog.md), not here.
  */
+import { getSessionId } from "./session-id"
+
 import type { PostHog } from "posthog-js"
 
 const KEY = import.meta.env.VITE_PUBLIC_POSTHOG_KEY as string | undefined
@@ -46,10 +48,17 @@ function readBootstrap(): Bootstrap {
 }
 
 function bootstrapDistinctId(): string | undefined {
-  // Reuse the anonymous session UUID minted by track.ts. Read inline (do NOT
-  // import track.ts — it statically pulls server-only ./db into the bundle).
+  // Adopt the canonical anonymous session id as PostHog's distinct id from the
+  // very first event. `getSessionId()` MINTS+persists it if missing (it lives in
+  // the server-free `session-id.ts` so importing it here doesn't drag ./db into
+  // the bundle). Previously this only *read* localStorage — but on a new
+  // visitor `pq.session_id` doesn't exist yet at boot, so PostHog fell back to a
+  // throwaway auto-id for all anonymous play, then switched ids mid-session once
+  // the key appeared. That orphaned pre-signup events and broke identity
+  // stitching at signup (they never merged onto the account). Minting here keeps
+  // one stable id across the whole anonymous → signed-up journey.
   try {
-    return window.localStorage.getItem("pq.session_id") ?? undefined
+    return getSessionId()
   } catch {
     return undefined
   }
