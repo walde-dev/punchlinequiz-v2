@@ -4,6 +4,11 @@ import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@workspace/ui/components/button"
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+} from "@workspace/ui/components/sheet"
 
 import { clerkDarkAppearance } from "../lib/clerk-theme"
 import { syncProfileImageFn } from "../lib/profile"
@@ -40,6 +45,66 @@ function SubmitBarCta() {
       <PlusIcon />
       <span className="hidden sm:inline">{t("nav.submit")}</span>
     </Button>
+  )
+}
+
+/** Hamburger glyph for the mobile nav menu. */
+function MenuIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" className="h-5 w-5">
+      <path d="M4 7h16M4 12h16M4 17h16" />
+    </svg>
+  )
+}
+
+/**
+ * Mobile-only nav. The phone header keeps just the essentials — logo, XP chip,
+ * account avatar — so it stops overflowing on narrow screens; the secondary
+ * links (leaderboard, submit, language) collapse into this hamburger Sheet.
+ * Hidden at sm+, where the inline nav has room again.
+ */
+function MobileMenu() {
+  const { t } = useTranslation()
+  const { isSignedIn } = useUser()
+  const [open, setOpen] = useState(false)
+  const itemCls =
+    "flex min-h-11 items-center rounded-xl px-3 text-sm font-bold tracking-wide text-foreground/80 transition-colors hover:bg-primary/10 hover:text-primary"
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label={t("nav.menu")}
+        className="inline-flex h-9 w-9 items-center justify-center rounded-full text-foreground/70 transition-colors hover:text-primary sm:hidden"
+      >
+        <MenuIcon />
+      </button>
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent side="right" className="w-72 gap-1 p-4 pt-14">
+          <SheetTitle className="px-3 pb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-primary/60">
+            {t("nav.menu")}
+          </SheetTitle>
+          <nav className="flex flex-col gap-1">
+            <Link to="/leaderboard" onClick={() => setOpen(false)} className={itemCls}>
+              {t("nav.leaderboard")}
+            </Link>
+            {isSignedIn && (
+              <Link to="/submit" onClick={() => setOpen(false)} className={itemCls}>
+                {t("nav.submit")}
+              </Link>
+            )}
+            {isSignedIn && (
+              <Link to="/profile" onClick={() => setOpen(false)} className={itemCls}>
+                {t("nav.profile")}
+              </Link>
+            )}
+            <div className="mt-1 flex items-center border-t border-border/40 px-1 pt-2">
+              <LangToggle />
+            </div>
+          </nav>
+        </SheetContent>
+      </Sheet>
+    </>
   )
 }
 
@@ -141,7 +206,8 @@ export function AppHeader({
       <nav className="flex shrink-0 items-center gap-2 text-xs font-medium tabular-nums sm:gap-3">
         <Link
           to="/leaderboard"
-          className="font-bold tracking-wide text-foreground/70 hover:text-primary transition-colors"
+          // Collapsed into the mobile hamburger menu; inline only at sm+.
+          className="hidden font-bold tracking-wide text-foreground/70 transition-colors hover:text-primary sm:block"
         >
           {t("nav.leaderboard")}
         </Link>
@@ -154,6 +220,7 @@ export function AppHeader({
           </span>
         )}
         <AuthSlot xpRefreshKey={xpRefreshKey} />
+        <MobileMenu />
       </nav>
     </header>
   )
@@ -215,7 +282,10 @@ function AuthSlot({ xpRefreshKey }: { xpRefreshKey?: number }) {
     <>
       {signedIn === true && <SubmitBarCta />}
       {signedIn === true && <XpHeaderChip refreshKey={xpRefreshKey} />}
-      <LangToggle />
+      {/* Lives in the mobile hamburger menu below sm; inline only at sm+. */}
+      <span className="hidden sm:inline-flex">
+        <LangToggle />
+      </span>
       {signedIn === true && (
         /* Fixed slot: UserButton renders empty for a beat while Clerk hydrates
            internally. We stamp the cached avatar underneath so the slot looks

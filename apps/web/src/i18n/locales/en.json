@@ -28,7 +28,8 @@
     "signIn": "Sign in",
     "leaderboard": "Leaderboard",
     "profile": "Profile",
-    "submit": "Submit a bar"
+    "submit": "Submit a bar",
+    "menu": "Menu"
   },
   "xp": {
     "suffix": "XP",
