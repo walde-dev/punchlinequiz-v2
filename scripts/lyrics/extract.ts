@@ -2,25 +2,26 @@ import fs from "node:fs"
 import path from "node:path"
 
 import { artistDir } from "./config.ts"
+import { rhymeScore } from "./rhyme.ts"
 
 interface Args {
   artist: string
   perSong: number
   minWords: number
-  maxLines: number
+  minRhyme: number
 }
 
 function parseArgs(argv: string[]): Args {
-  const args: Args = { artist: "", perSong: 20, minWords: 5, maxLines: 4 }
+  const args: Args = { artist: "", perSong: 12, minWords: 6, minRhyme: 0.4 }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
     if (a === "--artist") args.artist = argv[++i] ?? ""
-    else if (a === "--per-song") args.perSong = Number(argv[++i] ?? 20)
-    else if (a === "--min-words") args.minWords = Number(argv[++i] ?? 5)
-    else if (a === "--max-lines") args.maxLines = Number(argv[++i] ?? 4)
+    else if (a === "--per-song") args.perSong = Number(argv[++i] ?? 12)
+    else if (a === "--min-words") args.minWords = Number(argv[++i] ?? 6)
+    else if (a === "--min-rhyme") args.minRhyme = Number(argv[++i] ?? 0.4)
     else if (a === "-h" || a === "--help") {
       console.log(
-        "Usage: pnpm lyrics:extract --artist <name> [--per-song 20] [--min-words 5] [--max-lines 4]",
+        "Usage: pnpm lyrics:extract --artist <name> [--per-song 12] [--min-words 6] [--min-rhyme 0.4]",
       )
       process.exit(0)
     }
@@ -43,16 +44,24 @@ interface SongRecord {
   lyricsError?: string
 }
 
+/** A rhyme-aware couplet candidate plus empty fields Claude fills during curation. */
 interface Candidate {
   songId: number
   song: string
   album: string | null
   year: number | null
-  position: string
-  lines: string
+  section: string
+  couplet: string
   context: string
-  score: number
-  selected: boolean
+  rhymeScore: number
+  heuristicScore: number
+  // --- filled by Claude during curation ---
+  pick: boolean
+  distractor1: string
+  distractor2: string
+  clozePrompt: string
+  perfectSolution: string[]
+  notes: string
 }
 
 const SECTION_RE = /^\s*\[([^\]]+)\]\s*$/
@@ -74,46 +83,37 @@ function wordCount(s: string): number {
   return s.split(/\s+/).filter(Boolean).length
 }
 
-function scoreLines(lines: string): number {
+function scoreCouplet(text: string): number {
   let score = 0
-  for (const re of PUNCHLINE_MARKERS) if (re.test(lines)) score += 2
-  if (/[,;–-]/.test(lines)) score += 1
-  const wc = wordCount(lines)
+  for (const re of PUNCHLINE_MARKERS) if (re.test(text)) score += 2
+  if (/[,;–-]/.test(text)) score += 1
+  const wc = wordCount(text)
   if (wc >= 8 && wc <= 30) score += 2
-  if (wc > 30) score -= 1
+  if (wc > 36) score -= 1
   return score
 }
 
 function extractFromLyrics(
-  songId: number,
   song: SongRecord,
   text: string,
   args: Args,
 ): Candidate[] {
-  const lines = text.split("\n").map((l) => l.trim())
+  const rawLines = text.split("\n").map((l) => l.trim())
   let section = "verse_1"
-  let verseIdx = 0
-  const blocks: { section: string; lines: string[]; startIdx: number }[] = []
-  let current: { section: string; lines: string[]; startIdx: number } = {
-    section,
-    lines: [],
-    startIdx: 0,
-  }
+  const blocks: { section: string; lines: string[] }[] = []
+  let current: { section: string; lines: string[] } = { section, lines: [] }
 
-  for (let i = 0; i < lines.length; i++) {
-    const ln = lines[i]!
+  for (const ln of rawLines) {
     const m = ln.match(SECTION_RE)
     if (m) {
       if (current.lines.length) blocks.push(current)
-      const label = m[1]!.toLowerCase()
-      if (/verse|strophe/.test(label)) verseIdx += 1
-      section = label.replace(/\s+/g, "_")
-      current = { section, lines: [], startIdx: i + 1 }
+      section = m[1]!.toLowerCase().replace(/\s+/g, "_")
+      current = { section, lines: [] }
       continue
     }
     if (!ln) {
       if (current.lines.length) blocks.push(current)
-      current = { section, lines: [], startIdx: i + 1 }
+      current = { section, lines: [] }
       continue
     }
     current.lines.push(ln)
@@ -122,38 +122,57 @@ function extractFromLyrics(
 
   const seen = new Set<string>()
   const out: Candidate[] = []
+
   for (const block of blocks) {
     if (isHookLine(block.section)) continue
-    // sliding windows of 1..maxLines consecutive lines
-    for (let start = 0; start < block.lines.length; start++) {
-      for (let span = 1; span <= args.maxLines; span++) {
-        if (start + span > block.lines.length) break
-        const chunk = block.lines.slice(start, start + span).join(" / ")
-        if (wordCount(chunk) < args.minWords) continue
-        if (chunk.length > 280) continue
-        const key = chunk.toLowerCase()
-        if (seen.has(key)) continue
-        seen.add(key)
-        const ctxStart = Math.max(0, start - 1)
-        const ctxEnd = Math.min(block.lines.length, start + span + 1)
-        const ctx = block.lines.slice(ctxStart, ctxEnd).join("\n")
-        const score = scoreLines(chunk) + (span === 2 ? 1 : 0)
-        out.push({
-          songId,
-          song: song.title,
-          album: song.album,
-          year: song.year,
-          position: block.section,
-          lines: chunk,
-          context: ctx,
-          score,
-          selected: false,
-        })
-      }
+    const L = block.lines
+
+    // Score every adjacent pair, then greedily keep non-overlapping couplets
+    // best-rhyme-first. This prevents emitting a payoff+setup crossing pair:
+    // the true couplets win the overlap contest.
+    const pairs: { i: number; rhyme: number }[] = []
+    for (let i = 0; i + 1 < L.length; i++) {
+      pairs.push({ i, rhyme: rhymeScore(L[i]!, L[i + 1]!) })
+    }
+    pairs.sort((a, b) => b.rhyme - a.rhyme)
+
+    const claimed = new Set<number>()
+    for (const { i, rhyme } of pairs) {
+      if (rhyme < args.minRhyme) continue
+      if (claimed.has(i) || claimed.has(i + 1)) continue
+      const couplet = `${L[i]} / ${L[i + 1]}`
+      if (wordCount(couplet) < args.minWords) continue
+      if (couplet.length > 280) continue
+      const key = couplet.toLowerCase()
+      if (seen.has(key)) continue
+      seen.add(key)
+      claimed.add(i)
+      claimed.add(i + 1)
+
+      const ctxStart = Math.max(0, i - 1)
+      const ctxEnd = Math.min(L.length, i + 3)
+      out.push({
+        songId: song.id,
+        song: song.title,
+        album: song.album,
+        year: song.year,
+        section: block.section,
+        couplet,
+        context: L.slice(ctxStart, ctxEnd).join("\n"),
+        rhymeScore: Number(rhyme.toFixed(2)),
+        heuristicScore: scoreCouplet(couplet),
+        pick: false,
+        distractor1: "",
+        distractor2: "",
+        clozePrompt: "",
+        perfectSolution: [],
+        notes: "",
+      })
     }
   }
 
-  out.sort((a, b) => b.score - a.score)
+  // Best couplets first: rhyme strength then content heuristic.
+  out.sort((a, b) => b.rhymeScore - a.rhymeScore || b.heuristicScore - a.heuristicScore)
   return out.slice(0, args.perSong)
 }
 
@@ -173,13 +192,13 @@ function main() {
     const txtPath = path.join(dir, song.lyricsPath)
     if (!fs.existsSync(txtPath)) continue
     const text = fs.readFileSync(txtPath, "utf8")
-    const cands = extractFromLyrics(song.id, song, text, args)
-    all.push(...cands)
+    all.push(...extractFromLyrics(song, text, args))
   }
 
   const outPath = path.join(dir, "candidates.json")
   fs.writeFileSync(outPath, JSON.stringify(all, null, 2), "utf8")
-  console.log(`✓ ${all.length} candidates across ${songs.length} songs → ${outPath}`)
+  console.log(`✓ ${all.length} couplet candidates across ${songs.length} songs → ${outPath}`)
+  console.log(`  Next: review candidates.json, set pick=true + distractors + cloze, then lyrics:insert.`)
 }
 
 main()
