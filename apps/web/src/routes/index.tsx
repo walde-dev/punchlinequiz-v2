@@ -1,3 +1,4 @@
+import { Show, SignInButton } from "@clerk/tanstack-react-start"
 import { Link, createFileRoute } from "@tanstack/react-router"
 import { useTranslation } from "react-i18next"
 
@@ -5,9 +6,7 @@ import { cn } from "@workspace/ui/lib/utils"
 
 import { AppHeader } from "../components/app-header"
 import { DiscordFooterLink } from "../components/discord-cta"
-import { SignInBanner } from "../components/sign-in-banner"
 import { getDailyChallenge } from "../lib/daily"
-import { listPlayableArtists } from "../lib/game"
 import { jsonLd, organizationJsonLd, seo, websiteJsonLd } from "../lib/seo"
 
 export const Route = createFileRoute("/")({
@@ -23,17 +22,8 @@ export const Route = createFileRoute("/")({
     scripts: [jsonLd(websiteJsonLd()), jsonLd(organizationJsonLd())],
   }),
   loader: async () => {
-    const [artistMode, clozeMode, daily] = await Promise.all([
-      listPlayableArtists({ data: {} }),
-      listPlayableArtists({ data: { mode: "cloze" } }),
-      getDailyChallenge({ data: {} }),
-    ])
-    return {
-      artistTotal: artistMode.reduce((n, a) => n + a.punchlineCount, 0),
-      clozeTotal: clozeMode.reduce((n, a) => n + a.punchlineCount, 0),
-      clozeArtists: clozeMode.length,
-      dailyNumber: daily?.number ?? null,
-    }
+    const daily = await getDailyChallenge({ data: {} })
+    return { dailyNumber: daily?.number ?? null }
   },
 })
 
@@ -53,8 +43,7 @@ function BetaBadge({ label }: { label: string }) {
 
 function HomePage() {
   const { t } = useTranslation()
-  const { artistTotal, clozeTotal, clozeArtists, dailyNumber } =
-    Route.useLoaderData()
+  const { dailyNumber } = Route.useLoaderData()
 
   return (
     <div className="relative flex min-h-svh flex-col overflow-hidden">
@@ -65,9 +54,9 @@ function HomePage() {
       />
 
       <main className="relative flex flex-1 flex-col items-center px-5 pt-16 pb-10 md:px-8 md:pt-20">
-        <div className="flex w-full max-w-3xl flex-col gap-5 md:gap-8">
+        <div className="flex w-full max-w-xl flex-col gap-6 md:gap-8">
           <div
-            className="flex flex-col items-center gap-2 text-center md:items-start md:gap-3 md:text-left"
+            className="flex flex-col items-center gap-2 text-center md:items-start md:text-left"
             style={{ animation: `pq-fade-up 0.55s ${ease} both` }}
           >
             <BetaBadge label={t("home.betaBadge")} />
@@ -77,18 +66,11 @@ function HomePage() {
             >
               {t("home.hero")}
             </h1>
-            <p className="max-w-md text-sm text-muted-foreground sm:text-base">
-              {t("home.subtitle")}
-            </p>
           </div>
 
-          {dailyNumber !== null && <DailyBanner dailyNumber={dailyNumber} />}
-          <SignInBanner />
-          <ModeCards
-            artistTotal={artistTotal}
-            clozeTotal={clozeTotal}
-            clozeArtists={clozeArtists}
-          />
+          <ModeStack dailyNumber={dailyNumber} />
+          <SignInLine />
+          <MoreLinks />
         </div>
       </main>
 
@@ -101,18 +83,6 @@ function HomePage() {
           <span>{t("home.betaNotice")}</span>
         </div>
         <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs font-semibold text-muted-foreground/70 md:justify-start">
-          <Link to="/artists" className="transition-colors hover:text-primary">
-            {t("home.footerArtists")}
-          </Link>
-          <Link
-            to="/leaderboard"
-            className="transition-colors hover:text-primary"
-          >
-            {t("nav.leaderboard")}
-          </Link>
-          <Link to="/daily" className="transition-colors hover:text-primary">
-            {t("home.footerDaily")}
-          </Link>
           <DiscordFooterLink placement="home_footer" />
           <Link to="/impressum" className="transition-colors hover:text-primary">
             {t("nav.imprint")}
@@ -120,7 +90,10 @@ function HomePage() {
           <Link to="/datenschutz" className="transition-colors hover:text-primary">
             {t("nav.privacy")}
           </Link>
-          <Link to="/nutzungsbedingungen" className="transition-colors hover:text-primary">
+          <Link
+            to="/nutzungsbedingungen"
+            className="transition-colors hover:text-primary"
+          >
             {t("nav.terms")}
           </Link>
         </nav>
@@ -130,180 +103,183 @@ function HomePage() {
   )
 }
 
-function DailyBanner({ dailyNumber }: { dailyNumber: number }) {
-  const { t } = useTranslation()
+/** Minimal gold calendar glyph for the Daily row — no stock art, just a stroke. */
+function DailyGlyph() {
   return (
-    <Link
-      to="/daily"
-      aria-label={t("home.dailyAria", { number: dailyNumber })}
-      className={cn(
-        "group relative flex items-center justify-between gap-3 overflow-hidden rounded-3xl",
-        "border border-primary/50 bg-primary/10 p-5",
-        "transition-[border-color,background-color] duration-200",
-        "hover:border-primary hover:bg-primary/15 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
-      )}
-      style={{ animation: `pq-fade-up 0.55s ${ease} 0.1s both` }}
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-7 w-7 text-primary"
+      aria-hidden="true"
     >
-      <div className="flex flex-col gap-1">
-        <span className="text-[10px] font-bold tracking-[0.18em] text-primary uppercase">
-          {t("home.dailyEyebrow", { number: dailyNumber })}
-        </span>
-        <h2 className="text-xl leading-tight font-extrabold tracking-tight">
-          {t("home.dailyHeadline")}
-        </h2>
-        <p className="text-xs text-muted-foreground">
-          {t("home.dailySubtext")}
-        </p>
-      </div>
-      <span className="text-2xl text-primary transition-transform duration-200 group-hover:translate-x-0.5">
-        →
-      </span>
-    </Link>
+      <rect x="3" y="4.5" width="18" height="16" rx="3" />
+      <path d="M3 9h18M8 3v3M16 3v3" />
+    </svg>
   )
 }
 
-function ModeCards({
-  artistTotal,
-  clozeTotal,
-  clozeArtists,
-}: {
-  artistTotal: number
-  clozeTotal: number
-  clozeArtists: number
-}) {
+/**
+ * Gold hero PNG (mic / cloze art) dropped into the circular ring. Same
+ * mix-blend-screen + radial-mask trick used elsewhere: kills the PNG's
+ * pure-black backdrop so only the gold survives.
+ */
+function ModeImage({ src }: { src: string }) {
+  return (
+    <img
+      src={src}
+      alt=""
+      aria-hidden="true"
+      width={48}
+      height={48}
+      className="h-9 w-9 select-none"
+      style={{
+        mixBlendMode: "screen",
+        WebkitMaskImage:
+          "radial-gradient(circle at center, black 55%, transparent 90%)",
+        maskImage:
+          "radial-gradient(circle at center, black 55%, transparent 90%)",
+        filter:
+          "drop-shadow(0 0 12px color-mix(in oklch, var(--primary), transparent 55%))",
+      }}
+    />
+  )
+}
+
+function ModeStack({ dailyNumber }: { dailyNumber: number | null }) {
   const { t } = useTranslation()
   return (
-    <div
-      className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2"
-      style={{ animation: `pq-fade-up 0.6s ${ease} 0.15s both` }}
-    >
-      <ModeCard
+    <div className="flex flex-col gap-3">
+      {dailyNumber !== null && (
+        <ModeRow
+          to="/daily"
+          icon={<DailyGlyph />}
+          title={t("home.modes.dailyTitle")}
+          description={t("home.modes.dailyDesc")}
+          badge={t("home.dailyBadge", { number: dailyNumber })}
+          index={0}
+        />
+      )}
+      <ModeRow
         to="/play"
         search={{}}
-        eyebrow={t("home.modes.classicEyebrow")}
+        icon={<ModeImage src="/mic.png" />}
         title={t("home.modes.classicTitle")}
         description={t("home.modes.classicDesc")}
-        meta={t("home.modes.classicMeta", { count: artistTotal })}
-        ariaLabel={t("home.modes.classicAria", { count: artistTotal })}
-        iconSrc="/mic.png"
-        index={0}
+        index={1}
       />
-      <div className="flex flex-col gap-2">
-        <ModeCard
-          to="/play"
-          search={{ mode: "cloze" }}
-          eyebrow={t("home.modes.clozeEyebrow")}
-          title={t("home.modes.clozeTitle")}
-          description={t("home.modes.clozeDesc")}
-          meta={t("home.modes.clozeMeta", {
-            count: clozeTotal,
-            artists: clozeArtists,
-          })}
-          ariaLabel={t("home.modes.clozeAria", {
-            count: clozeTotal,
-            artists: clozeArtists,
-          })}
-          iconSrc="/cloze.png"
-          index={1}
-        />
-        <Link
-          to="/finishing"
-          className={cn(
-            "inline-flex min-h-11 w-fit items-center gap-1.5 rounded-full px-4",
-            "border border-border/60 bg-card text-xs font-bold tracking-[0.16em] text-foreground/80 uppercase",
-            "transition-[color,border-color,background-color] duration-200",
-            "hover:border-primary/60 hover:bg-card hover:text-foreground",
-            "focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
-          )}
-        >
-          {t("home.modes.perArtist")}
-          <span aria-hidden="true">→</span>
-        </Link>
-      </div>
+      <ModeRow
+        to="/play"
+        search={{ mode: "cloze" }}
+        icon={<ModeImage src="/cloze.png" />}
+        title={t("home.modes.clozeTitle")}
+        description={t("home.modes.clozeDesc")}
+        index={2}
+      />
     </div>
   )
 }
 
-function ModeCard({
+/**
+ * One mode row — circular gold-ringed icon + title + one-liner + chevron, on a
+ * consistent quiet card. Equal weight across modes; hierarchy is carried by
+ * order alone (LoLdle pattern). Gold lives only in the ring, the badge and
+ * hover — no gold-filled cards competing for attention.
+ */
+function ModeRow({
   to,
   search,
-  eyebrow,
+  icon,
   title,
   description,
-  meta,
-  ariaLabel,
-  iconSrc,
+  badge,
   index,
 }: {
   to: string
-  search: Record<string, string>
-  eyebrow: string
+  search?: Record<string, string>
+  icon: React.ReactNode
   title: string
   description: string
-  meta: string
-  ariaLabel: string
-  iconSrc: string
+  badge?: string
   index: number
 }) {
   return (
     <Link
       to={to}
       search={search}
-      aria-label={ariaLabel}
       className={cn(
-        "group relative flex flex-col gap-4 overflow-hidden rounded-3xl sm:gap-5",
-        "border border-border/60 bg-card/50 p-5",
+        "group flex items-center gap-4 rounded-2xl px-4 py-4",
+        "border border-border/60 bg-card/50",
         "transition-[border-color,background-color] duration-200",
         "hover:border-primary/60 hover:bg-card focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
       )}
-      style={{
-        animation: `pq-fade-up 0.55s ${ease} ${0.2 + index * 0.08}s both`,
-      }}
+      style={{ animation: `pq-fade-up 0.55s ${ease} ${0.12 + index * 0.07}s both` }}
     >
-      <div className="flex items-center gap-4" aria-hidden="true">
-        {/* Gold hero icon. Same mix-blend-screen + radial-mask trick as the
-            sign-in banner: kills the PNG's pure-black backdrop and softens the
-            edge into the card. */}
-        <img
-          src={iconSrc}
-          alt=""
-          aria-hidden="true"
-          width={80}
-          height={80}
-          className="h-14 w-14 shrink-0 transition-transform duration-200 select-none motion-safe:group-hover:translate-x-1 sm:h-20 sm:w-20"
-          style={{
-            mixBlendMode: "screen",
-            WebkitMaskImage:
-              "radial-gradient(circle at center, black 55%, transparent 90%)",
-            maskImage:
-              "radial-gradient(circle at center, black 55%, transparent 90%)",
-            filter:
-              "drop-shadow(0 0 18px color-mix(in oklch, var(--primary), transparent 55%))",
-          }}
-        />
-        <div className="flex flex-col gap-2">
-          <span className="text-[10px] font-bold tracking-[0.18em] text-primary/80 uppercase">
-            {eyebrow}
+      <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full border border-primary/40 bg-primary/5">
+        {icon}
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="flex flex-wrap items-center gap-2">
+          <span className="text-lg leading-tight font-extrabold tracking-tight">
+            {title}
           </span>
-          <h2 className="flex items-center gap-2 text-2xl leading-[1.1] font-extrabold tracking-tight text-balance">
-            <span>{title}</span>
-            <span className="inline-block translate-y-px text-primary transition-transform duration-200 group-hover:translate-x-0.5">
-              →
+          {badge && (
+            <span className="rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-bold tracking-[0.14em] text-primary uppercase tabular-nums">
+              {badge}
             </span>
-          </h2>
-        </div>
-      </div>
-
-      <p className="text-sm leading-snug text-balance text-muted-foreground">
-        {description}
-      </p>
-
+          )}
+        </span>
+        <span className="text-sm text-muted-foreground">{description}</span>
+      </span>
       <span
         aria-hidden="true"
-        className="mt-auto text-xs text-muted-foreground tabular-nums"
+        className="text-xl text-primary/70 transition-transform duration-200 group-hover:translate-x-0.5"
       >
-        {meta}
+        →
       </span>
     </Link>
+  )
+}
+
+/** Small, quiet sign-in nudge — signed-out only. The header pill and the
+ *  in-play anon-XP nudges carry the rest, so this stays a single line. */
+function SignInLine() {
+  const { t } = useTranslation()
+  return (
+    <Show when="signed-out">
+      <SignInButton mode="modal">
+        <button
+          type="button"
+          className="mx-auto text-sm text-muted-foreground transition-colors hover:text-foreground md:mx-0"
+        >
+          {t("home.signIn.prompt")}{" "}
+          <span className="font-semibold text-primary">
+            {t("home.signIn.action")}
+          </span>
+        </button>
+      </SignInButton>
+    </Show>
+  )
+}
+
+/** Quiet "more ways in" row below the mode stack. */
+function MoreLinks() {
+  const { t } = useTranslation()
+  const cls = "transition-colors hover:text-primary"
+  return (
+    <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs font-semibold text-muted-foreground/70 md:justify-start">
+      <Link to="/finishing" className={cls}>
+        {t("home.more.perArtist")}
+      </Link>
+      <Link to="/artists" className={cls}>
+        {t("home.footerArtists")}
+      </Link>
+      <Link to="/leaderboard" className={cls}>
+        {t("nav.leaderboard")}
+      </Link>
+    </nav>
   )
 }
