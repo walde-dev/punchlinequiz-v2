@@ -86,47 +86,60 @@ function ProfileView({ data }: { data: Extract<PublicProfileResult, { found: tru
       <div className="pq-spotlight pointer-events-none absolute inset-0" aria-hidden="true" />
 
       <main className="relative mx-auto flex w-full max-w-xl flex-1 flex-col gap-8 px-5 pt-20 pb-12 md:px-8">
-        {/* Hero — avatar + handle are the focus; level/rank are supporting, XP lives in stats. */}
-        <section className="flex flex-col items-center gap-4 text-center" style={{ animation: `pq-fade-up 0.55s ${ease} both` }}>
-          <Avatar imageUrl={data.imageUrl} handle={data.handle} />
-          <div className="flex flex-col items-center gap-1.5">
-            <h1
-              className="font-extrabold tracking-tight text-foreground text-balance"
-              style={{ fontSize: "clamp(2rem, 8vw, 3rem)", lineHeight: 1.05 }}
-            >
-              @{data.handle}
-            </h1>
-            {/* Rank badge + level name, side by side — supporting, not the hero. */}
-            <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1">
-              <img src={rankIconPath(profile.level.rank)} alt="" aria-hidden="true" width={20} height={20} className="select-none" />
-              <span className="text-xs font-bold uppercase tracking-[0.16em] text-primary">{levelName}</span>
-            </span>
+        {/* Hero — one identity card: avatar, handle, level, followers; XP progress
+            anchored along the bottom edge. Actions sit just below the card. */}
+        <section className="flex flex-col items-center gap-4" style={{ animation: `pq-fade-up 0.55s ${ease} both` }}>
+          <div className="relative flex w-full flex-col items-center gap-4 overflow-hidden rounded-3xl border border-border/60 bg-card/40 px-6 pt-8 pb-6 text-center backdrop-blur-sm">
+            {/* Soft gold glow bleeding from the top, framing the avatar. */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 -top-20 h-40"
+              style={{ background: "radial-gradient(closest-side, color-mix(in oklch, var(--primary), transparent 78%), transparent)" }}
+            />
+
+            <Avatar imageUrl={data.imageUrl} handle={data.handle} />
+
+            <div className="flex flex-col items-center gap-2">
+              <h1
+                className="font-extrabold tracking-tight text-foreground text-balance"
+                style={{ fontSize: "clamp(1.75rem, 7vw, 2.5rem)", lineHeight: 1.05 }}
+              >
+                <span className="font-bold text-primary/45" style={{ fontSize: "0.6em" }}>@</span>
+                {data.handle}
+              </h1>
+              {/* Rank badge + level name, side by side — supporting, not the hero. */}
+              <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1">
+                <img src={rankIconPath(profile.level.rank)} alt="" aria-hidden="true" width={20} height={20} className="select-none" />
+                <span className="text-xs font-bold uppercase tracking-[0.16em] text-primary">{levelName}</span>
+              </span>
+            </div>
+
+            {/* Follow counts, divided */}
+            <div className="flex items-stretch justify-center gap-5 text-sm">
+              <Count value={followers} bumpKey={followerBump} label={t("profile.public.followers")} />
+              <span aria-hidden="true" className="w-px self-stretch bg-border/60" />
+              <Count value={data.following} label={t("profile.public.following")} />
+            </div>
+
+            {/* XP progress — anchored along the card's bottom edge. */}
+            <div className="mt-2 flex w-full flex-col items-center gap-1.5 border-t border-border/40 pt-4">
+              <ProgressBar pct={profile.progressPct} />
+              <p className="text-xs font-semibold tabular-nums text-muted-foreground">
+                {profile.totalXp.toLocaleString(isDe ? "de-DE" : "en-US")} XP
+                {nextLevelName ? (
+                  <span className="opacity-70">
+                    {" · "}
+                    {t("profile.nextLevelCaption", { xp: xpToNext.toLocaleString(isDe ? "de-DE" : "en-US"), rank: nextLevelName })}
+                  </span>
+                ) : (
+                  <span className="text-primary opacity-90">{" · "}{t("profile.maxLevelReached")}</span>
+                )}
+              </p>
+            </div>
           </div>
 
-          {/* Follow counts */}
-          <div className="flex items-center gap-6 pt-0.5 text-sm">
-            <Count value={followers} bumpKey={followerBump} label={t("profile.public.followers")} />
-            <Count value={data.following} label={t("profile.public.following")} />
-          </div>
-
-          {/* Actions */}
+          {/* Actions — below the identity card. */}
           <Actions data={data} onFollowersChange={handleFollowersChange} />
-
-          {/* XP progress — demoted below identity + actions. */}
-          <div className="flex w-full max-w-xs flex-col items-center gap-1.5 pt-2">
-            <ProgressBar pct={profile.progressPct} />
-            <p className="text-xs font-semibold tabular-nums text-muted-foreground">
-              {profile.totalXp.toLocaleString(isDe ? "de-DE" : "en-US")} XP
-              {nextLevelName ? (
-                <span className="opacity-70">
-                  {" · "}
-                  {t("profile.nextLevelCaption", { xp: xpToNext.toLocaleString(isDe ? "de-DE" : "en-US"), rank: nextLevelName })}
-                </span>
-              ) : (
-                <span className="text-primary opacity-90">{" · "}{t("profile.maxLevelReached")}</span>
-              )}
-            </p>
-          </div>
         </section>
 
         {/* Stats row */}
