@@ -13,10 +13,9 @@ import {
   fetchBars,
   fetchDailyChallenges,
   scheduleDailyChallenge,
-  type BarRow,
-  type DailyRow,
 } from "../../lib/admin-client"
 import { isAdminFn } from "../../lib/session"
+import type { BarRow, DailyRow } from "../../lib/admin-client"
 
 export const Route = createFileRoute("/admin/daily")({
   component: AdminDailyPage,
@@ -32,8 +31,8 @@ function todayBerlin(): string {
 
 function AdminDailyPage() {
   const { t } = useTranslation()
-  const [items, setItems] = useState<DailyRow[]>([])
-  const [bars, setBars] = useState<BarRow[]>([])
+  const [items, setItems] = useState<Array<DailyRow>>([])
+  const [bars, setBars] = useState<Array<BarRow>>([])
   const [loading, setLoading] = useState(true)
   const [includePast, setIncludePast] = useState(false)
   const [err, setErr] = useState<string | null>(null)
@@ -60,8 +59,14 @@ function AdminDailyPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [includePast])
 
-  const scheduledIds = useMemo(() => new Set(items.map((i) => i.punchlineId)), [items])
-  const scheduledDates = useMemo(() => new Set(items.map((i) => i.date)), [items])
+  const scheduledIds = useMemo(
+    () => new Set(items.map((i) => i.punchlineId)),
+    [items]
+  )
+  const scheduledDates = useMemo(
+    () => new Set(items.map((i) => i.date)),
+    [items]
+  )
   const today = todayBerlin()
 
   return (
@@ -69,7 +74,9 @@ function AdminDailyPage() {
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
         <div className="flex items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-extrabold tracking-tight">{t("admin.daily.title")}</h1>
+            <h1 className="text-2xl font-extrabold tracking-tight">
+              {t("admin.daily.title")}
+            </h1>
             <p className="text-sm text-muted-foreground">
               {t("admin.daily.subtitle")}
             </p>
@@ -94,12 +101,14 @@ function AdminDailyPage() {
         {err && <p className="text-xs text-destructive">{err}</p>}
 
         <section className="flex flex-col gap-2">
-          <h2 className="text-sm font-bold uppercase tracking-[0.16em] text-foreground/80">
+          <h2 className="text-sm font-bold tracking-[0.16em] text-foreground/80 uppercase">
             {t("admin.daily.scheduledHeading", { count: items.length })}
           </h2>
           <ul className="flex flex-col divide-y divide-border/40 rounded-2xl border border-border/40 bg-card/40">
             {loading && (
-              <li className="px-4 py-6 text-center text-sm text-muted-foreground">{t("admin.daily.loading")}</li>
+              <li className="px-4 py-6 text-center text-sm text-muted-foreground">
+                {t("admin.daily.loading")}
+              </li>
             )}
             {!loading && items.length === 0 && (
               <li className="px-4 py-8 text-center text-sm text-muted-foreground">
@@ -114,34 +123,44 @@ function AdminDailyPage() {
                   key={it.id}
                   className={cn(
                     "flex flex-col gap-1 px-4 py-3 transition-colors hover:bg-card/80",
-                    past && "opacity-60",
+                    past && "opacity-60"
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex flex-col gap-1.5">
                       <div className="flex items-center gap-2 text-xs">
-                        <span className="font-mono font-bold tabular-nums text-primary">
+                        <span className="font-mono font-bold text-primary tabular-nums">
                           {it.date}
                         </span>
                         {todays && (
-                          <span className="rounded-full border border-primary/50 bg-primary/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-primary">
+                          <span className="rounded-full border border-primary/50 bg-primary/15 px-2 py-0.5 text-[9px] font-bold tracking-wide text-primary uppercase">
                             {t("admin.daily.today")}
                           </span>
                         )}
                         {past && (
-                          <span className="rounded-full border border-border/50 bg-background/40 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
+                          <span className="rounded-full border border-border/50 bg-background/40 px-2 py-0.5 text-[9px] font-bold tracking-wide text-muted-foreground uppercase">
                             {t("admin.daily.past")}
                           </span>
                         )}
                       </div>
-                      <p className="text-sm font-semibold leading-snug text-foreground">
+                      <p className="text-sm leading-snug font-semibold text-foreground">
                         {it.line}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        <span className="font-semibold text-primary">{it.artistName}</span>
+                        <span className="font-semibold text-primary">
+                          {it.artistName}
+                        </span>
                         <span className="opacity-60"> · {it.songTitle}</span>
-                        {it.releaseYear && <span className="opacity-50"> · {it.releaseYear}</span>}
-                        <span className="opacity-40"> · bar #{it.punchlineId}</span>
+                        {it.releaseYear && (
+                          <span className="opacity-50">
+                            {" "}
+                            · {it.releaseYear}
+                          </span>
+                        )}
+                        <span className="opacity-40">
+                          {" "}
+                          · bar #{it.punchlineId}
+                        </span>
                       </p>
                     </div>
                     <Button
@@ -149,7 +168,12 @@ function AdminDailyPage() {
                       variant="ghost"
                       size="sm"
                       onClick={async () => {
-                        if (!confirm(t("admin.daily.removeConfirm", { date: it.date }))) return
+                        if (
+                          !confirm(
+                            t("admin.daily.removeConfirm", { date: it.date })
+                          )
+                        )
+                          return
                         try {
                           await deleteDailyChallenge(it.id)
                           await refresh()
@@ -179,7 +203,7 @@ function ScheduleForm({
   today,
   onScheduled,
 }: {
-  bars: BarRow[]
+  bars: Array<BarRow>
   scheduledIds: Set<number>
   scheduledDates: Set<string>
   today: string
@@ -194,7 +218,9 @@ function ScheduleForm({
   const [info, setInfo] = useState<string | null>(null)
 
   useEffect(() => {
-    setDate((d) => (scheduledDates.has(d) ? nextOpenDate(today, scheduledDates) : d))
+    setDate((d) =>
+      scheduledDates.has(d) ? nextOpenDate(today, scheduledDates) : d
+    )
   }, [scheduledDates, today])
 
   const candidates = useMemo(() => {
@@ -224,7 +250,13 @@ function ScheduleForm({
     setInfo(null)
     try {
       await scheduleDailyChallenge({ date, punchlineId: picked.id })
-      setInfo(t("admin.daily.scheduled", { artist: picked.artistName, song: picked.songTitle, date }))
+      setInfo(
+        t("admin.daily.scheduled", {
+          artist: picked.artistName,
+          song: picked.songTitle,
+          date,
+        })
+      )
       setPicked(null)
       setSearch("")
       await onScheduled()
@@ -241,7 +273,7 @@ function ScheduleForm({
       className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-card/60 p-4"
     >
       <div className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <label className="flex flex-col gap-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
           {t("admin.daily.date")}
           <Input
             type="date"
@@ -251,8 +283,8 @@ function ScheduleForm({
             className="font-mono font-bold tabular-nums"
           />
         </label>
-        <div className="flex-1 min-w-[220px] flex flex-col gap-1">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <div className="flex min-w-[220px] flex-1 flex-col gap-1">
+          <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
             {t("admin.daily.barSearch")}
           </span>
           <Input
@@ -269,19 +301,23 @@ function ScheduleForm({
 
       {dateInvalid && date && (
         <p className="text-xs text-destructive">
-          {scheduledDates.has(date) ? t("admin.daily.dateTaken") : t("admin.daily.datePast")}
+          {scheduledDates.has(date)
+            ? t("admin.daily.dateTaken")
+            : t("admin.daily.datePast")}
         </p>
       )}
 
       {picked ? (
         <div className="flex items-start justify-between gap-3 rounded-xl border border-primary/40 bg-primary/5 p-3">
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary/80">
+            <span className="text-[10px] font-bold tracking-[0.16em] text-primary/80 uppercase">
               {t("admin.daily.selected")}
             </span>
-            <p className="text-sm font-semibold leading-snug">{picked.line}</p>
+            <p className="text-sm leading-snug font-semibold">{picked.line}</p>
             <p className="text-xs text-muted-foreground">
-              <span className="font-semibold text-primary">{picked.artistName}</span>
+              <span className="font-semibold text-primary">
+                {picked.artistName}
+              </span>
               <span className="opacity-60"> · {picked.songTitle}</span>
               <span className="opacity-40"> · #{picked.id}</span>
             </p>
@@ -300,7 +336,9 @@ function ScheduleForm({
         <ul className="flex max-h-[320px] flex-col divide-y divide-border/40 overflow-y-auto rounded-xl border border-border/40 bg-background/30">
           {candidates.length === 0 ? (
             <li className="px-3 py-6 text-center text-xs text-muted-foreground">
-              {bars.length === 0 ? t("admin.daily.loadingBars") : t("admin.daily.noBar")}
+              {bars.length === 0
+                ? t("admin.daily.loadingBars")
+                : t("admin.daily.noBar")}
             </li>
           ) : (
             candidates.map((b) => (
@@ -310,9 +348,13 @@ function ScheduleForm({
                   onClick={() => setPicked(b)}
                   className="flex w-full flex-col items-start gap-1 px-3 py-2 text-left transition-colors hover:bg-card/80"
                 >
-                  <span className="text-sm font-semibold leading-snug">{b.line}</span>
+                  <span className="text-sm leading-snug font-semibold">
+                    {b.line}
+                  </span>
                   <span className="text-xs text-muted-foreground">
-                    <span className="font-semibold text-primary">{b.artistName}</span>
+                    <span className="font-semibold text-primary">
+                      {b.artistName}
+                    </span>
                     <span className="opacity-60"> · {b.songTitle}</span>
                     <span className="opacity-40"> · #{b.id}</span>
                   </span>

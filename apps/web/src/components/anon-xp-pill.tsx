@@ -1,4 +1,4 @@
-import { SignInButton, Show } from "@clerk/tanstack-react-start"
+import { Show, SignInButton } from "@clerk/tanstack-react-start"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -54,20 +54,24 @@ function AnonXpPillInner({ refreshKey }: { refreshKey: number }) {
       <SignInButton mode="modal">
         <button
           type="button"
-          onClick={() => logEvent("signup_prompt_clicked", { source: "pill", xp })}
+          onClick={() =>
+            logEvent("signup_prompt_clicked", { source: "pill", xp })
+          }
           aria-label={t("xp.banked.aria", { xp })}
           className={cn(
             "group inline-flex items-center gap-2.5 rounded-full px-4 py-1.5",
             "bg-[#1a1a1a]/95 ring-1 ring-primary/45 backdrop-blur-md",
             "shadow-[0_0_30px_-6px_color-mix(in_oklch,var(--primary),transparent_45%)]",
-            "active:scale-[0.97] transition-transform duration-150",
+            "transition-transform duration-150 active:scale-[0.97]"
           )}
         >
-          <span aria-hidden="true" className="text-base">✨</span>
+          <span aria-hidden="true" className="text-base">
+            ✨
+          </span>
           <span className="text-xs font-extrabold tracking-tight text-foreground">
             {t("xp.banked.label", { xp })}
           </span>
-          <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-primary-foreground">
+          <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold tracking-wide text-primary-foreground uppercase">
             {t("xp.banked.cta")}
             <span aria-hidden="true">→</span>
           </span>

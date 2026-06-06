@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { Link, createFileRoute } from "@tanstack/react-router"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -13,16 +13,15 @@ import { DiscordJoinCard } from "../components/discord-cta"
 import { LangToggle } from "../components/lang-toggle"
 import { LevelUpModal } from "../components/level-up-modal"
 import { XpGain } from "../components/xp-gain"
-import type { LevelInfo, XpGrantResult } from "../lib/xp"
 import {
   getDailyChallenge,
   submitDailyArtistGuess,
   submitDailySongGuess,
-  type DailyArtistChoice,
-  type DailyChallenge,
 } from "../lib/daily"
 import { seo } from "../lib/seo"
 import { logEvent } from "../lib/track"
+import type { DailyArtistChoice, DailyChallenge } from "../lib/daily"
+import type { LevelInfo, XpGrantResult } from "../lib/xp"
 
 type DailySearch = { date?: string }
 
@@ -409,7 +408,7 @@ function ArtistChoices({
   pickedId,
   disabled,
 }: {
-  choices: DailyArtistChoice[]
+  choices: Array<DailyArtistChoice>
   onPick: (c: DailyArtistChoice) => void
   pickedId: number | null
   disabled: boolean

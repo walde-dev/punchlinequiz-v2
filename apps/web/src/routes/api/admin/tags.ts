@@ -4,9 +4,9 @@ import { artistTags, tags } from "@workspace/db"
 
 import { db } from "../../../lib/db"
 import {
+  HttpError,
   audit,
   handleError,
-  HttpError,
   json,
   readJsonBody,
   requireString,
@@ -42,19 +42,32 @@ export const Route = createFileRoute("/api/admin/tags")({
           const body = await readJsonBody<Record<string, unknown>>(request)
           const label = requireString(body.label, "label", { max: 120 })
           const slug = slugify(label).slice(0, 60)
-          if (!slug) throw new HttpError(400, "invalid_field", "label must produce a slug.")
+          if (!slug)
+            throw new HttpError(
+              400,
+              "invalid_field",
+              "label must produce a slug."
+            )
           const existing = (
             await db.select().from(tags).where(eq(tags.slug, slug)).limit(1)
           )[0]
           if (existing) {
-            return json({ id: existing.id, slug: existing.slug, label: existing.label, created: false })
+            return json({
+              id: existing.id,
+              slug: existing.slug,
+              label: existing.label,
+              created: false,
+            })
           }
           const [row] = await db
             .insert(tags)
             .values({ slug, label })
             .returning()
-          audit("create_tag", { id: row!.id, slug: row!.slug }, actor)
-          return json({ id: row!.id, slug: row!.slug, label: row!.label, created: true }, 201)
+          audit("create_tag", { id: row.id, slug: row.slug }, actor)
+          return json(
+            { id: row.id, slug: row.slug, label: row.label, created: true },
+            201
+          )
         } catch (err) {
           return handleError(err)
         }

@@ -1,11 +1,11 @@
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { Link, createFileRoute } from "@tanstack/react-router"
 import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@workspace/ui/components/button"
 
 import { AppHeader } from "../components/app-header"
-import { getInviterFn, type InviterResult } from "../lib/referral"
+import { getInviterFn } from "../lib/referral"
 import { setReferralToken } from "../lib/referral-client"
 import { noindexSeo } from "../lib/seo"
 import { logEvent } from "../lib/track"
@@ -18,18 +18,22 @@ import { logEvent } from "../lib/track"
 export const Route = createFileRoute("/i/$handle")({
   component: InvitePage,
   head: () => noindexSeo(),
-  loader: async ({ params }) => getInviterFn({ data: { handle: params.handle } }),
+  loader: async ({ params }) =>
+    getInviterFn({ data: { handle: params.handle } }),
 })
 
 function InvitePage() {
   const { t } = useTranslation()
   const { handle } = Route.useParams()
-  const inviter = Route.useLoaderData() as InviterResult
+  const inviter = Route.useLoaderData()
 
   useEffect(() => {
     if (!inviter.found) return
     setReferralToken({ source: "invite", value: inviter.handle })
-    logEvent("referral_landing_viewed", { source: "invite", handle: inviter.handle })
+    logEvent("referral_landing_viewed", {
+      source: "invite",
+      handle: inviter.handle,
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -40,16 +44,31 @@ function InvitePage() {
   return (
     <div className="relative flex min-h-svh flex-col overflow-hidden">
       <AppHeader />
-      <div className="pq-spotlight pointer-events-none absolute inset-0" aria-hidden="true" />
+      <div
+        className="pq-spotlight pointer-events-none absolute inset-0"
+        aria-hidden="true"
+      />
 
       <main className="relative mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-6 px-6 text-center">
-        {inviter.found && <InviterAvatar handle={inviter.handle} imageUrl={inviter.imageUrl} />}
-        <span className="text-xs font-bold uppercase tracking-[0.18em] text-primary/80">{t("invite.eyebrow")}</span>
-        <h1 className="text-3xl font-extrabold tracking-tight text-balance">{title}</h1>
-        <p className="max-w-xs text-sm text-muted-foreground text-balance">{t("invite.subtitle")}</p>
+        {inviter.found && (
+          <InviterAvatar handle={inviter.handle} imageUrl={inviter.imageUrl} />
+        )}
+        <span className="text-xs font-bold tracking-[0.18em] text-primary/80 uppercase">
+          {t("invite.eyebrow")}
+        </span>
+        <h1 className="text-3xl font-extrabold tracking-tight text-balance">
+          {title}
+        </h1>
+        <p className="max-w-xs text-sm text-balance text-muted-foreground">
+          {t("invite.subtitle")}
+        </p>
 
         <div className="flex w-full flex-col items-center gap-2">
-          <Button size="lg" className="cta-glow min-h-12 w-full max-w-xs text-base font-bold" render={<Link to="/play" />}>
+          <Button
+            size="lg"
+            className="cta-glow min-h-12 w-full max-w-xs text-base font-bold"
+            render={<Link to="/play" />}
+          >
             {t("invite.ctaPlay")}
           </Button>
           <Button
@@ -67,11 +86,22 @@ function InvitePage() {
   )
 }
 
-function InviterAvatar({ handle, imageUrl }: { handle: string; imageUrl: string | null }) {
+function InviterAvatar({
+  handle,
+  imageUrl,
+}: {
+  handle: string
+  imageUrl: string | null
+}) {
   return (
     <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-primary/60 bg-card">
       {imageUrl ? (
-        <img src={imageUrl} alt="" aria-hidden="true" className="h-full w-full object-cover" />
+        <img
+          src={imageUrl}
+          alt=""
+          aria-hidden="true"
+          className="h-full w-full object-cover"
+        />
       ) : (
         <span className="text-2xl font-extrabold text-primary">@</span>
       )}

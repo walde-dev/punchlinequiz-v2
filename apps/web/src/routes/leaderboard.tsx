@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { Link, createFileRoute } from "@tanstack/react-router"
 import { SignInButton, useAuth } from "@clerk/tanstack-react-start"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -17,8 +17,9 @@ import { AppHeader } from "../components/app-header"
 import { rankIconPath } from "../lib/rank-icon"
 import { getLeaderboardFn } from "../lib/leaderboard"
 import { seo } from "../lib/seo"
-import { listPlayableArtists, type ArtistTile } from "../lib/game"
+import { listPlayableArtists } from "../lib/game"
 import { logEvent } from "../lib/track"
+import type { ArtistTile } from "../lib/game"
 import type {
   LeaderboardBoard,
   LeaderboardEntry,
@@ -28,15 +29,26 @@ import type {
 
 export const Route = createFileRoute("/leaderboard")({
   component: LeaderboardPage,
-  head: () => seo({ title: "Rangliste", description: "Die besten Köpfe im deutschen Rap-Quiz. Wer kennt die meisten Bars?", path: "/leaderboard" }),
+  head: () =>
+    seo({
+      title: "Rangliste",
+      description:
+        "Die besten Köpfe im deutschen Rap-Quiz. Wer kennt die meisten Bars?",
+      path: "/leaderboard",
+    }),
   loader: async () => ({
-    initial: await getLeaderboardFn({ data: { board: "xp", window: "alltime" } }),
+    initial: await getLeaderboardFn({
+      data: { board: "xp", window: "alltime" },
+    }),
   }),
 })
 
 const ease = "cubic-bezier(0.16, 1, 0.3, 1)"
 
-const EMPTY = (board: LeaderboardBoard, window: LeaderboardWindow): LeaderboardResult => ({
+const EMPTY = (
+  board: LeaderboardBoard,
+  window: LeaderboardWindow
+): LeaderboardResult => ({
   board,
   window,
   totalActiveLines: null,
@@ -47,8 +59,16 @@ const EMPTY = (board: LeaderboardBoard, window: LeaderboardWindow): LeaderboardR
 // Cache key for a board view. Only XP varies by window; only Artist varies by
 // artistId — so the other boards collapse to a single key and never refetch
 // once seen this session.
-const cacheKey = (board: LeaderboardBoard, window: LeaderboardWindow, artistId: number | null): string =>
-  board === "xp" ? `xp:${window}` : board === "artist" ? `artist:${artistId}` : board
+const cacheKey = (
+  board: LeaderboardBoard,
+  window: LeaderboardWindow,
+  artistId: number | null
+): string =>
+  board === "xp"
+    ? `xp:${window}`
+    : board === "artist"
+      ? `artist:${artistId}`
+      : board
 
 function LeaderboardPage() {
   const { initial } = Route.useLoaderData()
@@ -57,14 +77,14 @@ function LeaderboardPage() {
   const [board, setBoard] = useState<LeaderboardBoard>("xp")
   const [window, setWindow] = useState<LeaderboardWindow>("alltime")
   const [artistId, setArtistId] = useState<number | null>(null)
-  const [artists, setArtists] = useState<ArtistTile[] | null>(null)
+  const [artists, setArtists] = useState<Array<ArtistTile> | null>(null)
   const [data, setData] = useState<LeaderboardResult>(initial)
   const [loading, setLoading] = useState(false)
   const first = useRef(true)
   // Per-session result cache. Seeded with the loader's all-time XP board so the
   // first view is instant; revisited tabs render from here with no refetch.
   const cache = useRef<Map<string, LeaderboardResult>>(
-    new Map([[cacheKey("xp", "alltime", null), initial]]),
+    new Map([[cacheKey("xp", "alltime", null), initial]])
   )
 
   // Lazy-load the artist list the first time the Artists board is opened.
@@ -105,7 +125,9 @@ function LeaderboardPage() {
     // the new board loads.
     let active = true
     setLoading(true)
-    getLeaderboardFn({ data: { board, window, artistId: artistId ?? undefined } })
+    getLeaderboardFn({
+      data: { board, window, artistId: artistId ?? undefined },
+    })
       .then((r) => {
         if (!active) return
         cache.current.set(key, r)
@@ -120,7 +142,10 @@ function LeaderboardPage() {
   function switchBoard(next: LeaderboardBoard) {
     if (next === board) return
     setBoard(next)
-    logEvent("leaderboard_viewed", { board: next, ...(next === "artist" && artistId ? { artist_id: artistId } : {}) })
+    logEvent("leaderboard_viewed", {
+      board: next,
+      ...(next === "artist" && artistId ? { artist_id: artistId } : {}),
+    })
     if (next === "contributor") logEvent("contributor_leaderboard_viewed", {})
   }
 
@@ -130,30 +155,73 @@ function LeaderboardPage() {
   return (
     <div className="relative flex min-h-svh flex-col overflow-hidden">
       <AppHeader />
-      <div className="pq-spotlight pointer-events-none absolute inset-0" aria-hidden="true" />
+      <div
+        className="pq-spotlight pointer-events-none absolute inset-0"
+        aria-hidden="true"
+      />
 
       <main className="relative mx-auto flex w-full max-w-xl flex-1 flex-col gap-6 px-5 pt-20 pb-28 md:px-8">
-        <header className="flex flex-col items-center gap-2 text-center" style={{ animation: `pq-fade-up 0.5s ${ease} both` }}>
-          <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-primary/80">
+        <header
+          className="flex flex-col items-center gap-2 text-center"
+          style={{ animation: `pq-fade-up 0.5s ${ease} both` }}
+        >
+          <span className="text-[10px] font-bold tracking-[0.22em] text-primary/80 uppercase">
             {t("leaderboard.eyebrow")}
           </span>
-          <h1 className="text-3xl font-extrabold tracking-tight text-balance">{t("leaderboard.title")}</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight text-balance">
+            {t("leaderboard.title")}
+          </h1>
         </header>
 
         {/* Board tabs */}
-        <div className="flex flex-wrap justify-center gap-2" style={{ animation: `pq-fade-up 0.5s ${ease} 0.06s both` }}>
-          <TabButton active={board === "xp"} onClick={() => switchBoard("xp")}>{t("leaderboard.tabs.xp")}</TabButton>
-          <TabButton active={board === "completion"} onClick={() => switchBoard("completion")}>{t("leaderboard.tabs.completion")}</TabButton>
-          <TabButton active={board === "friends"} onClick={() => switchBoard("friends")}>{t("leaderboard.tabs.friends")}</TabButton>
-          <TabButton active={board === "artist"} onClick={() => switchBoard("artist")}>{t("leaderboard.tabs.artists")}</TabButton>
-          <TabButton active={board === "contributor"} onClick={() => switchBoard("contributor")}>{t("leaderboard.tabs.contributor")}</TabButton>
+        <div
+          className="flex flex-wrap justify-center gap-2"
+          style={{ animation: `pq-fade-up 0.5s ${ease} 0.06s both` }}
+        >
+          <TabButton active={board === "xp"} onClick={() => switchBoard("xp")}>
+            {t("leaderboard.tabs.xp")}
+          </TabButton>
+          <TabButton
+            active={board === "completion"}
+            onClick={() => switchBoard("completion")}
+          >
+            {t("leaderboard.tabs.completion")}
+          </TabButton>
+          <TabButton
+            active={board === "friends"}
+            onClick={() => switchBoard("friends")}
+          >
+            {t("leaderboard.tabs.friends")}
+          </TabButton>
+          <TabButton
+            active={board === "artist"}
+            onClick={() => switchBoard("artist")}
+          >
+            {t("leaderboard.tabs.artists")}
+          </TabButton>
+          <TabButton
+            active={board === "contributor"}
+            onClick={() => switchBoard("contributor")}
+          >
+            {t("leaderboard.tabs.contributor")}
+          </TabButton>
         </div>
 
         {/* Window toggle (XP only) */}
         {board === "xp" && (
           <div className="flex justify-center gap-1.5 text-xs">
-            <PillToggle active={window === "weekly"} onClick={() => setWindow("weekly")}>{t("leaderboard.window.weekly")}</PillToggle>
-            <PillToggle active={window === "alltime"} onClick={() => setWindow("alltime")}>{t("leaderboard.window.alltime")}</PillToggle>
+            <PillToggle
+              active={window === "weekly"}
+              onClick={() => setWindow("weekly")}
+            >
+              {t("leaderboard.window.weekly")}
+            </PillToggle>
+            <PillToggle
+              active={window === "alltime"}
+              onClick={() => setWindow("alltime")}
+            >
+              {t("leaderboard.window.alltime")}
+            </PillToggle>
           </div>
         )}
 
@@ -171,9 +239,14 @@ function LeaderboardPage() {
 
         {/* Rows / prompts */}
         {showSignIn ? (
-          <SignInPrompt message={t("leaderboard.friendsSignIn")} cta={t("nav.signIn")} />
+          <SignInPrompt
+            message={t("leaderboard.friendsSignIn")}
+            cta={t("nav.signIn")}
+          />
         ) : showArtistPrompt ? (
-          <p className="py-12 text-center text-sm text-muted-foreground">{t("leaderboard.pickArtist")}</p>
+          <p className="py-12 text-center text-sm text-muted-foreground">
+            {t("leaderboard.pickArtist")}
+          </p>
         ) : loading ? (
           <section className="flex flex-col gap-2" aria-busy="true">
             {Array.from({ length: 8 }).map((_, i) => (
@@ -200,7 +273,11 @@ function LeaderboardPage() {
                   entry={entry}
                   board={data.board}
                   totalLines={data.totalActiveLines}
-                  highlight={data.me?.inTop && data.me.rank === entry.rank && data.me.handle === entry.handle}
+                  highlight={
+                    data.me?.inTop &&
+                    data.me.rank === entry.rank &&
+                    data.me.handle === entry.handle
+                  }
                 />
               ))
             )}
@@ -209,13 +286,22 @@ function LeaderboardPage() {
       </main>
 
       {/* Sticky "your rank" row when outside the visible top list */}
-      {data.me && !data.me.inTop && !loading && !showSignIn && !showArtistPrompt && (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-primary/30 bg-background/95 px-5 py-3 backdrop-blur-sm md:px-8">
-          <div className="mx-auto w-full max-w-xl">
-            <Row entry={data.me} board={data.board} totalLines={data.totalActiveLines} highlight />
+      {data.me &&
+        !data.me.inTop &&
+        !loading &&
+        !showSignIn &&
+        !showArtistPrompt && (
+          <div className="fixed inset-x-0 bottom-0 z-40 border-t border-primary/30 bg-background/95 px-5 py-3 backdrop-blur-sm md:px-8">
+            <div className="mx-auto w-full max-w-xl">
+              <Row
+                entry={data.me}
+                board={data.board}
+                totalLines={data.totalActiveLines}
+                highlight
+              />
+            </div>
           </div>
-        </div>
-      )}
+        )}
     </div>
   )
 }
@@ -225,7 +311,7 @@ function ArtistPicker({
   value,
   onChange,
 }: {
-  artists: ArtistTile[] | null
+  artists: Array<ArtistTile> | null
   value: number | null
   onChange: (id: number) => void
 }) {
@@ -242,7 +328,11 @@ function ArtistPicker({
       >
         <SelectTrigger className="w-full max-w-xs">
           <SelectValue
-            placeholder={artists === null ? t("common.loading") : t("leaderboard.pickArtist")}
+            placeholder={
+              artists === null
+                ? t("common.loading")
+                : t("leaderboard.pickArtist")
+            }
           />
         </SelectTrigger>
         <SelectContent>
@@ -260,7 +350,9 @@ function ArtistPicker({
 function SignInPrompt({ message, cta }: { message: string; cta: string }) {
   return (
     <div className="flex flex-col items-center gap-4 py-12 text-center">
-      <p className="max-w-xs text-sm text-muted-foreground text-balance">{message}</p>
+      <p className="max-w-xs text-sm text-balance text-muted-foreground">
+        {message}
+      </p>
       <SignInButton mode="modal">
         <Button className="cta-glow min-h-11 bg-primary px-6 text-sm font-bold text-primary-foreground hover:bg-primary/90">
           {cta}
@@ -270,7 +362,15 @@ function SignInPrompt({ message, cta }: { message: string; cta: string }) {
   )
 }
 
-function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean
+  onClick: () => void
+  children: React.ReactNode
+}) {
   return (
     <button
       type="button"
@@ -279,7 +379,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
         "rounded-full px-5 py-2 text-sm font-bold tracking-tight transition-colors",
         active
           ? "bg-primary text-primary-foreground"
-          : "border border-border/60 text-foreground/70 hover:border-primary/50 hover:text-foreground",
+          : "border border-border/60 text-foreground/70 hover:border-primary/50 hover:text-foreground"
       )}
     >
       {children}
@@ -287,14 +387,24 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
   )
 }
 
-function PillToggle({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function PillToggle({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean
+  onClick: () => void
+  children: React.ReactNode
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "rounded-full px-3 py-1 font-bold uppercase tracking-[0.12em] transition-colors",
-        active ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground",
+        "rounded-full px-3 py-1 font-bold tracking-[0.12em] uppercase transition-colors",
+        active
+          ? "bg-primary/15 text-primary"
+          : "text-muted-foreground hover:text-foreground"
       )}
     >
       {children}
@@ -327,37 +437,62 @@ function Row({
         ? `${entry.metric}${totalLines ? ` / ${totalLines}` : ""}`
         : `${entry.metric.toLocaleString(locale)} XP`
   const subLabel =
-    isCount && totalLines ? `${Math.round((entry.metric / totalLines) * 100)}%` : null
+    isCount && totalLines
+      ? `${Math.round((entry.metric / totalLines) * 100)}%`
+      : null
 
   return (
     <Link
       to="/u/$handle"
       params={{ handle: entry.handle }}
-      onClick={() => logEvent("leaderboard_profile_click", { board, handle: entry.handle, rank: entry.rank })}
+      onClick={() =>
+        logEvent("leaderboard_profile_click", {
+          board,
+          handle: entry.handle,
+          rank: entry.rank,
+        })
+      }
       className={cn(
         "flex items-center gap-3 rounded-2xl border px-3 py-2.5 transition-colors hover:border-primary/50",
-        highlight ? "border-primary/70 bg-primary/10" : "border-border/40 bg-card/30 hover:bg-card/50",
+        highlight
+          ? "border-primary/70 bg-primary/10"
+          : "border-border/40 bg-card/30 hover:bg-card/50"
       )}
     >
       <span
         className={cn(
           "w-7 shrink-0 text-center text-sm font-extrabold tabular-nums",
-          entry.rank <= 3 ? "text-primary" : "text-muted-foreground",
+          entry.rank <= 3 ? "text-primary" : "text-muted-foreground"
         )}
       >
         {entry.rank}
       </span>
       <Avatar handle={entry.handle} imageUrl={entry.imageUrl} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate text-sm font-bold tracking-tight text-foreground">@{entry.handle}</span>
-        <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-          <img src={rankIconPath(entry.level.rank)} alt="" aria-hidden="true" width={14} height={14} className="select-none" />
+        <span className="truncate text-sm font-bold tracking-tight text-foreground">
+          @{entry.handle}
+        </span>
+        <span className="flex items-center gap-1 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+          <img
+            src={rankIconPath(entry.level.rank)}
+            alt=""
+            aria-hidden="true"
+            width={14}
+            height={14}
+            className="select-none"
+          />
           {isDe ? entry.level.nameDe : entry.level.nameEn}
         </span>
       </div>
       <div className="flex shrink-0 flex-col items-end">
-        <span className="text-sm font-extrabold tabular-nums text-foreground">{metricLabel}</span>
-        {subLabel && <span className="text-[10px] font-bold tabular-nums text-primary">{subLabel}</span>}
+        <span className="text-sm font-extrabold text-foreground tabular-nums">
+          {metricLabel}
+        </span>
+        {subLabel && (
+          <span className="text-[10px] font-bold text-primary tabular-nums">
+            {subLabel}
+          </span>
+        )}
       </div>
     </Link>
   )
@@ -380,14 +515,24 @@ function SkeletonRow() {
   )
 }
 
-function Avatar({ handle, imageUrl }: { handle: string; imageUrl: string | null }) {
+function Avatar({
+  handle,
+  imageUrl,
+}: {
+  handle: string
+  imageUrl: string | null
+}) {
   const initial = handle.slice(0, 1).toUpperCase()
   return (
     <div
       className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-primary/30 bg-primary/10 text-sm font-extrabold text-primary"
       aria-hidden="true"
     >
-      {imageUrl ? <img src={imageUrl} alt="" className="h-full w-full object-cover" /> : initial}
+      {imageUrl ? (
+        <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+      ) : (
+        initial
+      )}
     </div>
   )
 }

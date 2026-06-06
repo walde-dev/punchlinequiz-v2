@@ -35,7 +35,11 @@ export function absoluteUrl(pathOrUrl: string): string {
  * og:image must be absolute (scrapers don't resolve relative paths), so this
  * always returns a SITE_URL-rooted URL.
  */
-export function ogImageUrl(input: { title: string; subtitle?: string; image?: string | null }): string {
+export function ogImageUrl(input: {
+  title: string
+  subtitle?: string
+  image?: string | null
+}): string {
   const qs = new URLSearchParams()
   qs.set("title", input.title)
   if (input.subtitle) qs.set("subtitle", input.subtitle)
@@ -69,7 +73,10 @@ export type SeoInput = {
  * meta by name/property/title (deepest wins) so overrides are clean. Canonical
  * is only emitted when `path` is given (avoids duplicate canonical tags).
  */
-export function seo(input: SeoInput = {}): { meta: Tag[]; links: Tag[] } {
+export function seo(input: SeoInput = {}): {
+  meta: Array<Tag>
+  links: Array<Tag>
+} {
   const fullTitle = input.title ? `${input.title} · ${SITE_NAME}` : SITE_NAME
   const description = input.description ?? DEFAULT_DESCRIPTION
   // Default to a generated 1200×630 branded card (headline + CTA, ~60KB) instead
@@ -82,7 +89,7 @@ export function seo(input: SeoInput = {}): { meta: Tag[]; links: Tag[] } {
       })
   const url = input.path ? absoluteUrl(input.path) : undefined
 
-  const meta: Tag[] = [
+  const meta: Array<Tag> = [
     { title: fullTitle },
     { name: "description", content: description },
     { property: "og:title", content: fullTitle },
@@ -98,12 +105,12 @@ export function seo(input: SeoInput = {}): { meta: Tag[]; links: Tag[] } {
   if (url) meta.push({ property: "og:url", content: url })
   if (input.noindex) meta.push({ name: "robots", content: "noindex,follow" })
 
-  const links: Tag[] = url ? [{ rel: "canonical", href: url }] : []
+  const links: Array<Tag> = url ? [{ rel: "canonical", href: url }] : []
   return { meta, links }
 }
 
 /** Convenience for app-utility routes that should never be indexed. */
-export function noindexSeo(): { meta: Tag[]; links: Tag[] } {
+export function noindexSeo(): { meta: Array<Tag>; links: Array<Tag> } {
   return seo({ noindex: true })
 }
 
@@ -141,7 +148,7 @@ export function musicGroupJsonLd(input: {
   name: string
   slug: string
   image?: string | null
-  genre?: string[]
+  genre?: Array<string>
 }): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
@@ -153,7 +160,9 @@ export function musicGroupJsonLd(input: {
   }
 }
 
-export function breadcrumbJsonLd(items: Array<{ name: string; path: string }>): Record<string, unknown> {
+export function breadcrumbJsonLd(
+  items: Array<{ name: string; path: string }>
+): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",

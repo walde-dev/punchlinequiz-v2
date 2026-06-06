@@ -15,7 +15,7 @@ type Props = {
   value: string
   onChange: (v: string) => void
   onPick: (item: ComboboxItem) => void
-  search: (q: string) => Promise<ComboboxItem[]>
+  search: (q: string) => Promise<Array<ComboboxItem>>
   placeholder?: string
   className?: string
   required?: boolean
@@ -37,7 +37,7 @@ export function Combobox({
 }: Props) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
-  const [hits, setHits] = useState<ComboboxItem[]>([])
+  const [hits, setHits] = useState<Array<ComboboxItem>>([])
   const [loading, setLoading] = useState(false)
   const [active, setActive] = useState(0)
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -123,55 +123,64 @@ export function Combobox({
         aria-autocomplete="list"
         className="w-full"
       />
-      {open && (loading || hits.length > 0 || value.trim().length >= minChars) && (
-        <ul
-          id={listboxId}
-          role="listbox"
-          className={cn(
-            "absolute left-0 right-0 z-50 mt-1 max-h-72 overflow-y-auto rounded-xl border border-border/60",
-            "bg-popover/95 shadow-2xl backdrop-blur-sm",
-          )}
-        >
-          {loading && hits.length === 0 && (
-            <li className="px-3 py-2 text-xs text-muted-foreground">{t("combobox.searching")}</li>
-          )}
-          {!loading && hits.length === 0 && value.trim().length >= minChars && (
-            <li className="px-3 py-2 text-xs text-muted-foreground">
-              {t("combobox.noHits")}
-            </li>
-          )}
-          {hits.map((item, i) => {
-            const isActive = i === active
-            return (
-              <li key={item.key} role="option" aria-selected={isActive}>
-                <button
-                  type="button"
-                  onMouseEnter={() => setActive(i)}
-                  onMouseDown={(e) => {
-                    // Use mousedown so blur doesn't close before click fires.
-                    e.preventDefault()
-                    pick(item)
-                  }}
-                  className={cn(
-                    "flex w-full items-center gap-3 px-3 py-2 text-left",
-                    isActive ? "bg-primary/15 text-foreground" : "hover:bg-muted/40",
-                  )}
-                >
-                  <Thumb url={item.imageUrl ?? null} alt={item.label} />
-                  <span className="flex min-w-0 flex-col">
-                    <span className="truncate text-sm font-semibold">{item.label}</span>
-                    {item.sublabel && (
-                      <span className="truncate text-xs text-muted-foreground">
-                        {item.sublabel}
-                      </span>
-                    )}
-                  </span>
-                </button>
+      {open &&
+        (loading || hits.length > 0 || value.trim().length >= minChars) && (
+          <ul
+            id={listboxId}
+            role="listbox"
+            className={cn(
+              "absolute right-0 left-0 z-50 mt-1 max-h-72 overflow-y-auto rounded-xl border border-border/60",
+              "bg-popover/95 shadow-2xl backdrop-blur-sm"
+            )}
+          >
+            {loading && hits.length === 0 && (
+              <li className="px-3 py-2 text-xs text-muted-foreground">
+                {t("combobox.searching")}
               </li>
-            )
-          })}
-        </ul>
-      )}
+            )}
+            {!loading &&
+              hits.length === 0 &&
+              value.trim().length >= minChars && (
+                <li className="px-3 py-2 text-xs text-muted-foreground">
+                  {t("combobox.noHits")}
+                </li>
+              )}
+            {hits.map((item, i) => {
+              const isActive = i === active
+              return (
+                <li key={item.key} role="option" aria-selected={isActive}>
+                  <button
+                    type="button"
+                    onMouseEnter={() => setActive(i)}
+                    onMouseDown={(e) => {
+                      // Use mousedown so blur doesn't close before click fires.
+                      e.preventDefault()
+                      pick(item)
+                    }}
+                    className={cn(
+                      "flex w-full items-center gap-3 px-3 py-2 text-left",
+                      isActive
+                        ? "bg-primary/15 text-foreground"
+                        : "hover:bg-muted/40"
+                    )}
+                  >
+                    <Thumb url={item.imageUrl ?? null} alt={item.label} />
+                    <span className="flex min-w-0 flex-col">
+                      <span className="truncate text-sm font-semibold">
+                        {item.label}
+                      </span>
+                      {item.sublabel && (
+                        <span className="truncate text-xs text-muted-foreground">
+                          {item.sublabel}
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        )}
     </div>
   )
 }

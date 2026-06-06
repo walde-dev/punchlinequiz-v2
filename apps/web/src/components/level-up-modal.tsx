@@ -9,8 +9,8 @@ import {
 } from "@workspace/ui/components/dialog"
 import { cn } from "@workspace/ui/lib/utils"
 
-import { Confetti } from "./confetti"
 import { rankIconPath } from "../lib/rank-icon"
+import { Confetti } from "./confetti"
 import type { LevelInfo } from "../lib/xp"
 
 /**
@@ -37,11 +37,11 @@ export function LevelUpModal({
         showCloseButton={false}
         className={cn(
           "max-w-md gap-5 border-primary/40 bg-gradient-to-b from-[#1a1a1a] to-[#0e0e0e] px-8 py-10 text-center",
-          "flex flex-col items-center shadow-[0_0_80px_-10px_rgba(251,191,36,0.6)] sm:max-w-md",
+          "flex flex-col items-center shadow-[0_0_80px_-10px_rgba(251,191,36,0.6)] sm:max-w-md"
         )}
       >
         <Confetti trigger={level.rank} />
-        <span className="text-xs font-bold uppercase tracking-[0.22em] text-primary/80">
+        <span className="text-xs font-bold tracking-[0.22em] text-primary/80 uppercase">
           {t("xp.levelUp.eyebrow")}
         </span>
         <img
@@ -52,17 +52,18 @@ export function LevelUpModal({
           height={144}
           className="select-none"
           style={{
-            animation: "pq-pop-in 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both",
+            animation:
+              "pq-pop-in 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both",
             filter:
               "drop-shadow(0 0 40px color-mix(in oklch, var(--primary), transparent 50%))",
           }}
         />
         <div className="flex flex-col items-center gap-1">
-          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+          <span className="text-[10px] font-bold tracking-[0.2em] text-muted-foreground uppercase">
             {t("xp.levelUp.levelLabel")} {level.rank}
           </span>
           <DialogTitle
-            className="font-extrabold tracking-tight text-primary text-balance"
+            className="font-extrabold tracking-tight text-balance text-primary"
             style={{
               fontSize: "clamp(2.5rem, 9vw, 4rem)",
               lineHeight: 1.05,
@@ -72,7 +73,7 @@ export function LevelUpModal({
             {name}
           </DialogTitle>
         </div>
-        <DialogDescription className="max-w-xs text-sm text-muted-foreground text-balance">
+        <DialogDescription className="max-w-xs text-sm text-balance text-muted-foreground">
           {t("xp.levelUp.subtitle", { rank: name })}
         </DialogDescription>
         <Button

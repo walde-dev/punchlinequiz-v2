@@ -1,13 +1,33 @@
 import { createServerFn } from "@tanstack/react-start"
 import { getRequest } from "@tanstack/react-start/server"
 import { and, eq, inArray, isNotNull, ne, notInArray, sql } from "drizzle-orm"
-import { artists, punchlines, songs, userPunchlineXp, users } from "@workspace/db"
+import {
+  artists,
+  punchlines,
+  songs,
+  userPunchlineXp,
+  users,
+} from "@workspace/db"
 import { db } from "./db"
 import { getActor } from "./auth"
 import { accrueAnonPrimary, accrueAnonSongBonus } from "./anon-xp"
 import { hiddenDailyIds } from "./daily-pool"
 import { getServerSessionId } from "./log"
-import { grantPrimary, grantSongBonus, type XpGrantResult } from "./xp"
+import { grantPrimary, grantSongBonus } from "./xp"
+import {
+  clozeAnswerMatches,
+  normalizeClozeAnswer,
+  normalizeTitle,
+  songGuessMatches,
+} from "./answer-matching"
+import type { XpGrantResult } from "./xp"
+
+/**
+ * Answer-matching / normalization is pure and side-effect free, so it lives in
+ * ./answer-matching where it can be unit-tested without booting server-fns.
+ * Imported here for internal use, and re-exported so existing imports of these
+ * names from "./game" (e.g. ./daily) keep resolving.
+ */
 
 export type ArtistTile = {
   id: number
@@ -23,10 +43,8 @@ export type ArtistTile = {
  * picker only surfaces artists that can actually be played in that mode.
  */
 export const listPlayableArtists = createServerFn({ method: "GET" })
-  .inputValidator(
-    (d: { mode?: "artist" | "cloze" } | undefined) => d ?? {},
-  )
-  .handler(async ({ data }): Promise<ArtistTile[]> => {
+  .inputValidator((d: { mode?: "artist" | "cloze" } | undefined) => d ?? {})
+  .handler(async ({ data }): Promise<Array<ArtistTile>> => {
     const punchlineConds = [eq(punchlines.active, true)]
     punchlineConds.push(sql`${punchlines.id} NOT IN ${hiddenDailyIds()}`)
     if (data.mode === "cloze") {
@@ -43,14 +61,16 @@ export const listPlayableArtists = createServerFn({ method: "GET" })
       })
       .from(artists)
       .innerJoin(songs, eq(songs.artistId, artists.id))
-      .innerJoin(punchlines, and(eq(punchlines.songId, songs.id), ...punchlineConds))
+      .innerJoin(
+        punchlines,
+        and(eq(punchlines.songId, songs.id), ...punchlineConds)
+      )
       .where(eq(artists.active, true))
       .groupBy(artists.id)
       .orderBy(sql`count(${punchlines.id}) desc`, artists.name)
 
     return rows
-  },
-)
+  })
 
 export type ArtistChoice = {
   id: number
@@ -80,7 +100,7 @@ export type Round =
       mode: "artist"
       punchlineId: number
       line: string
-      choices: ArtistChoice[]
+      choices: Array<ArtistChoice>
       /** Contributor handle if this bar came from a submission (PUN-67); null = admin-authored. */
       submittedByHandle: string | null
     }
@@ -116,7 +136,7 @@ export const getArtistContext = createServerFn({ method: "GET" })
       .leftJoin(songs, eq(songs.artistId, artists.id))
       .leftJoin(
         punchlines,
-        and(eq(punchlines.songId, songs.id), eq(punchlines.active, true)),
+        and(eq(punchlines.songId, songs.id), eq(punchlines.active, true))
       )
       .where(eq(artists.slug, data.slug))
       .groupBy(artists.id)
@@ -185,7 +205,7 @@ function hasPlayedCookie(): boolean {
   }
 }
 
-function shuffle<T>(arr: T[]): T[] {
+function shuffle<T>(arr: Array<T>): Array<T> {
   const a = [...arr]
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
@@ -194,114 +214,7 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-/**
- * Loose string normalization for free-typed song titles. Goal: forgive
- * realistic typos and orthography differences without accepting nonsense.
- * - lowercase, NFD-strip diacritics
- * - ß → ss
- * - common ampersand/word substitutions
- * - drop apostrophes & quote marks entirely (don't → dont)
- * - everything else non-alphanumeric → space; collapse whitespace
- */
-export function normalizeTitle(s: string): string {
-  return s
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/ß/g, "ss")
-    .replace(/[''`´‚‛ʼʹʻʽˈˊˋʼ’‘]/g, "")
-    .replace(/[""„‟«»]/g, "")
-    .replace(/\s*&\s*/g, " und ")
-    .replace(/[^a-z0-9]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-}
-
-/**
- * Common German articles + rap-vernacular short forms that often prefix a
- * cloze noun. Stripped from the start of both guess and accepted answer so
- * "n Hund" / "nen Hund" / "ein Hund" / "einen Hund" / "der Hund" all match
- * a stored answer of "Hund" (and vice versa).
- *
- * Only the FIRST token is stripped — "die Maus die fliegt" keeps the inner
- * "die" alone. We also avoid stripping if the article is the only word, so
- * a one-word answer like "die" still works.
- */
-const CLOZE_LEADING_ARTICLES = new Set([
-  "der",
-  "die",
-  "das",
-  "den",
-  "dem",
-  "des",
-  "ein",
-  "eine",
-  "einen",
-  "einem",
-  "eines",
-  "einer",
-  // Rap-vernacular contractions: "'n", "'nen" → already apostrophe-stripped
-  // upstream, so we see them as "n" / "nen".
-  "n",
-  "ne",
-  "nen",
-  // Definite plural / possessive-like fillers some users include.
-  "die",
-  "mein",
-  "meine",
-  "meinen",
-])
-
-/** Normalize a cloze guess: title-normalize, then strip a leading article. */
-export function normalizeClozeAnswer(s: string): string {
-  const t = normalizeTitle(s)
-  if (!t) return t
-  const tokens = t.split(" ")
-  if (tokens.length > 1 && CLOZE_LEADING_ARTICLES.has(tokens[0])) {
-    return tokens.slice(1).join(" ")
-  }
-  return t
-}
-
-/**
- * Whether a cloze guess matches one of the accepted answers. Accepts either:
- *   1. Direct normalized equality (after article-stripping), or
- *   2. Squashed equality — all internal whitespace removed. Catches the
- *      "Media Markt" vs "mediamarkt" / "MediaMarkt" class of compound-word
- *      mismatches where the spacing is a coin-flip and shouldn't fail an
- *      otherwise-correct answer.
- */
-export function clozeAnswerMatches(guess: string, accepted: readonly string[]): boolean {
-  const g = normalizeClozeAnswer(guess)
-  if (!g) return false
-  const gSquash = g.replace(/\s+/g, "")
-  for (const a of accepted) {
-    const n = normalizeClozeAnswer(a)
-    if (!n) continue
-    if (n === g) return true
-    if (n.replace(/\s+/g, "") === gSquash) return true
-  }
-  return false
-}
-
-/** Build candidate normalized forms of the canonical title for matching. */
-function titleCandidates(title: string): string[] {
-  const variants = new Set<string>()
-  variants.add(title)
-  // Strip parenthetical/bracketed segments: "(feat. X)", "[Bonus]", etc.
-  variants.add(title.replace(/[([{][^)\]}]*[)\]}]/g, ""))
-  // Strip "feat./ft./featuring …" tails
-  variants.add(title.replace(/\s+(feat\.?|ft\.?|featuring)\s.+$/i, ""))
-  // Strip "prod. by …" tails
-  variants.add(title.replace(/\s+(prod\.?|produced)\s.+$/i, ""))
-  return Array.from(variants).map(normalizeTitle).filter(Boolean)
-}
-
-function songGuessMatches(guess: string, title: string): boolean {
-  const g = normalizeTitle(guess)
-  if (!g) return false
-  return titleCandidates(title).some((c) => c === g)
-}
+export { normalizeTitle, normalizeClozeAnswer, clozeAnswerMatches }
 
 /**
  * Fetch one random active punchline.
@@ -329,21 +242,23 @@ export const getRound = createServerFn({ method: "GET" })
       d:
         | {
             excludeId?: number
-            excludeIds?: number[]
+            excludeIds?: Array<number>
             artistSlug?: string
             mode?: "artist" | "cloze"
             starter?: boolean
             opening?: boolean
           }
-        | undefined,
-    ) => d ?? {},
+        | undefined
+    ) => d ?? {}
   )
   .handler(async ({ data }): Promise<Round> => {
     const mode = data.mode ?? "artist"
     const conds = [eq(punchlines.active, true)]
     conds.push(sql`${punchlines.id} NOT IN ${hiddenDailyIds()}`)
     if (data.excludeId) conds.push(ne(punchlines.id, data.excludeId))
-    const excludeIds = (data.excludeIds ?? []).filter((n) => Number.isInteger(n) && n > 0)
+    const excludeIds = (data.excludeIds ?? []).filter(
+      (n) => Number.isInteger(n) && n > 0
+    )
     if (excludeIds.length > 0) conds.push(notInArray(punchlines.id, excludeIds))
     if (data.artistSlug) conds.push(eq(artists.slug, data.artistSlug))
     if (mode === "cloze") {
@@ -361,11 +276,11 @@ export const getRound = createServerFn({ method: "GET" })
     const solverClerkId = await getClerkIdOrNull()
     if (solverClerkId) {
       conds.push(
-        sql`${punchlines.id} NOT IN (SELECT ${userPunchlineXp.punchlineId} FROM ${userPunchlineXp} WHERE ${userPunchlineXp.clerkId} = ${solverClerkId})`,
+        sql`${punchlines.id} NOT IN (SELECT ${userPunchlineXp.punchlineId} FROM ${userPunchlineXp} WHERE ${userPunchlineXp.clerkId} = ${solverClerkId})`
       )
     }
 
-    function pick(extra: ReturnType<typeof eq>[]) {
+    function pick(extra: Array<ReturnType<typeof eq>>) {
       return db
         .select({
           punchlineId: punchlines.id,
@@ -387,7 +302,8 @@ export const getRound = createServerFn({ method: "GET" })
 
     // Starter-first with graceful fallback: try the curated pool, but if it's
     // empty for these filters drop the constraint so play is never blocked.
-    const wantStarter = data.starter === true || (data.opening === true && !hasPlayedCookie())
+    const wantStarter =
+      data.starter === true || (data.opening === true && !hasPlayedCookie())
     let baseRows = wantStarter ? await pick([eq(punchlines.starter, true)]) : []
     if (baseRows.length === 0) baseRows = await pick([])
 
@@ -395,14 +311,18 @@ export const getRound = createServerFn({ method: "GET" })
       throw new Error(
         mode === "cloze"
           ? "No cloze-ready punchlines available"
-          : "No punchlines available",
+          : "No punchlines available"
       )
     }
     const row = baseRows[0]
 
     if (mode === "cloze" && row.clozePrompt) {
       const artistRow = await db
-        .select({ id: artists.id, name: artists.name, imageUrl: artists.imageUrl })
+        .select({
+          id: artists.id,
+          name: artists.name,
+          imageUrl: artists.imageUrl,
+        })
         .from(artists)
         .where(eq(artists.id, row.artistId))
         .limit(1)
@@ -417,12 +337,18 @@ export const getRound = createServerFn({ method: "GET" })
 
     const ids = [row.artistId, row.distractor1Id, row.distractor2Id]
     const rows = await db
-      .select({ id: artists.id, name: artists.name, imageUrl: artists.imageUrl })
+      .select({
+        id: artists.id,
+        name: artists.name,
+        imageUrl: artists.imageUrl,
+      })
       .from(artists)
       .where(inArray(artists.id, ids))
 
     const byId = new Map(rows.map((r) => [r.id, r]))
-    const ordered = ids.map((id) => byId.get(id)).filter((x): x is ArtistChoice => Boolean(x))
+    const ordered = ids
+      .map((id) => byId.get(id))
+      .filter((x): x is ArtistChoice => Boolean(x))
 
     return {
       mode: "artist",
@@ -464,12 +390,20 @@ export const submitAnswer = createServerFn({ method: "POST" })
     if (isCorrect) {
       const clerkId = await getClerkIdOrNull()
       if (clerkId) {
-        xp = await grantPrimary({ clerkId, punchlineId: data.punchlineId, mode: "artist" })
+        xp = await grantPrimary({
+          clerkId,
+          punchlineId: data.punchlineId,
+          mode: "artist",
+        })
       } else {
         // Anonymous: bank provisional XP for "keep your XP" on sign-up (PUN-97).
         const sid = getServerSessionId()
         if (sid)
-          await accrueAnonPrimary({ sessionId: sid, punchlineId: data.punchlineId, mode: "artist" })
+          await accrueAnonPrimary({
+            sessionId: sid,
+            punchlineId: data.punchlineId,
+            mode: "artist",
+          })
       }
     }
     return {
@@ -522,11 +456,19 @@ export const submitClozeGuess = createServerFn({ method: "POST" })
     if (isCorrect) {
       const clerkId = await getClerkIdOrNull()
       if (clerkId) {
-        xp = await grantPrimary({ clerkId, punchlineId: data.punchlineId, mode: "cloze" })
+        xp = await grantPrimary({
+          clerkId,
+          punchlineId: data.punchlineId,
+          mode: "cloze",
+        })
       } else {
         const sid = getServerSessionId()
         if (sid)
-          await accrueAnonPrimary({ sessionId: sid, punchlineId: data.punchlineId, mode: "cloze" })
+          await accrueAnonPrimary({
+            sessionId: sid,
+            punchlineId: data.punchlineId,
+            mode: "cloze",
+          })
       }
     }
     return {
@@ -573,7 +515,11 @@ export const submitSongGuess = createServerFn({ method: "POST" })
         xp = await grantSongBonus({ clerkId, punchlineId: data.punchlineId })
       } else {
         const sid = getServerSessionId()
-        if (sid) await accrueAnonSongBonus({ sessionId: sid, punchlineId: data.punchlineId })
+        if (sid)
+          await accrueAnonSongBonus({
+            sessionId: sid,
+            punchlineId: data.punchlineId,
+          })
       }
     }
     return {

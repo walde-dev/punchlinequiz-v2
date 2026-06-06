@@ -1,4 +1,4 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router"
+import { Link, createFileRoute, redirect } from "@tanstack/react-router"
 import { SignInButton } from "@clerk/tanstack-react-start"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
@@ -10,7 +10,8 @@ import { AppHeader } from "../components/app-header"
 import { rankIconPath } from "../lib/rank-icon"
 import { getMyHandleFn } from "../lib/profile"
 import { noindexSeo } from "../lib/seo"
-import { getProfileFn, type ProfileFnResult } from "../lib/session"
+import { getProfileFn } from "../lib/session"
+import type { ProfileFnResult } from "../lib/session"
 
 export const Route = createFileRoute("/profile")({
   component: ProfilePage,
@@ -30,12 +31,16 @@ export const Route = createFileRoute("/profile")({
 const ease = "cubic-bezier(0.16, 1, 0.3, 1)"
 
 function ProfilePage() {
-  const { profile } = Route.useLoaderData() as { profile: ProfileFnResult }
+  const { profile } = Route.useLoaderData()
   if (!profile.signedIn) return <AnonymousPitch preview={profile.preview} />
   return <SignedInProfile result={profile} />
 }
 
-function AnonymousPitch({ preview }: { preview: Extract<ProfileFnResult, { signedIn: false }>["preview"] }) {
+function AnonymousPitch({
+  preview,
+}: {
+  preview: Extract<ProfileFnResult, { signedIn: false }>["preview"]
+}) {
   const { t, i18n } = useTranslation()
   const nextName = preview.nextLevel
     ? i18n.language.startsWith("de")
@@ -45,25 +50,34 @@ function AnonymousPitch({ preview }: { preview: Extract<ProfileFnResult, { signe
   return (
     <div className="relative flex min-h-svh flex-col overflow-hidden">
       <AppHeader />
-      <div className="pq-spotlight pointer-events-none absolute inset-0" aria-hidden="true" />
+      <div
+        className="pq-spotlight pointer-events-none absolute inset-0"
+        aria-hidden="true"
+      />
       <main className="relative mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-6 px-6 text-center">
-        <span className="text-xs font-bold uppercase tracking-[0.18em] text-primary/70">
+        <span className="text-xs font-bold tracking-[0.18em] text-primary/70 uppercase">
           {t("profile.anon.eyebrow")}
         </span>
         <h1 className="text-3xl font-extrabold tracking-tight text-balance">
           {t("profile.anon.headline")}
         </h1>
-        <p className="max-w-xs text-sm text-muted-foreground text-balance">
+        <p className="max-w-xs text-sm text-balance text-muted-foreground">
           {nextName
             ? t("profile.anon.subtextWithNext", { rank: nextName })
             : t("profile.anon.subtext")}
         </p>
         <SignInButton mode="modal">
-          <Button size="lg" className="cta-glow min-h-12 px-8 text-base font-bold">
+          <Button
+            size="lg"
+            className="cta-glow min-h-12 px-8 text-base font-bold"
+          >
             {t("profile.anon.cta")}
           </Button>
         </SignInButton>
-        <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">
+        <Link
+          to="/"
+          className="text-xs text-muted-foreground hover:text-foreground"
+        >
           ← {t("common.back")}
         </Link>
       </main>
@@ -71,7 +85,11 @@ function AnonymousPitch({ preview }: { preview: Extract<ProfileFnResult, { signe
   )
 }
 
-function SignedInProfile({ result }: { result: Extract<ProfileFnResult, { signedIn: true }> }) {
+function SignedInProfile({
+  result,
+}: {
+  result: Extract<ProfileFnResult, { signedIn: true }>
+}) {
   const { profile } = result
   const { t, i18n } = useTranslation()
   const isDe = i18n.language.startsWith("de")
@@ -81,12 +99,17 @@ function SignedInProfile({ result }: { result: Extract<ProfileFnResult, { signed
       ? profile.nextLevel.nameDe
       : profile.nextLevel.nameEn
     : null
-  const xpToNext = profile.nextLevel ? profile.nextLevel.threshold - profile.totalXp : 0
+  const xpToNext = profile.nextLevel
+    ? profile.nextLevel.threshold - profile.totalXp
+    : 0
 
   return (
     <div className="relative flex min-h-svh flex-col overflow-hidden">
       <AppHeader />
-      <div className="pq-spotlight pointer-events-none absolute inset-0" aria-hidden="true" />
+      <div
+        className="pq-spotlight pointer-events-none absolute inset-0"
+        aria-hidden="true"
+      />
 
       <main className="relative mx-auto flex w-full max-w-xl flex-1 flex-col gap-8 px-5 pt-20 pb-12 md:px-8">
         {/* Hero */}
@@ -94,7 +117,7 @@ function SignedInProfile({ result }: { result: Extract<ProfileFnResult, { signed
           className="flex flex-col items-center gap-4 text-center"
           style={{ animation: `pq-fade-up 0.55s ${ease} both` }}
         >
-          <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-primary/80">
+          <span className="text-[10px] font-bold tracking-[0.22em] text-primary/80 uppercase">
             {t("profile.levelLabel")} {profile.level.rank}
           </span>
           <img
@@ -111,7 +134,7 @@ function SignedInProfile({ result }: { result: Extract<ProfileFnResult, { signed
             }}
           />
           <h1
-            className="font-extrabold tracking-tight text-primary text-balance"
+            className="font-extrabold tracking-tight text-balance text-primary"
             style={{
               fontSize: "clamp(2.25rem, 8vw, 3.5rem)",
               lineHeight: 1.05,
@@ -120,16 +143,21 @@ function SignedInProfile({ result }: { result: Extract<ProfileFnResult, { signed
           >
             {levelName}
           </h1>
-          <p className="text-xl font-extrabold tabular-nums text-foreground">
+          <p className="text-xl font-extrabold text-foreground tabular-nums">
             {profile.totalXp.toLocaleString(isDe ? "de-DE" : "en-US")} XP
           </p>
           <ProgressBar pct={profile.progressPct} />
           {nextLevelName ? (
             <p className="text-xs text-muted-foreground">
-              {t("profile.nextLevelCaption", { xp: xpToNext.toLocaleString(isDe ? "de-DE" : "en-US"), rank: nextLevelName })}
+              {t("profile.nextLevelCaption", {
+                xp: xpToNext.toLocaleString(isDe ? "de-DE" : "en-US"),
+                rank: nextLevelName,
+              })}
             </p>
           ) : (
-            <p className="text-xs text-primary">{t("profile.maxLevelReached")}</p>
+            <p className="text-xs text-primary">
+              {t("profile.maxLevelReached")}
+            </p>
           )}
         </section>
 
@@ -163,7 +191,7 @@ function SignedInProfile({ result }: { result: Extract<ProfileFnResult, { signed
           className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card/40 p-5"
           style={{ animation: `pq-fade-up 0.55s ${ease} 0.16s both` }}
         >
-          <h2 className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary/80">
+          <h2 className="text-[10px] font-bold tracking-[0.18em] text-primary/80 uppercase">
             {t("profile.sparklineTitle")}
           </h2>
           <Sparkline data={profile.last30Days} />
@@ -175,7 +203,7 @@ function SignedInProfile({ result }: { result: Extract<ProfileFnResult, { signed
             className="flex flex-col gap-3"
             style={{ animation: `pq-fade-up 0.55s ${ease} 0.24s both` }}
           >
-            <h2 className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary/80">
+            <h2 className="text-[10px] font-bold tracking-[0.18em] text-primary/80 uppercase">
               {t("profile.recentTitle")}
             </h2>
             <ul className="flex flex-col gap-2">
@@ -183,12 +211,14 @@ function SignedInProfile({ result }: { result: Extract<ProfileFnResult, { signed
                 <li
                   key={r.punchlineId}
                   className="flex items-center justify-between gap-3 rounded-xl border border-border/40 bg-card/30 px-4 py-3"
-                  style={{ animation: `pq-fade-up 0.4s ${ease} ${0.28 + i * 0.04}s both` }}
+                  style={{
+                    animation: `pq-fade-up 0.4s ${ease} ${0.28 + i * 0.04}s both`,
+                  }}
                 >
                   <span className="line-clamp-2 text-sm font-semibold text-foreground/90">
                     "{r.line.split("/")[0].trim()}"
                   </span>
-                  <span className="shrink-0 rounded-full bg-primary/15 px-2.5 py-1 text-xs font-bold tabular-nums text-primary">
+                  <span className="shrink-0 rounded-full bg-primary/15 px-2.5 py-1 text-xs font-bold text-primary tabular-nums">
                     +{r.xpAwarded}
                   </span>
                 </li>
@@ -203,7 +233,7 @@ function SignedInProfile({ result }: { result: Extract<ProfileFnResult, { signed
         >
           <Link
             to="/play"
-            className="cta-glow inline-flex min-h-12 items-center justify-center rounded-full bg-primary px-8 text-base font-bold text-primary-foreground hover:bg-primary/90 active:scale-[0.97] transition-transform duration-150"
+            className="cta-glow inline-flex min-h-12 items-center justify-center rounded-full bg-primary px-8 text-base font-bold text-primary-foreground transition-transform duration-150 hover:bg-primary/90 active:scale-[0.97]"
           >
             {t("profile.playMore")}
           </Link>
@@ -221,25 +251,38 @@ function ProgressBar({ pct }: { pct: number }) {
         style={{
           width: `${pct}%`,
           transition: "width 600ms cubic-bezier(0.23, 1, 0.32, 1)",
-          boxShadow: "0 0 16px color-mix(in oklch, var(--primary), transparent 50%)",
+          boxShadow:
+            "0 0 16px color-mix(in oklch, var(--primary), transparent 50%)",
         }}
       />
     </div>
   )
 }
 
-function StatTile({ label, value, icon }: { label: string; value: number; icon?: string }) {
+function StatTile({
+  label,
+  value,
+  icon,
+}: {
+  label: string
+  value: number
+  icon?: string
+}) {
   return (
     <div
       className={cn(
-        "flex flex-col items-center gap-1 rounded-2xl border border-border/40 bg-card/30 px-3 py-4",
+        "flex flex-col items-center gap-1 rounded-2xl border border-border/40 bg-card/30 px-3 py-4"
       )}
     >
-      <span className="text-2xl font-extrabold tabular-nums text-foreground">
-        {icon && <span aria-hidden="true" className="mr-1">{icon}</span>}
+      <span className="text-2xl font-extrabold text-foreground tabular-nums">
+        {icon && (
+          <span aria-hidden="true" className="mr-1">
+            {icon}
+          </span>
+        )}
         {value}
       </span>
-      <span className="text-center text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+      <span className="text-center text-[10px] font-bold tracking-[0.14em] text-muted-foreground uppercase">
         {label}
       </span>
     </div>
@@ -261,8 +304,8 @@ function Sparkline({ data }: { data: Array<{ date: string; xp: number }> }) {
           >
             <div
               className={cn(
-                "absolute bottom-0 left-0 right-0 rounded-sm",
-                hasXp ? "bg-primary/80" : "bg-primary/10",
+                "absolute right-0 bottom-0 left-0 rounded-sm",
+                hasXp ? "bg-primary/80" : "bg-primary/10"
               )}
               style={{
                 height: hasXp ? `${Math.max(6, h)}%` : "6%",

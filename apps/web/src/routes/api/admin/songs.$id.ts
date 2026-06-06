@@ -4,9 +4,9 @@ import { artists, songs } from "@workspace/db"
 
 import { db } from "../../../lib/db"
 import {
+  HttpError,
   audit,
   handleError,
-  HttpError,
   json,
   optionalInt,
   optionalString,
@@ -23,9 +23,16 @@ export const Route = createFileRoute("/api/admin/songs/$id")({
           const actor = await requireAdmin(request)
           const id = Number(params.id)
           if (!Number.isInteger(id) || id <= 0)
-            throw new HttpError(400, "invalid_id", "Id must be a positive integer.")
-          const existing = (await db.select().from(songs).where(eq(songs.id, id)).limit(1))[0]
-          if (!existing) throw new HttpError(404, "not_found", "Song not found.")
+            throw new HttpError(
+              400,
+              "invalid_id",
+              "Id must be a positive integer."
+            )
+          const existing = (
+            await db.select().from(songs).where(eq(songs.id, id)).limit(1)
+          )[0]
+          if (!existing)
+            throw new HttpError(404, "not_found", "Song not found.")
 
           const body = await readJsonBody<Record<string, unknown>>(request)
           const patch: Record<string, unknown> = {}
@@ -33,7 +40,9 @@ export const Route = createFileRoute("/api/admin/songs/$id")({
           if (title !== undefined) patch.title = title
           const album = optionalString(body.album, "album", { max: 300 })
           if (album !== undefined) patch.album = album
-          const albumArtUrl = optionalString(body.albumArtUrl, "albumArtUrl", { max: 2048 })
+          const albumArtUrl = optionalString(body.albumArtUrl, "albumArtUrl", {
+            max: 2048,
+          })
           if (albumArtUrl !== undefined) patch.albumArtUrl = albumArtUrl
           // Artwork override: paste a Deezer track ID to re-resolve cover,
           // or null to clear it.
@@ -44,14 +53,18 @@ export const Route = createFileRoute("/api/admin/songs/$id")({
               patch.artworkAlbumId = null
               patch.albumArtUrl = null
             } else {
-              const trackId = optionalString(body.artworkTrackId, "artworkTrackId", { max: 32 })
+              const trackId = optionalString(
+                body.artworkTrackId,
+                "artworkTrackId",
+                { max: 32 }
+              )
               if (trackId) {
                 const match = await getTrackById(trackId)
                 if (!match) {
                   throw new HttpError(
                     400,
                     "artwork_lookup_failed",
-                    "Could not resolve Deezer track by that id.",
+                    "Could not resolve Deezer track by that id."
                   )
                 }
                 patch.artworkProvider = "deezer"
@@ -66,7 +79,7 @@ export const Route = createFileRoute("/api/admin/songs/$id")({
                     entity_id: id,
                     external_id: match.trackId,
                   },
-                  actor,
+                  actor
                 )
               }
             }
@@ -79,15 +92,27 @@ export const Route = createFileRoute("/api/admin/songs/$id")({
           const artistId = optionalInt(body.artistId, "artistId", { min: 1 })
           if (artistId !== undefined) {
             const artistRow = (
-              await db.select().from(artists).where(eq(artists.id, artistId)).limit(1)
+              await db
+                .select()
+                .from(artists)
+                .where(eq(artists.id, artistId))
+                .limit(1)
             )[0]
             if (!artistRow) {
-              throw new HttpError(400, "invalid_field", "artistId does not exist.")
+              throw new HttpError(
+                400,
+                "invalid_field",
+                "artistId does not exist."
+              )
             }
             patch.artistId = artistId
           }
           if (Object.keys(patch).length === 0)
-            throw new HttpError(400, "empty_patch", "Provide at least one field to update.")
+            throw new HttpError(
+              400,
+              "empty_patch",
+              "Provide at least one field to update."
+            )
 
           const [updated] = await db
             .update(songs)

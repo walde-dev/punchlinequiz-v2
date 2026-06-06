@@ -1,0 +1,58 @@
+name: CI
+
+# Runs on every PR and on pushes to main. Today landings go straight to main,
+# so on main this is a fast post-push signal; the same checks gate any PR. Flip
+# on branch protection (see docs/ci.md) to make green CI required before merge.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A newer commit on the same branch/PR cancels the older in-flight run.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Turbo remote cache (optional). Set repo secret TURBO_TOKEN + repo variable
+  # TURBO_TEAM to share the build/test cache across runs and agents. Absent =>
+  # local cache only, everything still works.
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+
+jobs:
+  # Deterministic, secret-free gates. The web build is inert on import (the DB
+  # handle is lazy), so it compiles without any secrets.
+  quality:
+    name: typecheck · lint · test · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+# The end-to-end smoke runs in a separate workflow (e2e-preview.yml) triggered
+# when Vercel finishes a preview deploy — the app's DB layer is Neon-serverless
+# and can't talk to a plain Postgres container, so we test the real deployed
+# artifact instead of a local server. See docs/ci.md.

@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
-import type { TFunction } from "i18next"
 import { useNavigate } from "@tanstack/react-router"
 import { SignInButton, useAuth } from "@clerk/tanstack-react-start"
 
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 
-import { DiscordJoinCard } from "./discord-cta"
 import { createChallengeFn } from "../lib/challenge"
 import {
   renderShareCard,
@@ -15,6 +13,8 @@ import {
   shareUrlFor,
 } from "../lib/share-card"
 import { logEvent } from "../lib/track"
+import { DiscordJoinCard } from "./discord-cta"
+import type { TFunction } from "i18next"
 import type { ShareCardData } from "../lib/share-card"
 
 type Props = {

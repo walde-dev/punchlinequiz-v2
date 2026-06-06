@@ -6,12 +6,12 @@ import {
   userPunchlineXp,
   users,
   xpConfig,
-  type Level,
-  type XpConfig,
 } from "@workspace/db"
 
 import { db } from "./db"
 import { confirmReferralOnActivation } from "./referral"
+import { isStreakAlive, streakBonus } from "./scoring"
+import type { Level, XpConfig } from "@workspace/db"
 
 export type GrantMode = "artist" | "cloze" | "song_bonus"
 
@@ -51,14 +51,18 @@ const CONFIG_TTL_MS = 5_000
 export async function loadXpConfig(): Promise<XpConfig> {
   const now = Date.now()
   if (cachedConfig && cachedConfig.expires > now) return cachedConfig.value
-  const [row] = await db.select().from(xpConfig).where(eq(xpConfig.id, 1)).limit(1)
+  const [row] = await db
+    .select()
+    .from(xpConfig)
+    .where(eq(xpConfig.id, 1))
+    .limit(1)
   if (!row) throw new Error("xp_config row missing — run migrations")
   cachedConfig = { value: row, expires: now + CONFIG_TTL_MS }
   return row
 }
 
-let cachedLevels: { value: Level[]; expires: number } | null = null
-export async function loadLevels(): Promise<Level[]> {
+let cachedLevels: { value: Array<Level>; expires: number } | null = null
+export async function loadLevels(): Promise<Array<Level>> {
   const now = Date.now()
   if (cachedLevels && cachedLevels.expires > now) return cachedLevels.value
   const rows = await db.select().from(levels).orderBy(asc(levels.threshold))
@@ -72,11 +76,14 @@ export function invalidateXpCaches() {
 }
 
 /** Map every level row to its public LevelInfo, ranked by threshold order. */
-export function levelInfos(sorted: Level[]): LevelInfo[] {
+export function levelInfos(sorted: Array<Level>): Array<LevelInfo> {
   return sorted.map((l, i) => toLevelInfo(l, i + 1))
 }
 
-export function levelFor(totalXp: number, sorted: Level[]): { current: LevelInfo; next: LevelInfo | null } {
+export function levelFor(
+  totalXp: number,
+  sorted: Array<Level>
+): { current: LevelInfo; next: LevelInfo | null } {
   let currentIdx = 0
   for (let i = 0; i < sorted.length; i++) {
     if (sorted[i].threshold <= totalXp) currentIdx = i
@@ -115,15 +122,7 @@ export async function ensureUser(clerkId: string): Promise<void> {
     .onConflictDoNothing()
 }
 
-function isStreakAlive(lastCorrectAt: Date | null, idleMinutes: number): boolean {
-  if (!lastCorrectAt) return false
-  const idleMs = idleMinutes * 60_000
-  return Date.now() - lastCorrectAt.getTime() < idleMs
-}
-
-function streakBonus(streak: number, cfg: XpConfig): number {
-  return Math.min(streak * cfg.streakBonusPerStep, cfg.streakMaxBonus)
-}
+// `isStreakAlive` / `streakBonus` moved to ./scoring (pure, unit-tested).
 
 /**
  * Award XP for a correct primary answer (artist or cloze mode). Idempotent
@@ -154,16 +153,24 @@ export async function grantPrimary(input: {
   const cfg = await loadXpConfig()
   const sortedLevels = await loadLevels()
 
-  const [userRow] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1)
+  const [userRow] = await db
+    .select()
+    .from(users)
+    .where(eq(users.clerkId, clerkId))
+    .limit(1)
   if (!userRow) throw new Error("user upsert failed")
 
   // Cooldown — block autofarm. Update last_attempt_at unconditionally so a
   // burst of attempts can't slip past by all reading a stale timestamp.
   if (
     userRow.lastAttemptAt &&
-    Date.now() - userRow.lastAttemptAt.getTime() < cfg.minSecondsBetweenAttempts * 1000
+    Date.now() - userRow.lastAttemptAt.getTime() <
+      cfg.minSecondsBetweenAttempts * 1000
   ) {
-    await db.update(users).set({ lastAttemptAt: new Date() }).where(eq(users.clerkId, clerkId))
+    await db
+      .update(users)
+      .set({ lastAttemptAt: new Date() })
+      .where(eq(users.clerkId, clerkId))
     return { awarded: false, skipped: "rate_limited" }
   }
 
@@ -188,7 +195,10 @@ export async function grantPrimary(input: {
     .returning({ id: userPunchlineXp.id })
 
   if (inserted.length === 0) {
-    await db.update(users).set({ lastAttemptAt: new Date() }).where(eq(users.clerkId, clerkId))
+    await db
+      .update(users)
+      .set({ lastAttemptAt: new Date() })
+      .where(eq(users.clerkId, clerkId))
     return { awarded: false, skipped: "duplicate" }
   }
 
@@ -239,15 +249,23 @@ export async function grantSongBonus(input: {
   const cfg = await loadXpConfig()
   const sortedLevels = await loadLevels()
 
-  const [userRow] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1)
+  const [userRow] = await db
+    .select()
+    .from(users)
+    .where(eq(users.clerkId, clerkId))
+    .limit(1)
   if (!userRow) throw new Error("user upsert failed")
 
   // Cooldown.
   if (
     userRow.lastAttemptAt &&
-    Date.now() - userRow.lastAttemptAt.getTime() < cfg.minSecondsBetweenAttempts * 1000
+    Date.now() - userRow.lastAttemptAt.getTime() <
+      cfg.minSecondsBetweenAttempts * 1000
   ) {
-    await db.update(users).set({ lastAttemptAt: new Date() }).where(eq(users.clerkId, clerkId))
+    await db
+      .update(users)
+      .set({ lastAttemptAt: new Date() })
+      .where(eq(users.clerkId, clerkId))
     return { awarded: false, skipped: "rate_limited" }
   }
 
@@ -255,11 +273,19 @@ export async function grantSongBonus(input: {
   const [grantRow] = await db
     .select()
     .from(userPunchlineXp)
-    .where(and(eq(userPunchlineXp.clerkId, clerkId), eq(userPunchlineXp.punchlineId, punchlineId)))
+    .where(
+      and(
+        eq(userPunchlineXp.clerkId, clerkId),
+        eq(userPunchlineXp.punchlineId, punchlineId)
+      )
+    )
     .limit(1)
 
   if (!grantRow || grantRow.songBonusAwarded) {
-    await db.update(users).set({ lastAttemptAt: new Date() }).where(eq(users.clerkId, clerkId))
+    await db
+      .update(users)
+      .set({ lastAttemptAt: new Date() })
+      .where(eq(users.clerkId, clerkId))
     return { awarded: false, skipped: "duplicate" }
   }
 
@@ -275,13 +301,16 @@ export async function grantSongBonus(input: {
       and(
         eq(userPunchlineXp.clerkId, clerkId),
         eq(userPunchlineXp.punchlineId, punchlineId),
-        eq(userPunchlineXp.songBonusAwarded, false),
-      ),
+        eq(userPunchlineXp.songBonusAwarded, false)
+      )
     )
     .returning({ id: userPunchlineXp.id })
 
   if (updated.length === 0) {
-    await db.update(users).set({ lastAttemptAt: new Date() }).where(eq(users.clerkId, clerkId))
+    await db
+      .update(users)
+      .set({ lastAttemptAt: new Date() })
+      .where(eq(users.clerkId, clerkId))
     return { awarded: false, skipped: "duplicate" }
   }
 
@@ -325,21 +354,33 @@ export async function grantDailyArtist(input: {
   const cfg = await loadXpConfig()
   const sortedLevels = await loadLevels()
 
-  const [userRow] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1)
+  const [userRow] = await db
+    .select()
+    .from(users)
+    .where(eq(users.clerkId, clerkId))
+    .limit(1)
   if (!userRow) throw new Error("user upsert failed")
 
   if (
     userRow.lastAttemptAt &&
-    Date.now() - userRow.lastAttemptAt.getTime() < cfg.minSecondsBetweenAttempts * 1000
+    Date.now() - userRow.lastAttemptAt.getTime() <
+      cfg.minSecondsBetweenAttempts * 1000
   ) {
-    await db.update(users).set({ lastAttemptAt: new Date() }).where(eq(users.clerkId, clerkId))
+    await db
+      .update(users)
+      .set({ lastAttemptAt: new Date() })
+      .where(eq(users.clerkId, clerkId))
     return { awarded: false, skipped: "rate_limited" }
   }
 
   // Only grant if the answer is correct; a wrong daily artist still records
   // a row so the day is "spent" but with zero xp.
   const alive = isStreakAlive(userRow.lastCorrectAt, cfg.streakIdleResetMinutes)
-  const newStreak = isCorrect ? (alive ? userRow.currentStreak + 1 : 1) : userRow.currentStreak
+  const newStreak = isCorrect
+    ? alive
+      ? userRow.currentStreak + 1
+      : 1
+    : userRow.currentStreak
   const bonus = isCorrect ? streakBonus(newStreak, cfg) : 0
   const base = isCorrect ? cfg.xpDailyArtist : 0
   const total = base + bonus
@@ -359,7 +400,10 @@ export async function grantDailyArtist(input: {
     .returning({ id: userDailyXp.id })
 
   if (inserted.length === 0) {
-    await db.update(users).set({ lastAttemptAt: new Date() }).where(eq(users.clerkId, clerkId))
+    await db
+      .update(users)
+      .set({ lastAttemptAt: new Date() })
+      .where(eq(users.clerkId, clerkId))
     return { awarded: false, skipped: "duplicate" }
   }
 
@@ -409,7 +453,11 @@ export async function grantDailySong(input: {
   const cfg = await loadXpConfig()
   const sortedLevels = await loadLevels()
 
-  const [userRow] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1)
+  const [userRow] = await db
+    .select()
+    .from(users)
+    .where(eq(users.clerkId, clerkId))
+    .limit(1)
   if (!userRow) throw new Error("user upsert failed")
 
   const [dailyRow] = await db
@@ -423,7 +471,8 @@ export async function grantDailySong(input: {
   }
 
   const songXp = isCorrect ? cfg.xpDailySong : 0
-  const perfectBonus = isCorrect && dailyRow.artistCorrect ? cfg.xpDailyPerfectBonus : 0
+  const perfectBonus =
+    isCorrect && dailyRow.artistCorrect ? cfg.xpDailyPerfectBonus : 0
   const total = songXp + perfectBonus
 
   const updated = await db
@@ -437,8 +486,8 @@ export async function grantDailySong(input: {
       and(
         eq(userDailyXp.clerkId, clerkId),
         eq(userDailyXp.date, date),
-        eq(userDailyXp.songResolved, false),
-      ),
+        eq(userDailyXp.songResolved, false)
+      )
     )
     .returning({ id: userDailyXp.id })
 
@@ -494,10 +543,16 @@ export type ProfileSnapshot = {
   last30Days: Array<{ date: string; xp: number }>
 }
 
-export async function getProfileSnapshot(clerkId: string): Promise<ProfileSnapshot> {
+export async function getProfileSnapshot(
+  clerkId: string
+): Promise<ProfileSnapshot> {
   await ensureUser(clerkId)
   const sortedLevels = await loadLevels()
-  const [userRow] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1)
+  const [userRow] = await db
+    .select()
+    .from(users)
+    .where(eq(users.clerkId, clerkId))
+    .limit(1)
   if (!userRow) throw new Error("user not found")
 
   const [{ count: linesConquered }] = await db
@@ -532,15 +587,21 @@ export async function getProfileSnapshot(clerkId: string): Promise<ProfileSnapsh
     .where(
       and(
         eq(userPunchlineXp.clerkId, clerkId),
-        gt(userPunchlineXp.createdAt, sql`NOW() - INTERVAL '30 days'`),
-      ),
+        gt(userPunchlineXp.createdAt, sql`NOW() - INTERVAL '30 days'`)
+      )
     )
     .groupBy(sql`to_char(${userPunchlineXp.createdAt}, 'YYYY-MM-DD')`)
 
   const { current, next } = levelFor(userRow.totalXp, sortedLevels)
   const progressInLevel = userRow.totalXp - current.threshold
   const progressPct = next
-    ? Math.min(100, Math.max(0, (progressInLevel / (next.threshold - current.threshold)) * 100))
+    ? Math.min(
+        100,
+        Math.max(
+          0,
+          (progressInLevel / (next.threshold - current.threshold)) * 100
+        )
+      )
     : 100
 
   return {
@@ -560,11 +621,15 @@ export async function getProfileSnapshot(clerkId: string): Promise<ProfileSnapsh
       xpAwarded: r.xpAwarded,
       createdAt: r.createdAt.toISOString(),
     })),
-    last30Days: buildSparkSeries(sparkRows.map((r) => ({ date: r.day, xp: Number(r.xp) }))),
+    last30Days: buildSparkSeries(
+      sparkRows.map((r) => ({ date: r.day, xp: Number(r.xp) }))
+    ),
   }
 }
 
-function buildSparkSeries(rows: Array<{ date: string; xp: number }>): Array<{ date: string; xp: number }> {
+function buildSparkSeries(
+  rows: Array<{ date: string; xp: number }>
+): Array<{ date: string; xp: number }> {
   const map = new Map(rows.map((r) => [r.date, r.xp]))
   const out: Array<{ date: string; xp: number }> = []
   const today = new Date()

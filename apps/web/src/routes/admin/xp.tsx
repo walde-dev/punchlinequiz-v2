@@ -39,20 +39,76 @@ const FIELDS: Array<{
   labelKey: string
   hintKey: string
 }> = [
-  { key: "xpArtistCorrect", labelKey: "admin.xp.fields.artist", hintKey: "admin.xp.hints.artist" },
-  { key: "xpClozeCorrect", labelKey: "admin.xp.fields.cloze", hintKey: "admin.xp.hints.cloze" },
-  { key: "xpSongBonus", labelKey: "admin.xp.fields.songBonus", hintKey: "admin.xp.hints.songBonus" },
-  { key: "xpDailyArtist", labelKey: "admin.xp.fields.dailyArtist", hintKey: "admin.xp.hints.dailyArtist" },
-  { key: "xpDailySong", labelKey: "admin.xp.fields.dailySong", hintKey: "admin.xp.hints.dailySong" },
-  { key: "xpDailyPerfectBonus", labelKey: "admin.xp.fields.dailyPerfect", hintKey: "admin.xp.hints.dailyPerfect" },
-  { key: "streakBonusPerStep", labelKey: "admin.xp.fields.streakStep", hintKey: "admin.xp.hints.streakStep" },
-  { key: "streakMaxBonus", labelKey: "admin.xp.fields.streakMax", hintKey: "admin.xp.hints.streakMax" },
-  { key: "streakIdleResetMinutes", labelKey: "admin.xp.fields.streakIdle", hintKey: "admin.xp.hints.streakIdle" },
-  { key: "minSecondsBetweenAttempts", labelKey: "admin.xp.fields.minCooldown", hintKey: "admin.xp.hints.minCooldown" },
-  { key: "xpSubmissionAccepted", labelKey: "admin.xp.fields.submissionAccepted", hintKey: "admin.xp.hints.submissionAccepted" },
-  { key: "xpReferralReferrer", labelKey: "admin.xp.fields.referralReferrer", hintKey: "admin.xp.hints.referralReferrer" },
-  { key: "xpReferralReferee", labelKey: "admin.xp.fields.referralReferee", hintKey: "admin.xp.hints.referralReferee" },
-  { key: "referralDailyCap", labelKey: "admin.xp.fields.referralDailyCap", hintKey: "admin.xp.hints.referralDailyCap" },
+  {
+    key: "xpArtistCorrect",
+    labelKey: "admin.xp.fields.artist",
+    hintKey: "admin.xp.hints.artist",
+  },
+  {
+    key: "xpClozeCorrect",
+    labelKey: "admin.xp.fields.cloze",
+    hintKey: "admin.xp.hints.cloze",
+  },
+  {
+    key: "xpSongBonus",
+    labelKey: "admin.xp.fields.songBonus",
+    hintKey: "admin.xp.hints.songBonus",
+  },
+  {
+    key: "xpDailyArtist",
+    labelKey: "admin.xp.fields.dailyArtist",
+    hintKey: "admin.xp.hints.dailyArtist",
+  },
+  {
+    key: "xpDailySong",
+    labelKey: "admin.xp.fields.dailySong",
+    hintKey: "admin.xp.hints.dailySong",
+  },
+  {
+    key: "xpDailyPerfectBonus",
+    labelKey: "admin.xp.fields.dailyPerfect",
+    hintKey: "admin.xp.hints.dailyPerfect",
+  },
+  {
+    key: "streakBonusPerStep",
+    labelKey: "admin.xp.fields.streakStep",
+    hintKey: "admin.xp.hints.streakStep",
+  },
+  {
+    key: "streakMaxBonus",
+    labelKey: "admin.xp.fields.streakMax",
+    hintKey: "admin.xp.hints.streakMax",
+  },
+  {
+    key: "streakIdleResetMinutes",
+    labelKey: "admin.xp.fields.streakIdle",
+    hintKey: "admin.xp.hints.streakIdle",
+  },
+  {
+    key: "minSecondsBetweenAttempts",
+    labelKey: "admin.xp.fields.minCooldown",
+    hintKey: "admin.xp.hints.minCooldown",
+  },
+  {
+    key: "xpSubmissionAccepted",
+    labelKey: "admin.xp.fields.submissionAccepted",
+    hintKey: "admin.xp.hints.submissionAccepted",
+  },
+  {
+    key: "xpReferralReferrer",
+    labelKey: "admin.xp.fields.referralReferrer",
+    hintKey: "admin.xp.hints.referralReferrer",
+  },
+  {
+    key: "xpReferralReferee",
+    labelKey: "admin.xp.fields.referralReferee",
+    hintKey: "admin.xp.hints.referralReferee",
+  },
+  {
+    key: "referralDailyCap",
+    labelKey: "admin.xp.fields.referralDailyCap",
+    hintKey: "admin.xp.hints.referralDailyCap",
+  },
 ]
 
 function AdminXpPage() {
@@ -81,7 +137,8 @@ function AdminXpPage() {
         credentials: "same-origin",
         body: JSON.stringify(row),
       })
-      if (!res.ok) throw new Error((await res.json()).message || `HTTP ${res.status}`)
+      if (!res.ok)
+        throw new Error((await res.json()).message || `HTTP ${res.status}`)
       const updated = await res.json()
       setRow(updated)
       setSaved(true)
@@ -97,11 +154,15 @@ function AdminXpPage() {
     <AdminShell>
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
         <header className="flex flex-col gap-1">
-          <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-primary/80">
+          <span className="text-[10px] font-bold tracking-[0.22em] text-primary/80 uppercase">
             {t("admin.xp.eyebrow")}
           </span>
-          <h1 className="text-2xl font-extrabold tracking-tight">{t("admin.xp.title")}</h1>
-          <p className="text-sm text-muted-foreground">{t("admin.xp.subtitle")}</p>
+          <h1 className="text-2xl font-extrabold tracking-tight">
+            {t("admin.xp.title")}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {t("admin.xp.subtitle")}
+          </p>
         </header>
 
         {err && (
@@ -118,14 +179,18 @@ function AdminXpPage() {
                 className="flex items-center justify-between gap-3 rounded-2xl border border-border/40 bg-card/30 px-4 py-3"
               >
                 <span className="flex flex-col gap-0.5">
-                  <span className="text-sm font-semibold text-foreground">{t(f.labelKey)}</span>
-                  <span className="text-[11px] text-muted-foreground">{t(f.hintKey)}</span>
+                  <span className="text-sm font-semibold text-foreground">
+                    {t(f.labelKey)}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    {t(f.hintKey)}
+                  </span>
                 </span>
                 <Input
                   type="number"
                   min={0}
                   step={1}
-                  value={row[f.key] as number}
+                  value={row[f.key]}
                   onChange={(e) =>
                     setRow({ ...row, [f.key]: Number(e.target.value) })
                   }
@@ -136,7 +201,9 @@ function AdminXpPage() {
 
             <div className="mt-2 flex items-center justify-end gap-3">
               {saved && (
-                <span className="text-xs font-bold text-primary">✓ {t("admin.xp.saved")}</span>
+                <span className="text-xs font-bold text-primary">
+                  ✓ {t("admin.xp.saved")}
+                </span>
               )}
               <Button
                 onClick={onSave}
@@ -148,7 +215,9 @@ function AdminXpPage() {
             </div>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">{t("admin.common.loading")}</p>
+          <p className="text-sm text-muted-foreground">
+            {t("admin.common.loading")}
+          </p>
         )}
       </div>
     </AdminShell>

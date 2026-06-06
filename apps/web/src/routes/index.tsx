@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { Link, createFileRoute } from "@tanstack/react-router"
 import { useTranslation } from "react-i18next"
 
 import { cn } from "@workspace/ui/lib/utils"
@@ -294,7 +294,7 @@ function ModeCard({
         </div>
       </div>
 
-      <p className="text-sm leading-snug text-muted-foreground text-balance">
+      <p className="text-sm leading-snug text-balance text-muted-foreground">
         {description}
       </p>
 

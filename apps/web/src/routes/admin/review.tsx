@@ -1,4 +1,4 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router"
+import { Link, createFileRoute, redirect } from "@tanstack/react-router"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -17,10 +17,9 @@ import {
   fetchNextReviewBar,
   patchBar,
   patchSong,
-  type ArtistRow,
-  type BarRow,
 } from "../../lib/admin-client"
 import { isAdminFn } from "../../lib/session"
+import type { ArtistRow, BarRow } from "../../lib/admin-client"
 
 export const Route = createFileRoute("/admin/review")({
   component: ReviewPage,
@@ -34,7 +33,7 @@ const ease = "cubic-bezier(0.16, 1, 0.3, 1)"
 
 function ReviewPage() {
   const { t } = useTranslation()
-  const [artists, setArtists] = useState<ArtistRow[]>([])
+  const [artists, setArtists] = useState<Array<ArtistRow>>([])
   const [bar, setBar] = useState<BarRow | null>(null)
   const [remaining, setRemaining] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -52,7 +51,7 @@ function ReviewPage() {
     setErr(null)
     try {
       const { bar, remaining } = await fetchNextReviewBar(
-        Array.from(skippedRef.current),
+        Array.from(skippedRef.current)
       )
       setBar(bar)
       setRemaining(remaining)
@@ -149,10 +148,16 @@ function ReviewPage() {
     <AdminShell
       topRight={
         <div className="flex items-center gap-3 text-xs font-bold tabular-nums">
-          <span className="text-primary" title={t("admin.review.reviewedTitle")}>
+          <span
+            className="text-primary"
+            title={t("admin.review.reviewedTitle")}
+          >
             ✓ {reviewedCount}
           </span>
-          <span className="text-muted-foreground" title={t("admin.review.skippedTitle")}>
+          <span
+            className="text-muted-foreground"
+            title={t("admin.review.skippedTitle")}
+          >
             ↪ {skipCount}
           </span>
           <span className="text-muted-foreground">
@@ -172,11 +177,14 @@ function ReviewPage() {
         {loading && !bar && <SkeletonCard />}
 
         {!loading && !bar && (
-          <EmptyQueue onReset={() => {
-            skippedRef.current.clear()
-            setSkipCount(0)
-            loadNext()
-          }} skipped={skipCount} />
+          <EmptyQueue
+            onReset={() => {
+              skippedRef.current.clear()
+              setSkipCount(0)
+              loadNext()
+            }}
+            skipped={skipCount}
+          />
         )}
 
         {bar && (
@@ -202,15 +210,23 @@ function SkeletonCard() {
   )
 }
 
-function EmptyQueue({ onReset, skipped }: { onReset: () => void; skipped: number }) {
+function EmptyQueue({
+  onReset,
+  skipped,
+}: {
+  onReset: () => void
+  skipped: number
+}) {
   const { t } = useTranslation()
   return (
     <div className="relative flex min-h-[60vh] flex-col items-center justify-center gap-5 text-center">
-      <span className="text-xs font-bold tracking-[0.18em] uppercase text-primary/80">
+      <span className="text-xs font-bold tracking-[0.18em] text-primary/80 uppercase">
         {t("admin.review.emptyEyebrow")}
       </span>
-      <h1 className="text-3xl font-extrabold tracking-tight">{t("admin.review.emptyTitle")}</h1>
-      <p className="max-w-xs text-sm text-muted-foreground text-balance">
+      <h1 className="text-3xl font-extrabold tracking-tight">
+        {t("admin.review.emptyTitle")}
+      </h1>
+      <p className="max-w-xs text-sm text-balance text-muted-foreground">
         {t("admin.review.emptyText")}
       </p>
       {skipped > 0 && (
@@ -218,7 +234,10 @@ function EmptyQueue({ onReset, skipped }: { onReset: () => void; skipped: number
           {t("admin.review.restoreSkipped", { count: skipped })}
         </Button>
       )}
-      <Link to="/admin" className="text-xs text-muted-foreground hover:text-foreground">
+      <Link
+        to="/admin"
+        className="text-xs text-muted-foreground hover:text-foreground"
+      >
         {t("admin.common.backToDashboard")}
       </Link>
     </div>
@@ -240,7 +259,7 @@ function ReviewCard({
   disabled,
 }: {
   bar: BarRow
-  artists: ArtistRow[]
+  artists: Array<ArtistRow>
   onSkip: () => void
   onApprove: (p: ReviewPatch) => void
   onDelete: (hard: boolean) => void
@@ -251,7 +270,7 @@ function ReviewCard({
   const [line, setLine] = useState(bar.line)
   const [clozePrompt, setClozePrompt] = useState(bar.clozePrompt ?? "")
   const [clozeAnswers, setClozeAnswers] = useState(
-    (bar.perfectSolution ?? []).join(", "),
+    (bar.perfectSolution ?? []).join(", ")
   )
   const [clozeEnabled, setClozeEnabled] = useState(bar.clozeEnabled ?? true)
   const [artistId, setArtistId] = useState(bar.artistId)
@@ -297,7 +316,7 @@ function ReviewCard({
 
   const correctArtist = useMemo(
     () => artists.find((a) => a.id === artistId) ?? null,
-    [artists, artistId],
+    [artists, artistId]
   )
 
   const conflict = d1 === artistId || d2 === artistId || d1 === d2
@@ -319,26 +338,29 @@ function ReviewCard({
       className={cn(
         "relative flex flex-col gap-4 rounded-3xl border border-border/60 bg-card/70 p-5 shadow-2xl transition-all duration-200",
         "backdrop-blur-[2px]",
-        exitClass,
+        exitClass
       )}
-      style={{ animation: !exitDir ? `pq-fade-up 0.4s ${ease} both` : undefined }}
+      style={{
+        animation: !exitDir ? `pq-fade-up 0.4s ${ease} both` : undefined,
+      }}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex flex-col">
-          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary/80">
+          <span className="text-[10px] font-bold tracking-[0.18em] text-primary/80 uppercase">
             / {t("admin.edit.title", { id: bar.id })}
           </span>
           <span className="text-sm font-semibold">
-            {bar.artistName} <span className="opacity-50">·</span> {bar.songTitle}
+            {bar.artistName} <span className="opacity-50">·</span>{" "}
+            {bar.songTitle}
           </span>
         </div>
         <a
           href={`https://genius.com/search?q=${encodeURIComponent(
-            line.replace(/\//g, " ").replace(/\s+/g, " ").trim(),
+            line.replace(/\//g, " ").replace(/\s+/g, " ").trim()
           )}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="rounded-full border border-border/60 bg-background/40 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground hover:border-primary/50 hover:text-foreground"
+          className="rounded-full border border-border/60 bg-background/40 px-2.5 py-1 text-[10px] font-bold tracking-[0.16em] text-muted-foreground uppercase hover:border-primary/50 hover:text-foreground"
           aria-label={t("admin.review.geniusAria")}
         >
           Genius ↗
@@ -375,7 +397,7 @@ function ReviewCard({
           "flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition-colors",
           clozeEnabled
             ? "border-primary/40 bg-primary/5 text-foreground"
-            : "border-border/60 bg-background/40 text-muted-foreground",
+            : "border-border/60 bg-background/40 text-muted-foreground"
         )}
       >
         <Checkbox
@@ -391,7 +413,11 @@ function ReviewCard({
       </label>
 
       <Field label={t("admin.edit.correctArtist")}>
-        <ArtistSelect value={artistId} onChange={setArtistId} artists={artists} />
+        <ArtistSelect
+          value={artistId}
+          onChange={setArtistId}
+          artists={artists}
+        />
       </Field>
 
       <Field label={t("admin.edit.song")}>
@@ -423,12 +449,10 @@ function ReviewCard({
       </div>
 
       {conflict && (
-        <p className="text-xs text-destructive">
-          {t("admin.review.conflict")}
-        </p>
+        <p className="text-xs text-destructive">{t("admin.review.conflict")}</p>
       )}
 
-      <div className="sticky bottom-0 -mx-5 -mb-5 mt-2 flex items-center justify-between gap-2 border-t border-border/40 bg-background/85 px-5 py-3 backdrop-blur-sm">
+      <div className="sticky bottom-0 -mx-5 mt-2 -mb-5 flex items-center justify-between gap-2 border-t border-border/40 bg-background/85 px-5 py-3 backdrop-blur-sm">
         <div className="flex items-center gap-1">
           <Button
             type="button"
@@ -477,12 +501,17 @@ function ReviewCard({
   )
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string
+  children: React.ReactNode
+}) {
   return (
-    <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+    <label className="flex flex-col gap-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
       {label}
       {children}
     </label>
   )
 }
-

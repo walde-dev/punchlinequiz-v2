@@ -7,9 +7,10 @@ import { getActor } from "./auth"
 import { claimAnonXp } from "./anon-xp"
 import { db } from "./db"
 import { getServerSessionId } from "./log"
-import { recordPendingReferral, type ReferralToken } from "./referral"
+import { recordPendingReferral } from "./referral"
 import { ensureUser } from "./xp"
 import { validateHandle } from "./handle"
+import type { ReferralToken } from "./referral"
 import type { HandleRejection } from "./handle"
 
 export type OnboardingStatus =
@@ -41,7 +42,7 @@ export const getOnboardingStatusFn = createServerFn({ method: "GET" }).handler(
       onboarded: !!row.onboardedAt,
       handle: row.handle,
     }
-  },
+  }
 )
 
 export type HandleCheckResult =
@@ -73,7 +74,8 @@ export const checkHandleFn = createServerFn({ method: "POST" })
     const callerId = result?.actor.kind === "clerk" ? result.actor.userId : null
 
     const owner = await ownerOfHandle(check.normalized)
-    if (owner && owner !== callerId) return { available: false, reason: "taken" }
+    if (owner && owner !== callerId)
+      return { available: false, reason: "taken" }
     return { available: true }
   })
 
@@ -84,7 +86,11 @@ export type ClaimHandleResult =
 function isUniqueViolation(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err)
   // Postgres unique_violation = 23505; neon-http surfaces it in the message.
-  return msg.includes("23505") || msg.includes("users_handle_lower_uq") || msg.includes("duplicate key")
+  return (
+    msg.includes("23505") ||
+    msg.includes("users_handle_lower_uq") ||
+    msg.includes("duplicate key")
+  )
 }
 
 /**
@@ -99,7 +105,8 @@ export const claimHandleFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<ClaimHandleResult> => {
     const req = getRequest()
     const result = await getActor(req)
-    if (result?.actor.kind !== "clerk") return { ok: false, reason: "unauthorized" }
+    if (result?.actor.kind !== "clerk")
+      return { ok: false, reason: "unauthorized" }
     const clerkId = result.actor.userId
 
     const check = validateHandle(data.handle)
@@ -137,12 +144,17 @@ export const claimHandleFn = createServerFn({ method: "POST" })
     // Attribute a referral (first-touch) for genuinely new users only. Never let
     // a referral hiccup fail the handle claim.
     if (isFirstOnboarding && data.referral) {
-      await recordPendingReferral({ refereeClerkId: clerkId, token: data.referral }).catch(() => {})
+      await recordPendingReferral({
+        refereeClerkId: clerkId,
+        token: data.referral,
+      }).catch(() => {})
     }
 
     // Migrate provisional XP banked while anonymous ("keep your XP", PUN-98).
     // Idempotent per session + capped; never let it fail the claim.
-    const claimedXp = await claimAnonXp(clerkId, getServerSessionId()).catch(() => 0)
+    const claimedXp = await claimAnonXp(clerkId, getServerSessionId()).catch(
+      () => 0
+    )
 
     return { ok: true, handle: display, claimedXp }
   })
@@ -154,14 +166,24 @@ export const claimHandleFn = createServerFn({ method: "POST" })
  * Clerk only; never touches other users. Does NOT zero earned XP.
  */
 export const resetMyOnboardingFn = createServerFn({ method: "POST" }).handler(
-  async (): Promise<{ ok: boolean; reason?: "not_admin" | "not_signed_in" }> => {
+  async (): Promise<{
+    ok: boolean
+    reason?: "not_admin" | "not_signed_in"
+  }> => {
     const result = await getActor(getRequest())
     if (result?.isAdmin !== true) return { ok: false, reason: "not_admin" }
-    if (result.actor.kind !== "clerk") return { ok: false, reason: "not_signed_in" }
+    if (result.actor.kind !== "clerk")
+      return { ok: false, reason: "not_signed_in" }
     const clerkId = result.actor.userId
 
-    await db.update(users).set({ onboardedAt: null, handle: null }).where(eq(users.clerkId, clerkId))
-    await db.delete(anonXpClaims).where(eq(anonXpClaims.clerkId, clerkId)).catch(() => {})
+    await db
+      .update(users)
+      .set({ onboardedAt: null, handle: null })
+      .where(eq(users.clerkId, clerkId))
+    await db
+      .delete(anonXpClaims)
+      .where(eq(anonXpClaims.clerkId, clerkId))
+      .catch(() => {})
     return { ok: true }
-  },
+  }
 )

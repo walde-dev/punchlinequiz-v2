@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { Link, createFileRoute } from "@tanstack/react-router"
 import { useTranslation } from "react-i18next"
 
 import { ArtistGrid } from "../components/artist-grid"
@@ -21,22 +21,29 @@ function FinishingPicker() {
 
   return (
     <div className="relative flex min-h-svh flex-col overflow-hidden">
-      <header className="fixed top-0 inset-x-0 z-50 flex items-center justify-between pl-6 pr-16 h-14 border-b border-border/40 bg-background/95 md:bg-background/80 md:backdrop-blur-sm">
-        <Link to="/" aria-label={t("common.backToHome")} className="select-none">
-          <span className="font-bold text-base tracking-tight">
+      <header className="fixed inset-x-0 top-0 z-50 flex h-14 items-center justify-between border-b border-border/40 bg-background/95 pr-16 pl-6 md:bg-background/80 md:backdrop-blur-sm">
+        <Link
+          to="/"
+          aria-label={t("common.backToHome")}
+          className="select-none"
+        >
+          <span className="text-base font-bold tracking-tight">
             <span className="text-foreground">punchline</span>
             <span className="text-primary">/quiz</span>
           </span>
         </Link>
         <div className="flex items-center gap-2">
-          <span className="rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-primary">
+          <span className="rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[10px] font-bold tracking-[0.16em] text-primary uppercase">
             {t("finishing.badge")}
           </span>
           <LangToggle />
         </div>
       </header>
 
-      <div className="pq-spotlight pointer-events-none absolute inset-0" aria-hidden="true" />
+      <div
+        className="pq-spotlight pointer-events-none absolute inset-0"
+        aria-hidden="true"
+      />
 
       <main className="relative flex flex-1 flex-col items-center px-5 pt-20 pb-10 md:px-8">
         <div className="flex w-full max-w-3xl flex-col gap-7">
@@ -45,7 +52,7 @@ function FinishingPicker() {
             style={{ animation: `pq-fade-up 0.55s ${ease} both` }}
           >
             <h1
-              className="font-extrabold leading-[1.1] tracking-tight"
+              className="leading-[1.1] font-extrabold tracking-tight"
               style={{ fontSize: "clamp(1.8rem, 5vw, 3rem)" }}
             >
               {t("finishing.hero")}
