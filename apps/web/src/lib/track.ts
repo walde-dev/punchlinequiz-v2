@@ -91,11 +91,13 @@ export const recordEvent = createServerFn({ method: "POST" })
 export function logEvent(name: string, props: Record<string, unknown> = {}): void {
   if (typeof window === "undefined") return
   const sessionId = getSessionId()
-  // Stamp the coarse first-touch source bucket (PUN-121) on every event for
-  // join-free "which channel converts" slicing. Caller-provided source wins.
-  const source = firstTouchSource()
+  // Stamp the coarse first-touch acquisition bucket (PUN-121) on every event for
+  // join-free "which channel converts" slicing. Distinct key `acq_source` so it
+  // never collides with the `source` prop some events use for their own surface
+  // (e.g. signup_prompt_shown source=pill|session_complete).
+  const acqSource = firstTouchSource()
   const withSource =
-    source && props.source == null ? { ...props, source } : props
+    acqSource && props.acq_source == null ? { ...props, acq_source: acqSource } : props
   // Stamp admin/QA sessions so the analytics dashboard can filter them out.
   const enriched = isInternalSession()
     ? { ...withSource, internal: true }

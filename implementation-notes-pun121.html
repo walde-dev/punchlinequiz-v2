@@ -23,7 +23,7 @@
 <h2>Design decisions</h2>
 <div class="entry decision">
   <strong>Both storage modes</strong>
-  <p><code>apps/web/src/lib/acquisition.ts</code>: <code>captureFirstTouch()</code> persists first-touch to <code>pq.first_touch</code> (first-touch wins); <code>&lt;ReferralCapture/&gt;</code> in <code>__root.tsx</code> fires a dedicated full-fidelity <code>session_started</code> event once per tab (sessionStorage guard). The coarse <code>source</code> bucket is also stamped on EVERY event in <code>track.ts</code> for join-free slicing.</p>
+  <p><code>apps/web/src/lib/acquisition.ts</code>: <code>captureFirstTouch()</code> persists first-touch to <code>pq.first_touch</code> (first-touch wins); <code>&lt;ReferralCapture/&gt;</code> in <code>__root.tsx</code> fires a dedicated full-fidelity <code>session_started</code> event once per tab (sessionStorage guard). The coarse <code>acq_source</code> bucket is also stamped on EVERY event in <code>track.ts</code> for join-free slicing.</p>
 </div>
 <div class="entry decision">
   <strong>Full fidelity + coarse bucket</strong>
