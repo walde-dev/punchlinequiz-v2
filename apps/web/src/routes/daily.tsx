@@ -315,24 +315,24 @@ function DailyInner({ daily }: { daily: DailyChallenge }) {
 function Header({ dailyNumber, date }: { dailyNumber: number; date: string }) {
   const { t } = useTranslation()
   return (
-    <header className="fixed inset-x-0 top-0 z-50 flex h-14 items-center justify-between border-b border-border/40 bg-background/95 pr-16 pl-5 md:bg-background/80 md:backdrop-blur-sm">
+    <header className="fixed inset-x-0 top-0 z-50 flex h-14 items-center justify-between gap-3 border-b border-border/40 bg-background/95 px-5 md:bg-background/80 md:backdrop-blur-sm">
       <Link
         to="/"
         aria-label={t("common.backToHome")}
-        className="flex items-center gap-2.5 select-none"
+        className="flex min-w-0 items-center gap-2.5 select-none"
       >
-        <span className="text-base font-bold tracking-tight">
+        <span className="text-base font-bold tracking-tight whitespace-nowrap">
           <span className="text-foreground">punchline</span>
           <span className="text-primary">/quiz</span>
         </span>
         <span className="text-sm text-primary/40 select-none">/</span>
-        <span className="text-[10px] font-bold tracking-[0.16em] text-primary/80 uppercase">
+        <span className="text-[10px] font-bold tracking-[0.16em] text-primary/80 uppercase whitespace-nowrap">
           daily #{dailyNumber}
         </span>
       </Link>
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2">
         <span
-          className="text-xs font-medium text-muted-foreground tabular-nums"
+          className="text-xs font-medium whitespace-nowrap text-muted-foreground tabular-nums"
           aria-label={t("daily.dateAria", { date })}
         >
           {date}
@@ -829,7 +829,7 @@ function NoDailyState({ requestedDate }: { requestedDate: string | null }) {
   const { t } = useTranslation()
   return (
     <div className="relative flex min-h-svh flex-col">
-      <header className="fixed inset-x-0 top-0 z-50 flex h-14 items-center justify-between border-b border-border/40 bg-background/95 pr-16 pl-5 md:bg-background/80 md:backdrop-blur-sm">
+      <header className="fixed inset-x-0 top-0 z-50 flex h-14 items-center justify-between border-b border-border/40 bg-background/95 px-5 md:bg-background/80 md:backdrop-blur-sm">
         <Link to="/" className="text-base font-bold tracking-tight select-none">
           <span className="text-foreground">punchline</span>
           <span className="text-primary">/quiz</span>
