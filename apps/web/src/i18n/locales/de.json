@@ -121,10 +121,12 @@
     "modes": {
       "classicEyebrow": "/ klassisch",
       "classicTitle": "Errate den Artist",
+      "classicDesc": "Punchline lesen, Artist erraten. Multiple Choice.",
       "classicMeta": "{{count}} Bars",
       "classicAria": "Klassischer Modus — Errate den Artist ({{count}} Bars)",
       "clozeEyebrow": "/ finishing lines",
       "clozeTitle": "Vervollständige die Bar",
+      "clozeDesc": "Das letzte Wort der Bar fehlt. Tipp es ein.",
       "clozeMeta": "{{count}} Bars · {{artists}} Artists",
       "clozeAria": "Finishing-Lines-Modus — Vervollständige die Bar ({{count}} Bars, {{artists}} Artists)",
       "perArtist": "Pro Artist spielen"

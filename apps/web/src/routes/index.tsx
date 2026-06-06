@@ -173,6 +173,7 @@ function ModeCards({
         search={{}}
         eyebrow={t("home.modes.classicEyebrow")}
         title={t("home.modes.classicTitle")}
+        description={t("home.modes.classicDesc")}
         meta={t("home.modes.classicMeta", { count: artistTotal })}
         ariaLabel={t("home.modes.classicAria", { count: artistTotal })}
         iconSrc="/mic.png"
@@ -184,6 +185,7 @@ function ModeCards({
           search={{ mode: "cloze" }}
           eyebrow={t("home.modes.clozeEyebrow")}
           title={t("home.modes.clozeTitle")}
+          description={t("home.modes.clozeDesc")}
           meta={t("home.modes.clozeMeta", {
             count: clozeTotal,
             artists: clozeArtists,
@@ -218,6 +220,7 @@ function ModeCard({
   search,
   eyebrow,
   title,
+  description,
   meta,
   ariaLabel,
   iconSrc,
@@ -227,6 +230,7 @@ function ModeCard({
   search: Record<string, string>
   eyebrow: string
   title: string
+  description: string
   meta: string
   ariaLabel: string
   iconSrc: string
@@ -280,6 +284,10 @@ function ModeCard({
           </h2>
         </div>
       </div>
+
+      <p className="text-sm leading-snug text-muted-foreground text-balance">
+        {description}
+      </p>
 
       <span
         aria-hidden="true"

@@ -121,10 +121,12 @@
     "modes": {
       "classicEyebrow": "/ classic",
       "classicTitle": "Guess the artist",
+      "classicDesc": "Read the punchline, guess the artist. Multiple choice.",
       "classicMeta": "{{count}} bars",
       "classicAria": "Classic mode — Guess the artist ({{count}} bars)",
       "clozeEyebrow": "/ finishing lines",
       "clozeTitle": "Finish the bar",
+      "clozeDesc": "The bar's last word is missing. Type it in.",
       "clozeMeta": "{{count}} bars · {{artists}} artists",
       "clozeAria": "Finishing-lines mode — Finish the bar ({{count}} bars, {{artists}} artists)",
       "perArtist": "Play by artist"
