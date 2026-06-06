@@ -11,12 +11,19 @@
  *
  * Errors-only at launch: no tracing, no replay. session_id tag keeps client
  * errors correlated with Axiom + the gameEvents DB.
+ *
+ * Loaded LAZILY, off the critical path: the @sentry browser SDK is a ~460 KiB
+ * chunk and monitoring must never compete with first paint. We defer the dynamic
+ * import to `requestIdleCallback` (with a setTimeout fallback for Safari), so it
+ * downloads only once the page is interactive and the main thread is free. Early
+ * errors aren't lost — the root route's errorComponent imports Sentry on demand
+ * to capture render failures (see __root.tsx).
  */
 const dsn = import.meta.env.VITE_SENTRY_DSN as string | undefined
 
-if (!import.meta.env.SSR && dsn) {
+function initSentry() {
   // @sentry/tanstackstart-react client entry re-exports the browser SDK; the
-  // SSR guard above keeps this whole block out of the server bundle.
+  // SSR guard at the call site keeps this whole chunk out of the server bundle.
   void import("@sentry/tanstackstart-react").then((Sentry) => {
     Sentry.init({
       dsn,
@@ -41,4 +48,15 @@ if (!import.meta.env.SSR && dsn) {
       // localStorage unavailable — skip the tag.
     }
   })
+}
+
+if (!import.meta.env.SSR && dsn) {
+  const ric = window.requestIdleCallback
+  if (typeof ric === "function") {
+    ric(initSentry, { timeout: 3000 })
+  } else {
+    // Safari (< 17) has no requestIdleCallback — fall back to a short macrotask
+    // so init still lands after the first paint / hydration.
+    window.setTimeout(initSentry, 2000)
+  }
 }
