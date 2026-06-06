@@ -255,6 +255,7 @@
     "oneShot": "One shot",
     "subtext": "Today. One bar.",
     "questionArtist": "Who rapped this?",
+    "artistRetry": "Not quite. Who then?",
     "questionSong": "Which song is it?",
     "songPlaceholder": "Type song title…",
     "dateAria": "Date {{date}}",
@@ -277,6 +278,7 @@
     },
     "wordleAria": "{{label}}: {{result}}",
     "wordleCorrect": "correct",
+    "wordleRetry": "close",
     "wordleWrong": "wrong"
   },
   "finishing": {

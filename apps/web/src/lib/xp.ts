@@ -348,8 +348,14 @@ export async function grantDailyArtist(input: {
   clerkId: string
   date: string
   isCorrect: boolean
+  /**
+   * Whether the player nailed the artist on their first pick. A retry-correct
+   * still counts (streak, success moment) but earns a reduced base. Defaults
+   * to true so non-daily callers keep the old full-grant behaviour.
+   */
+  firstTry?: boolean
 }): Promise<XpGrantResult> {
-  const { clerkId, date, isCorrect } = input
+  const { clerkId, date, isCorrect, firstTry = true } = input
   await ensureUser(clerkId)
   const cfg = await loadXpConfig()
   const sortedLevels = await loadLevels()
@@ -382,7 +388,13 @@ export async function grantDailyArtist(input: {
       : 1
     : userRow.currentStreak
   const bonus = isCorrect ? streakBonus(newStreak, cfg) : 0
-  const base = isCorrect ? cfg.xpDailyArtist : 0
+  // Retry-correct earns half the base; first-try earns full. Streak + bonus
+  // still apply either way — they got it, the day counts.
+  const base = isCorrect
+    ? firstTry
+      ? cfg.xpDailyArtist
+      : Math.round(cfg.xpDailyArtist / 2)
+    : 0
   const total = base + bonus
 
   const inserted = await db
