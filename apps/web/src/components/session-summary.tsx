@@ -189,20 +189,29 @@ export function SessionSummary({
   }
 
   async function onNativeShare() {
-    if (!blob) return
     const text = t("session.shareText", { score, total })
-    const file = new File([blob], shareFilenameFor(cardData), {
-      type: "image/png",
-    })
     const nav = navigator as Navigator & {
       canShare?: (d: ShareData) => boolean
     }
-    const dataWithFile: ShareData = { files: [file], text, url: shareUrl }
-    const canShareFile =
-      typeof nav.canShare === "function" && nav.canShare(dataWithFile)
+    // The share must NEVER block on the canvas render. PUN-122 telemetry showed
+    // the card completed for only ~14% of finishers (and 0 completed shares),
+    // because the button was gated on a blob that often never arrived. Always
+    // share text+link; attach the rendered card only if it happens to be ready.
+    let payload: ShareData = { text, url: shareUrl }
+    let withImage = false
+    if (blob) {
+      const file = new File([blob], shareFilenameFor(cardData), {
+        type: "image/png",
+      })
+      const dataWithFile: ShareData = { files: [file], text, url: shareUrl }
+      if (typeof nav.canShare === "function" && nav.canShare(dataWithFile)) {
+        payload = dataWithFile
+        withImage = true
+      }
+    }
     try {
       logShare("native")
-      await nav.share(canShareFile ? dataWithFile : { text, url: shareUrl })
+      await nav.share(payload)
       // Resolves when the OS sheet completes a share (PUN-122 outcome telemetry).
       logEvent("share_completed", {
         channel: "native",
@@ -210,6 +219,7 @@ export function SessionSummary({
         total,
         mode,
         artist_slug: artistSlug ?? null,
+        with_image: withImage,
       })
     } catch {
       // AbortError = user dismissed the sheet without sharing.
@@ -281,53 +291,55 @@ export function SessionSummary({
         )}
       </div>
 
-      {/* Action buttons — decluttered (PUN-122): one PRIMARY continue + one
-          SECONDARY share. The native sheet covers WhatsApp/X/IG on mobile; the
-          explicit chips, Save and duplicate Copy were removed. */}
+      {/* Action buttons (PUN-122 follow-up): the win moment IS the share moment,
+          so SHARE is the primary CTA — and it never gates on the canvas render
+          (it shares text+link instantly, attaching the card image only if ready).
+          "Keep playing" drops to a clear secondary. */}
       <div className="flex flex-col gap-3">
-        {/* PRIMARY: keep playing — the action players actually want (replaces the
-            buried "restart" they were routing around via the logo). */}
+        {/* PRIMARY: share. Native sheet (WhatsApp/X/IG) on mobile; on desktop
+            (no navigator.share) the instant copy-link is the primary share. */}
+        {hasNativeShare ? (
+          <Button
+            type="button"
+            size="lg"
+            onClick={onNativeShare}
+            className="cta-glow min-h-12 w-full text-base font-bold"
+          >
+            {t("common.shareCard")}
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            size="lg"
+            onClick={onCopyLink}
+            className="cta-glow min-h-12 w-full text-base font-bold"
+          >
+            {copied ? `${t("common.linkCopied")} ✓` : t("common.shareCard")}
+          </Button>
+        )}
+
+        {/* SECONDARY: keep playing — the engagement loop, one tap away. */}
         <Button
+          variant="outline"
           size="lg"
           onClick={onRestart}
-          className="cta-glow min-h-12 w-full text-base font-bold"
+          className="min-h-12 w-full text-base font-bold"
         >
           {t("session.nextBars")}
           <span aria-hidden="true">→</span>
         </Button>
 
-        {/* SECONDARY: the one share. Native share card on mobile; on desktop
-            (no navigator.share) fall back to saving the card + copy link. */}
-        {hasNativeShare ? (
+        {/* Desktop only: save the card image as an optional extra. */}
+        {!hasNativeShare && (
           <Button
             type="button"
             variant="ghost"
-            onClick={onNativeShare}
+            onClick={onDownload}
             disabled={!blob}
-            className="min-h-12 w-full border border-primary/50 text-base font-bold text-primary hover:bg-primary/10"
+            className="min-h-11 w-full border border-border/60 text-sm font-bold"
           >
-            {t("common.shareCard")}
+            {generating ? t("session.cardGenerating") : t("common.saveCard")}
           </Button>
-        ) : (
-          <>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={onDownload}
-              disabled={!blob}
-              className="min-h-12 w-full border border-primary/50 text-base font-bold text-primary hover:bg-primary/10"
-            >
-              {t("common.saveCard")}
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={onCopyLink}
-              className="min-h-11 w-full border border-border/60 text-sm font-bold"
-            >
-              {copied ? `${t("common.linkCopied")} ✓` : t("common.copyLink")}
-            </Button>
-          </>
         )}
 
         {/* Challenge a friend — a signed-in UPGRADE of the share, not a competing

@@ -50,8 +50,18 @@ async function loadImage(url: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
     const img = new Image()
     img.crossOrigin = "anonymous"
-    img.onload = () => resolve(img)
-    img.onerror = () => resolve(null)
+    let settled = false
+    const done = (v: HTMLImageElement | null) => {
+      if (settled) return
+      settled = true
+      resolve(v)
+    }
+    img.onload = () => done(img)
+    img.onerror = () => done(null)
+    // A cross-origin avatar that neither loads nor errors (CORS limbo, dead CDN)
+    // must never stall the whole card render — draw the card without it. (PUN-122:
+    // a hung load here was a prime cause of cards that never finished rendering.)
+    setTimeout(() => done(null), 1500)
     img.src = url
   })
 }
@@ -60,14 +70,17 @@ async function ensureFonts(): Promise<void> {
   if (typeof document === "undefined") return
   // Pre-load the weights we use on the card so canvas measures them right.
   try {
-    await Promise.all([
+    const loaded = Promise.all([
       document.fonts.load("900 360px 'Figtree Variable'"),
       document.fonts.load("900 180px 'Figtree Variable'"),
       document.fonts.load("700 44px 'Figtree Variable'"),
       document.fonts.load("700 36px 'Figtree Variable'"),
       document.fonts.load("700 28px 'Figtree Variable'"),
-    ])
-    await document.fonts.ready
+    ]).then(() => document.fonts.ready)
+    // Cap the wait: `document.fonts.ready` can hang indefinitely on some mobile
+    // browsers, which previously left the share card stuck "generating" forever.
+    // After 600ms we render with whatever's loaded (system font fallback).
+    await Promise.race([loaded, new Promise((r) => setTimeout(r, 600))])
   } catch {
     // Fall back to system font if Figtree never resolves.
   }
