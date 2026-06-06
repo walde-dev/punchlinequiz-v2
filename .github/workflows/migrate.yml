@@ -1,0 +1,45 @@
+name: Migrate (production)
+
+# Applies pending Drizzle migrations to the production Neon DB whenever code
+# lands on main, so a merged migration auto-applies instead of waiting for a
+# manual `db:migrate`. Deliberately separate from ci.yml: that build is kept
+# secret-free (the DB handle is inert on import), so the only place we hand out
+# DATABASE_URL is here. Gated to main = production only — PR/preview deploys
+# already hit the same Neon DB, so we must never migrate from an unmerged branch.
+on:
+  push:
+    branches: [main]
+    # Only spend a run when migrations actually changed.
+    paths:
+      - "packages/db/drizzle/**"
+      - ".github/workflows/migrate.yml"
+  workflow_dispatch: # manual re-run / first-time apply
+
+# Never let two migration runs apply concurrently — serialize, and don't cancel
+# an in-flight apply (cancelling mid-migration could leave the journal partial).
+concurrency:
+  group: db-migrate-production
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: drizzle-kit migrate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply migrations
+        run: pnpm --filter @workspace/db db:migrate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
