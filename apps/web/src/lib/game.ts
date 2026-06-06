@@ -45,7 +45,10 @@ export type ArtistTile = {
 export const listPlayableArtists = createServerFn({ method: "GET" })
   .inputValidator((d: { mode?: "artist" | "cloze" } | undefined) => d ?? {})
   .handler(async ({ data }): Promise<Array<ArtistTile>> => {
-    const punchlineConds = [eq(punchlines.active, true)]
+    const punchlineConds = [
+      eq(punchlines.active, true),
+      eq(punchlines.reviewed, true),
+    ]
     punchlineConds.push(sql`${punchlines.id} NOT IN ${hiddenDailyIds()}`)
     if (data.mode === "cloze") {
       punchlineConds.push(isNotNull(punchlines.clozePrompt))
@@ -136,7 +139,11 @@ export const getArtistContext = createServerFn({ method: "GET" })
       .leftJoin(songs, eq(songs.artistId, artists.id))
       .leftJoin(
         punchlines,
-        and(eq(punchlines.songId, songs.id), eq(punchlines.active, true))
+        and(
+          eq(punchlines.songId, songs.id),
+          eq(punchlines.active, true),
+          eq(punchlines.reviewed, true)
+        )
       )
       .where(eq(artists.slug, data.slug))
       .groupBy(artists.id)
@@ -253,7 +260,7 @@ export const getRound = createServerFn({ method: "GET" })
   )
   .handler(async ({ data }): Promise<Round> => {
     const mode = data.mode ?? "artist"
-    const conds = [eq(punchlines.active, true)]
+    const conds = [eq(punchlines.active, true), eq(punchlines.reviewed, true)]
     conds.push(sql`${punchlines.id} NOT IN ${hiddenDailyIds()}`)
     if (data.excludeId) conds.push(ne(punchlines.id, data.excludeId))
     const excludeIds = (data.excludeIds ?? []).filter(

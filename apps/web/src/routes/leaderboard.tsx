@@ -412,6 +412,20 @@ function PillToggle({
   )
 }
 
+/**
+ * Completion percentage. Shows two decimals so near-complete players aren't
+ * all flattened to the same rounded integer — but drops them when they'd be
+ * `.00` (a clean 50% reads better than "50.00%").
+ */
+function formatCompletionPct(ratio: number, locale: string): string {
+  const pct = Math.round(ratio * 100 * 100) / 100 // round to 2 decimals
+  const hasDecimals = !Number.isInteger(pct)
+  return pct.toLocaleString(locale, {
+    minimumFractionDigits: hasDecimals ? 2 : 0,
+    maximumFractionDigits: 2,
+  })
+}
+
 function Row({
   entry,
   board,
@@ -438,7 +452,7 @@ function Row({
         : `${entry.metric.toLocaleString(locale)} XP`
   const subLabel =
     isCount && totalLines
-      ? `${Math.round((entry.metric / totalLines) * 100)}%`
+      ? `${formatCompletionPct(entry.metric / totalLines, locale)}%`
       : null
 
   return (

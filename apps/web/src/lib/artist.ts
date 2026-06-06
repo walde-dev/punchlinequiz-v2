@@ -40,7 +40,11 @@ export async function listSeoArtists(): Promise<Array<SeoArtist>> {
     .innerJoin(songs, eq(songs.artistId, artists.id))
     .innerJoin(
       punchlines,
-      and(eq(punchlines.songId, songs.id), eq(punchlines.active, true))
+      and(
+        eq(punchlines.songId, songs.id),
+        eq(punchlines.active, true),
+        eq(punchlines.reviewed, true)
+      )
     )
     .where(eq(artists.active, true))
     .groupBy(artists.id)
@@ -76,7 +80,13 @@ export const getArtistPageFn = createServerFn({ method: "GET" })
       .select({ barCount: sql<number>`count(*)::int` })
       .from(punchlines)
       .innerJoin(songs, eq(songs.id, punchlines.songId))
-      .where(and(eq(songs.artistId, a.id), eq(punchlines.active, true)))
+      .where(
+        and(
+          eq(songs.artistId, a.id),
+          eq(punchlines.active, true),
+          eq(punchlines.reviewed, true)
+        )
+      )
     if (!barCount) return null // no playable bars → don't serve a thin page
 
     const tagRows = await db
@@ -105,7 +115,11 @@ export const getArtistPageFn = createServerFn({ method: "GET" })
         .innerJoin(songs, eq(songs.artistId, artists.id))
         .innerJoin(
           punchlines,
-          and(eq(punchlines.songId, songs.id), eq(punchlines.active, true))
+          and(
+            eq(punchlines.songId, songs.id),
+            eq(punchlines.active, true),
+            eq(punchlines.reviewed, true)
+          )
         )
         .where(
           and(

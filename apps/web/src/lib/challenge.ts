@@ -108,6 +108,7 @@ export const createChallengeFn = createServerFn({ method: "POST" }).handler(
       .where(
         and(
           eq(punchlines.active, true),
+          eq(punchlines.reviewed, true),
           sql`${punchlines.id} NOT IN ${hiddenDailyIds()}`
         )
       )
