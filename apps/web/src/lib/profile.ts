@@ -7,7 +7,7 @@ import { getActor } from "./auth"
 import { getContributorProfile, type ContributorProfile } from "./contributor"
 import { db } from "./db"
 import { doFollow, doUnfollow, getFollowCounts, getIsFollowing, type FollowResult } from "./follow"
-import { ensureUser, getProfileSnapshot, type ProfileSnapshot } from "./xp"
+import { ensureUser, getProfileSnapshot, levelInfos, loadLevels, type LevelInfo, type ProfileSnapshot } from "./xp"
 
 /**
  * Public profile (`/u/$handle`). Logged-out viewable. The client only ever
@@ -83,6 +83,8 @@ export type PublicProfileResult =
       followers: number
       following: number
       profile: ProfileSnapshot
+      /** Full rank ladder (threshold-ascending) for the level-progression strip. */
+      allLevels: LevelInfo[]
       topArtists: TopArtist[]
       contributor: ContributorProfile
     }
@@ -97,8 +99,9 @@ export const getPublicProfileFn = createServerFn({ method: "GET" })
     const viewerId = await callerClerkId()
     const isOwner = viewerId === target.clerkId
 
-    const [profile, topArtists, counts, isFollowing, contributor] = await Promise.all([
+    const [profile, allLevelsRows, topArtists, counts, isFollowing, contributor] = await Promise.all([
       getProfileSnapshot(target.clerkId),
+      loadLevels(),
       getTopArtists(target.clerkId),
       getFollowCounts(target.clerkId),
       viewerId && !isOwner ? getIsFollowing(viewerId, target.clerkId) : Promise.resolve(false),
@@ -116,6 +119,7 @@ export const getPublicProfileFn = createServerFn({ method: "GET" })
       followers: counts.followers,
       following: counts.following,
       profile,
+      allLevels: levelInfos(allLevelsRows),
       topArtists,
       contributor,
     }

@@ -32,7 +32,20 @@
   },
   "xp": {
     "suffix": "XP",
-    "headerAria": "Level {{level}}, {{xp}} XP. Profil öffnen.",
+    "headerAria": "Level {{level}}, {{xp}} XP. So funktioniert XP.",
+    "guide": {
+      "title": "So funktioniert XP",
+      "intro": "Lös Bars, sammel XP, klettere durch die Ränge.",
+      "earnTitle": "XP holen",
+      "earn": {
+        "answer": "Jede gelöste Line bringt XP.",
+        "streak": "Mehrere am Stück richtig? Streak-Bonus oben drauf.",
+        "daily": "Das tägliche Rätsel zahlt extra.",
+        "submit": "Eigene Bars einreichen — wird eine angenommen, gibt's XP."
+      },
+      "levelsTitle": "Alle Ränge",
+      "youAreHere": "Du"
+    },
     "levelUp": {
       "eyebrow": "Level Up",
       "levelLabel": "Level",
@@ -54,6 +67,7 @@
     "levelLabel": "Level",
     "nextLevelCaption": "Noch {{xp}} XP bis {{rank}}",
     "maxLevelReached": "Top der Liga.",
+    "levelsTitle": "Ränge",
     "sparklineTitle": "Letzte 30 Tage",
     "sparklineAria": "XP-Aktivität der letzten 30 Tage",
     "statsTitle": "Statistiken",

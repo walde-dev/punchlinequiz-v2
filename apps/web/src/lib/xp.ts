@@ -71,6 +71,11 @@ export function invalidateXpCaches() {
   cachedLevels = null
 }
 
+/** Map every level row to its public LevelInfo, ranked by threshold order. */
+export function levelInfos(sorted: Level[]): LevelInfo[] {
+  return sorted.map((l, i) => toLevelInfo(l, i + 1))
+}
+
 export function levelFor(totalXp: number, sorted: Level[]): { current: LevelInfo; next: LevelInfo | null } {
   let currentIdx = 0
   for (let i = 0; i < sorted.length; i++) {

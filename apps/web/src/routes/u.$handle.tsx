@@ -8,6 +8,7 @@ import { cn } from "@workspace/ui/lib/utils"
 
 import { AppHeader } from "../components/app-header"
 import { Confetti } from "../components/confetti"
+import { LevelLadder } from "../components/level-ladder"
 import { rankIconPath } from "../lib/rank-icon"
 import {
   followByHandleFn,
@@ -149,6 +150,12 @@ function ProfileView({ data }: { data: Extract<PublicProfileResult, { found: tru
           <StatTile label={t("profile.stats.longestStreak")} value={profile.longestStreak} />
           <StatTile label={t("profile.stats.linesConquered")} value={profile.linesConquered} />
           <StatTile label={t("profile.stats.daysCompleted")} value={profile.daysCompleted} />
+        </section>
+
+        {/* Rank ladder — full progression, current rank centered. */}
+        <section className="flex flex-col gap-3" style={{ animation: `pq-fade-up 0.55s ${ease} 0.1s both` }}>
+          <SectionHeading>{t("profile.levelsTitle")}</SectionHeading>
+          <LevelLadder levels={data.allLevels} totalXp={profile.totalXp} currentRank={profile.level.rank} youAreHere={data.isOwner} />
         </section>
 
         {/* Top artists */}

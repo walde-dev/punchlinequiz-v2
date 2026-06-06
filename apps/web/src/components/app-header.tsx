@@ -4,7 +4,6 @@ import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@workspace/ui/components/button"
-import { cn } from "@workspace/ui/lib/utils"
 
 import { clerkDarkAppearance } from "../lib/clerk-theme"
 import { syncProfileImageFn } from "../lib/profile"
@@ -54,19 +53,15 @@ function ProfileMenuIcon() {
   )
 }
 
-function Logo({ hideWordmarkOnMobile = false }: { hideWordmarkOnMobile?: boolean }) {
+function Logo() {
   return (
-    <span className="flex items-center gap-2 select-none">
+    <span className="flex min-w-0 items-center gap-2 select-none">
       <img src="/logo.png" alt="" aria-hidden="true" className="h-7 w-7 shrink-0" />
-      <span
-        className={cn(
-          "font-bold text-lg tracking-tight",
-          // During play the artist/mode breadcrumb already anchors the left side,
-          // so the wordmark is redundant chrome on a narrow phone — hide it there
-          // to claw back ~130px and stop the header overflowing.
-          hideWordmarkOnMobile && "hidden sm:inline",
-        )}
-      >
+      {/* The gold mark carries identity on phones; the wordmark is chrome that
+          crowds the mobile header (leaderboard + XP chip + lang + avatar already
+          fill it). Hide it below sm to stop the header overflowing; it returns
+          at sm+ where there's room. */}
+      <span className="hidden truncate font-bold text-lg tracking-tight sm:inline">
         <span className="text-foreground">punchline</span>
         <span className="text-primary">/quiz</span>
       </span>
@@ -109,8 +104,6 @@ export function AppHeader({
 }) {
   const { t } = useTranslation()
 
-  const hasBreadcrumb = Boolean(playMode || artistCtx)
-
   return (
     <header className="fixed top-0 inset-x-0 z-50 flex items-center justify-between gap-2 pl-4 pr-3 h-14 border-b border-border/40 bg-background/95 md:bg-background/80 md:backdrop-blur-sm sm:gap-3 sm:pr-4 md:pl-6 md:pr-16">
       <Link
@@ -118,7 +111,7 @@ export function AppHeader({
         aria-label={playMode ? t("common.backToHome") : t("nav.logoAria")}
         className="select-none flex min-w-0 items-center gap-2.5"
       >
-        <Logo hideWordmarkOnMobile={hasBreadcrumb} />
+        <Logo />
         {playMode && !artistCtx && (
           <>
             <span className="text-primary/40 text-sm select-none">/</span>

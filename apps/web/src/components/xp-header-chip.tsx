@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -6,9 +5,11 @@ import { cn } from "@workspace/ui/lib/utils"
 
 import { getHeaderXpFn, type HeaderXp } from "../lib/session"
 import { rankIconPath } from "../lib/rank-icon"
+import { XpGuideDialog } from "./xp-guide-dialog"
 
 /**
- * Header chip showing current level, mini XP bar, and total XP. Tap → /profile.
+ * Header chip showing current level, mini XP bar, and total XP. Tap → opens the
+ * XP-system explainer dialog (how XP works + the full rank ladder).
  * Signed-out users see a ghost "Anmelden für XP" pitch instead. Re-fetches on
  * `refreshKey` change (caller bumps it after a correct answer).
  *
@@ -42,6 +43,7 @@ export function XpHeaderChip({ refreshKey = 0 }: { refreshKey?: number }) {
   const { t, i18n } = useTranslation()
   const [data, setData] = useState<HeaderXp | null>(() => readCache())
   const [pulse, setPulse] = useState(0)
+  const [guideOpen, setGuideOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -78,8 +80,10 @@ export function XpHeaderChip({ refreshKey = 0 }: { refreshKey?: number }) {
   const showStreak = data.currentStreak >= 2
 
   return (
-    <Link
-      to="/profile"
+    <>
+    <button
+      type="button"
+      onClick={() => setGuideOpen(true)}
       className={cn(
         "group inline-flex items-center gap-1.5 rounded-full sm:gap-2.5",
         "border border-primary/25 bg-primary/5 px-2 py-1.5 sm:px-3",
@@ -128,7 +132,14 @@ export function XpHeaderChip({ refreshKey = 0 }: { refreshKey?: number }) {
           🔥{data.currentStreak}
         </span>
       )}
-    </Link>
+    </button>
+    <XpGuideDialog
+      open={guideOpen}
+      onOpenChange={setGuideOpen}
+      totalXp={data.totalXp}
+      currentRank={data.level.rank}
+    />
+    </>
   )
 }
 

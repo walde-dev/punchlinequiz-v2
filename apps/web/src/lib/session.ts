@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start"
 import { getRequest } from "@tanstack/react-start/server"
 
 import { getActor } from "./auth"
-import { getProfileSnapshot, levelFor, loadLevels, type ProfileSnapshot, type LevelInfo } from "./xp"
+import { getProfileSnapshot, levelFor, levelInfos, loadLevels, type ProfileSnapshot, type LevelInfo } from "./xp"
 
 /** Client-callable server function: am I currently logged in as admin? */
 export const isAdminFn = createServerFn({ method: "GET" }).handler(async () => {
@@ -32,6 +32,14 @@ export const getProfileFn = createServerFn({ method: "GET" }).handler(async (): 
   const sorted = await loadLevels()
   const { current, next } = levelFor(0, sorted)
   return { signedIn: false, preview: { level: current, nextLevel: next } }
+})
+
+/**
+ * All levels in threshold-ascending order. Drives the XP-system explainer
+ * dialog (teases the full ladder). Server-cached via loadLevels().
+ */
+export const getLevelsFn = createServerFn({ method: "GET" }).handler(async (): Promise<LevelInfo[]> => {
+  return levelInfos(await loadLevels())
 })
 
 /** Lightweight version for the header chip — strips recent + sparkline. */
