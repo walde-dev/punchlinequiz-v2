@@ -204,6 +204,7 @@ export const submitDailyArtistGuess = createServerFn({ method: "POST" })
     if (isCorrect && clerkId && isValidIsoDate(data.date)) {
       xp = await grantDailyArtist({
         clerkId,
+        punchlineId: data.punchlineId,
         date: data.date,
         isCorrect: true,
         firstTry: data.firstTry,
