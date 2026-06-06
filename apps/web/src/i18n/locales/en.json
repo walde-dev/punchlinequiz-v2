@@ -69,7 +69,9 @@
     "banked": {
       "label": "{{xp}} XP banked",
       "cta": "Keep it",
-      "aria": "{{xp}} XP collected — sign in to keep it"
+      "aria": "{{xp}} XP collected — sign in to keep it",
+      "rankLabel": "#{{rank}} this week",
+      "rankCta": "Claim spot"
     }
   },
   "profile": {
@@ -295,7 +297,10 @@
     "claim": {
       "headline": "{{xp}} XP are waiting for you.",
       "sub": "Sign in to keep your XP and your rank.",
-      "cta": "Keep my XP"
+      "cta": "Keep my XP",
+      "rankHeadline": "You'd be #{{rank}} this week.",
+      "rankSub": "Grab your @name and lock the rank in.",
+      "rankCta": "Claim my spot"
     },
     "restart": "Play again — new round",
     "shareText": "{{score}}/{{total}} on punchline/quiz — can you beat it?",
@@ -308,7 +313,8 @@
       "solid": "Solid.",
       "half": "Halfway.",
       "tryAgain": "Better next time."
-    }
+    },
+    "nextBars": "Next bars"
   },
   "quiz": {
     "eyebrow": "/ artist quiz",
@@ -749,5 +755,15 @@
     "celebrateOne": "Your bar is live! ✊",
     "celebrateMany": "{{count}} of your bars are live! ✊",
     "playLive": "Play it now"
+  },
+  "sessionGate": {
+    "eyebrow": "/ your spot",
+    "title": "Lock in your rank",
+    "titleRank": "You'd be #{{rank}} this week",
+    "subtitle": "Grab your @name so your rank sticks. Takes a second.",
+    "placeholder": "yourname",
+    "cta": "Claim my spot",
+    "dismiss": "Not now",
+    "tease": "{{joined}} already joined from your link — claim them"
   }
 }

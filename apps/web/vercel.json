@@ -2,7 +2,8 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "crons": [
     { "path": "/api/cron/discord-daily", "schedule": "0 16 * * *" },
-    { "path": "/api/cron/discord-daily", "schedule": "0 17 * * *" }
+    { "path": "/api/cron/discord-daily", "schedule": "0 17 * * *" },
+    { "path": "/api/cron/retention-report", "schedule": "0 7 * * *" }
   ],
   "rewrites": [
     {

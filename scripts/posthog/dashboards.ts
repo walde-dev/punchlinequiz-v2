@@ -144,6 +144,34 @@ export const INSIGHTS: Insight[] = [
       },
     },
   },
+  // ── RETENTION WATCH (PUN-120) ─────────────────────────────────────────────
+  hogql(
+    "Retention watch — D1/D7 by cohort day (anon floor)",
+    "Per-day cohorts (first play) with D1/D7 return rates. Definition mirrors the " +
+      "canonical DB query in apps/web/src/lib/retention.ts. Anon-session based = a " +
+      "FLOOR; signed-in retention is higher.",
+    `WITH activity AS (
+        SELECT person_id, toDate(timestamp) AS day
+        FROM events
+        WHERE event IN ('round_started', 'daily_opened')
+          AND timestamp >= now() - INTERVAL 30 DAY
+        GROUP BY person_id, day
+      ),
+      cohort AS (
+        SELECT person_id, min(day) AS cohort_day FROM activity GROUP BY person_id
+      )
+      SELECT c.cohort_day AS cohort,
+        count(DISTINCT c.person_id) AS size,
+        round(100 * count(DISTINCT if(a.day = c.cohort_day + 1, c.person_id, NULL))
+          / nullIf(count(DISTINCT c.person_id), 0), 0) AS d1_pct,
+        round(100 * count(DISTINCT if(a.day > c.cohort_day AND a.day <= c.cohort_day + 7, c.person_id, NULL))
+          / nullIf(count(DISTINCT c.person_id), 0), 0) AS d7_pct
+      FROM cohort c
+      JOIN activity a ON a.person_id = c.person_id
+      GROUP BY c.cohort_day
+      ORDER BY c.cohort_day DESC`,
+  ),
+
   hogql(
     "Sign-up conversion — guardrail",
     "Share of distinct players who reach handle_claimed.",

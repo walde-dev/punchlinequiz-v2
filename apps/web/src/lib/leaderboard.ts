@@ -52,7 +52,7 @@ export type LeaderboardResult = {
 const TOP_N = 100
 
 /** Monday 00:00 UTC of the current week — consistent with the app's UTC day math. */
-function currentWeekStartUtc(): Date {
+export function currentWeekStartUtc(): Date {
   const now = new Date()
   const d = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
@@ -60,6 +60,29 @@ function currentWeekStartUtc(): Date {
   const daysSinceMonday = (d.getUTCDay() + 6) % 7
   d.setUTCDate(d.getUTCDate() - daysSinceMonday)
   return d
+}
+
+/**
+ * Hypothetical weekly XP rank for a raw XP value (PUN-118). Powers the anon
+ * signup offer ("you'd be #X this week") — compares a banked anon total against
+ * the live weekly distribution of onboarded users. rank = (# ahead) + 1.
+ */
+export async function weeklyRankForXp(xp: number): Promise<number> {
+  const start = currentWeekStartUtc()
+  const rows = await rawRows<{ ahead: number }>(sql`
+    WITH wk AS (
+      SELECT s.clerk_id, SUM(s.xp)::int AS xp
+      FROM (
+        SELECT clerk_id, xp_awarded AS xp FROM ${userPunchlineXp} WHERE created_at >= ${start}
+        UNION ALL
+        SELECT clerk_id, xp_awarded AS xp FROM user_daily_xp WHERE created_at >= ${start}
+      ) s
+      JOIN ${users} u ON u.clerk_id = s.clerk_id AND u.handle IS NOT NULL
+      GROUP BY s.clerk_id
+    )
+    SELECT count(*)::int AS ahead FROM wk WHERE wk.xp > ${xp}
+  `)
+  return Number(rows[0]?.ahead ?? 0) + 1
 }
 
 async function rawRows<T>(query: SQL): Promise<Array<T>> {

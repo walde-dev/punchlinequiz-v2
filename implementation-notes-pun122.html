@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Implementation notes — PUN-122 result-screen share</title>
+<style>
+  body { font: 14px/1.5 -apple-system, system-ui, sans-serif; max-width: 820px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }
+  h1 { font-size: 1.4rem; }
+  h2 { font-size: 1.1rem; margin-top: 2rem; border-bottom: 1px solid #ddd; padding-bottom: 0.25rem; }
+  .entry { margin: 0.75rem 0 1.25rem; padding-left: 0.75rem; border-left: 3px solid #ddd; }
+  .entry.open { border-left-color: #d97706; }
+  .entry.deviation { border-left-color: #dc2626; }
+  .entry.decision { border-left-color: #2563eb; }
+  .entry.tradeoff { border-left-color: #7c3aed; }
+  .meta { color: #666; font-size: 0.85rem; }
+  code { background: #f3f3f3; padding: 0 0.25rem; border-radius: 3px; }
+</style>
+</head>
+<body>
+<h1>Implementation notes — PUN-122 (result-screen share)</h1>
+<p class="meta">Spec: Linear PUN-122 (declutter + de-risk + telemetry; card already exists) · Started: 2026-06-06</p>
+
+<h2>Design decisions</h2>
+<div class="entry decision">
+  <strong>Decluttered to PRIMARY "Next bars" + SECONDARY share</strong>
+  <p>In <code>session-summary.tsx</code>: removed the explicit WhatsApp / X / Instagram chips, the Save button and the duplicate Copy button. Primary gold CTA is now <code>onRestart</code> ("Next bars →") — fixes the buried-continue / logo-workaround finding. Share is one secondary action (native share card; copy-link is shown only as the desktop fallback when <code>navigator.share</code> is absent).</p>
+</div>
+<div class="entry decision">
+  <strong>Challenge = signed-in upgrade only</strong>
+  <p>Previously a signed-out player got a SignInButton-wrapped "Challenge a friend" (a competing CTA that forced auth for 97% of users). Now the challenge button renders only when <code>isSignedIn</code>; signed-out players just get the share card.</p>
+</div>
+<div class="entry decision">
+  <strong>Render + share telemetry</strong>
+  <p>We were blind to real-device render. Added <code>card_render_succeeded</code> / <code>card_render_failed</code> (with elapsed ms) around <code>renderShareCard</code>, and <code>share_completed</code> / <code>share_dismissed</code> around the native share-sheet resolution. <code>share_clicked</code> is kept as the intent signal.</p>
+</div>
+
+<h2>Deviations from spec</h2>
+<p class="meta">None.</p>
+
+<h2>Tradeoffs considered</h2>
+<div class="entry tradeoff">
+  <strong>Continue-primary vs share-primary</strong>
+  <p>Recommended share-primary (share is the thing that doesn't happen on its own); user chose continue-primary. Implemented as chosen. The decluttered single secondary share is still a big step up from being lost among 8 CTAs. Tradeoff noted on the ticket: may cap share lift; revisit if 1.5% doesn't move.</p>
+</div>
+<div class="entry tradeoff">
+  <strong>Kept Discord card as-is</strong>
+  <p>Per user decision, the DiscordJoinCard stays unchanged on the result screen even though it adds a second "join" surface.</p>
+</div>
+
+<h2>Open questions</h2>
+<p class="meta">None.</p>
+</body>
+</html>

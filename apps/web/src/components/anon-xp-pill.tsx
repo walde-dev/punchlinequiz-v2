@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next"
 
 import { cn } from "@workspace/ui/lib/utils"
 
-import { getAnonXpTotalFn } from "../lib/anon-xp"
+import { getAnonStandingFn } from "../lib/anon-xp"
 import { logEvent } from "../lib/track"
 
 /**
@@ -25,13 +25,16 @@ export function AnonXpPill({ refreshKey }: { refreshKey: number }) {
 function AnonXpPillInner({ refreshKey }: { refreshKey: number }) {
   const { t } = useTranslation()
   const [xp, setXp] = useState(0)
+  const [rank, setRank] = useState<number | null>(null)
   const shownRef = useRef(false)
 
   useEffect(() => {
     let active = true
-    getAnonXpTotalFn()
+    getAnonStandingFn()
       .then((r) => {
-        if (active) setXp(r.claimed ? 0 : r.total)
+        if (!active) return
+        setXp(r.claimed ? 0 : r.total)
+        setRank(r.claimed ? null : r.weeklyRank)
       })
       .catch(() => {})
     return () => {
@@ -43,11 +46,17 @@ function AnonXpPillInner({ refreshKey }: { refreshKey: number }) {
   useEffect(() => {
     if (xp > 0 && !shownRef.current) {
       shownRef.current = true
-      logEvent("signup_prompt_shown", { source: "pill", xp })
+      logEvent("signup_prompt_shown", { source: "pill", xp, rank })
     }
-  }, [xp])
+  }, [xp, rank])
 
   if (xp <= 0) return null
+
+  // Rank framing is the hero (PUN-118); XP banked is the fallback when there's
+  // no weekly distribution to rank against yet.
+  const label =
+    rank !== null ? t("xp.banked.rankLabel", { rank }) : t("xp.banked.label", { xp })
+  const cta = rank !== null ? t("xp.banked.rankCta") : t("xp.banked.cta")
 
   return (
     <div className="flex justify-center" aria-live="polite">
@@ -55,7 +64,7 @@ function AnonXpPillInner({ refreshKey }: { refreshKey: number }) {
         <button
           type="button"
           onClick={() =>
-            logEvent("signup_prompt_clicked", { source: "pill", xp })
+            logEvent("signup_prompt_clicked", { source: "pill", xp, rank })
           }
           aria-label={t("xp.banked.aria", { xp })}
           className={cn(
@@ -66,13 +75,13 @@ function AnonXpPillInner({ refreshKey }: { refreshKey: number }) {
           )}
         >
           <span aria-hidden="true" className="text-base">
-            ✨
+            {rank !== null ? "🏆" : "✨"}
           </span>
           <span className="text-xs font-extrabold tracking-tight text-foreground">
-            {t("xp.banked.label", { xp })}
+            {label}
           </span>
           <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold tracking-wide text-primary-foreground uppercase">
-            {t("xp.banked.cta")}
+            {cta}
             <span aria-hidden="true">→</span>
           </span>
         </button>

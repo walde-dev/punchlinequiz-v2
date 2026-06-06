@@ -1,15 +1,74 @@
 import { createServerFn } from "@tanstack/react-start"
 import { getRequest } from "@tanstack/react-start/server"
 import { and, desc, eq, isNull, sql } from "drizzle-orm"
-import { challenges, referrals, users } from "@workspace/db"
+import {
+  anonReferralCodes,
+  anonXpClaims,
+  challenges,
+  pendingAnonReferrals,
+  referrals,
+  users,
+} from "@workspace/db"
 
 import { getActor } from "./auth"
 import { db } from "./db"
+import { getServerSessionId } from "./log"
 import type { XpConfig } from "@workspace/db"
 
 async function callerClerkId(): Promise<string | null> {
   const result = await getActor(getRequest())
   return result?.actor.kind === "clerk" ? result.actor.userId : null
+}
+
+/** Short opaque referral code — decoupled from the session_id analytics key. */
+function genReferralCode(): string {
+  return globalThis.crypto.randomUUID().replace(/-/g, "").slice(0, 10)
+}
+
+/** Get-or-mint the stable anon referral code for a session (PUN-119). */
+export async function mintAnonReferralCode(sessionId: string): Promise<string> {
+  if (!sessionId) return ""
+  const [existing] = await db
+    .select({ code: anonReferralCodes.code })
+    .from(anonReferralCodes)
+    .where(eq(anonReferralCodes.sessionId, sessionId))
+    .limit(1)
+  if (existing) return existing.code
+
+  const code = genReferralCode()
+  await db
+    .insert(anonReferralCodes)
+    .values({ code, sessionId })
+    .onConflictDoNothing({ target: anonReferralCodes.sessionId })
+  // Re-read in case a concurrent share won the unique-session race.
+  const [row] = await db
+    .select({ code: anonReferralCodes.code })
+    .from(anonReferralCodes)
+    .where(eq(anonReferralCodes.sessionId, sessionId))
+    .limit(1)
+  return row?.code ?? code
+}
+
+/** Resolve an anon referral code to the sharer's session id, if it exists. */
+async function resolveAnonCodeSession(code: string): Promise<string | null> {
+  const c = (code ?? "").trim()
+  if (!c) return null
+  const [row] = await db
+    .select({ sessionId: anonReferralCodes.sessionId })
+    .from(anonReferralCodes)
+    .where(eq(anonReferralCodes.code, c))
+    .limit(1)
+  return row?.sessionId ?? null
+}
+
+/** A claimed anon session resolves to the account that claimed it (PUN-119). */
+async function clerkIdForSession(sessionId: string): Promise<string | null> {
+  const [row] = await db
+    .select({ clerkId: anonXpClaims.clerkId })
+    .from(anonXpClaims)
+    .where(eq(anonXpClaims.sessionId, sessionId))
+    .limit(1)
+  return row?.clerkId ?? null
 }
 
 /**
@@ -26,12 +85,12 @@ async function callerClerkId(): Promise<string | null> {
  * cycle.
  */
 
-export type ReferralSource = "invite" | "challenge"
+export type ReferralSource = "invite" | "challenge" | "anon"
 
 /** A first-touch referral token carried from the landing page through sign-up. */
 export type ReferralToken = { source: ReferralSource; value: string }
 
-/** Resolve a token to the referrer's clerkId (handle for invite, slug→creator for challenge). */
+/** Resolve a token to the referrer's clerkId, if the referrer has an account. */
 export async function resolveReferrer(
   token: ReferralToken
 ): Promise<string | null> {
@@ -53,6 +112,12 @@ export async function resolveReferrer(
       .limit(1)
     return row?.clerkId ?? null
   }
+  if (token.source === "anon") {
+    // code → sharer session → account (if the sharer has signed up). When the
+    // sharer hasn't signed up yet this returns null and the edge is deferred.
+    const session = await resolveAnonCodeSession(value)
+    return session ? clerkIdForSession(session) : null
+  }
   return null
 }
 
@@ -67,9 +132,43 @@ export type AttributionResult =
 export async function recordPendingReferral(input: {
   refereeClerkId: string
   token: ReferralToken | null | undefined
+  /** The referee's current anon session — used to block same-device self-referral. */
+  refereeSessionId?: string | null
 }): Promise<AttributionResult> {
-  const { refereeClerkId, token } = input
+  const { refereeClerkId, token, refereeSessionId } = input
   if (!token || !token.value) return { recorded: false, reason: "no_token" }
+
+  // Anon shares (PUN-119): the referrer may not have an account yet. Resolve the
+  // code to the sharer's session; if it maps to an account, record a normal edge,
+  // otherwise PARK it keyed by referee and stitch when the sharer signs up.
+  if (token.source === "anon") {
+    const sharerSession = await resolveAnonCodeSession(token.value)
+    if (!sharerSession) return { recorded: false, reason: "unresolved" }
+    // Self-referral: the sharer opening their own link on the same device.
+    if (refereeSessionId && sharerSession === refereeSessionId)
+      return { recorded: false, reason: "self" }
+
+    const referrerClerkId = await clerkIdForSession(sharerSession)
+    if (referrerClerkId) {
+      if (referrerClerkId === refereeClerkId)
+        return { recorded: false, reason: "self" }
+      const inserted = await db
+        .insert(referrals)
+        .values({ referrerClerkId, refereeClerkId, source: "anon", status: "pending" })
+        .onConflictDoNothing({ target: referrals.refereeClerkId })
+        .returning({ id: referrals.id })
+      if (inserted.length === 0) return { recorded: false, reason: "exists" }
+      return { recorded: true, source: "anon" }
+    }
+    // Sharer has no account yet → defer.
+    const parked = await db
+      .insert(pendingAnonReferrals)
+      .values({ refereeClerkId, referrerSessionId: sharerSession })
+      .onConflictDoNothing({ target: pendingAnonReferrals.refereeClerkId })
+      .returning({ refereeClerkId: pendingAnonReferrals.refereeClerkId })
+    if (parked.length === 0) return { recorded: false, reason: "exists" }
+    return { recorded: true, source: "anon" }
+  }
 
   const referrerClerkId = await resolveReferrer(token)
   if (!referrerClerkId) return { recorded: false, reason: "unresolved" }
@@ -90,6 +189,86 @@ export async function recordPendingReferral(input: {
   if (inserted.length === 0) return { recorded: false, reason: "exists" }
   return { recorded: true, source: token.source }
 }
+
+/**
+ * Stitch deferred anon referrals when a sharer signs up (PUN-119). Also writes a
+ * 0-XP session→account link (idempotent) so the session is resolvable even when
+ * the sharer banked no XP — closing the "sharer signs up before referee" gap.
+ * Called from the handle-claim path with the user's current anon session.
+ */
+export async function stitchAnonReferralsOnSignup(
+  clerkId: string,
+  sessionId: string | null
+): Promise<number> {
+  if (!sessionId) return 0
+  // Guarantee a session→account link exists (resolveReferrer relies on it).
+  await db
+    .insert(anonXpClaims)
+    .values({ sessionId, clerkId, xpClaimed: 0 })
+    .onConflictDoNothing({ target: anonXpClaims.sessionId })
+
+  const parked = await db
+    .select({ refereeClerkId: pendingAnonReferrals.refereeClerkId })
+    .from(pendingAnonReferrals)
+    .where(eq(pendingAnonReferrals.referrerSessionId, sessionId))
+  let stitched = 0
+  for (const p of parked) {
+    if (p.refereeClerkId === clerkId) continue // never self-refer
+    const inserted = await db
+      .insert(referrals)
+      .values({
+        referrerClerkId: clerkId,
+        refereeClerkId: p.refereeClerkId,
+        source: "anon",
+        status: "pending",
+      })
+      .onConflictDoNothing({ target: referrals.refereeClerkId })
+      .returning({ id: referrals.id })
+    if (inserted.length > 0) stitched += 1
+    await db
+      .delete(pendingAnonReferrals)
+      .where(eq(pendingAnonReferrals.refereeClerkId, p.refereeClerkId))
+  }
+  return stitched
+}
+
+export type ShareCarrier = { param: "i" | "r"; value: string }
+
+/**
+ * The referral carrier to append to a share URL (PUN-119). Signed-in sharers get
+ * their handle invite (`?i=`); anon sharers get a minted opaque code (`?r=`), so
+ * every share is attributable.
+ */
+export const getShareCarrierFn = createServerFn({ method: "GET" }).handler(
+  async (): Promise<ShareCarrier | null> => {
+    const clerkId = await callerClerkId()
+    if (clerkId) {
+      const [u] = await db
+        .select({ handle: users.handle })
+        .from(users)
+        .where(eq(users.clerkId, clerkId))
+        .limit(1)
+      if (u?.handle) return { param: "i", value: u.handle }
+    }
+    const session = getServerSessionId()
+    if (!session) return null
+    const code = await mintAnonReferralCode(session)
+    return code ? { param: "r", value: code } : null
+  }
+)
+
+/** Pre-signup "X friends joined from your link" tease for an anon sharer (PUN-119). */
+export const getAnonReferralTeaseFn = createServerFn({ method: "GET" }).handler(
+  async (): Promise<{ joined: number }> => {
+    const session = getServerSessionId()
+    if (!session) return { joined: 0 }
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(pendingAnonReferrals)
+      .where(eq(pendingAnonReferrals.referrerSessionId, session))
+    return { joined: Number(count) }
+  }
+)
 
 export type ConfirmResult =
   | {

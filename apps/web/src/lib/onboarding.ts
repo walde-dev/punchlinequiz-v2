@@ -7,7 +7,7 @@ import { getActor } from "./auth"
 import { claimAnonXp } from "./anon-xp"
 import { db } from "./db"
 import { getServerSessionId } from "./log"
-import { recordPendingReferral } from "./referral"
+import { recordPendingReferral, stitchAnonReferralsOnSignup } from "./referral"
 import { ensureUser } from "./xp"
 import { validateHandle } from "./handle"
 import type { ReferralToken } from "./referral"
@@ -141,20 +141,25 @@ export const claimHandleFn = createServerFn({ method: "POST" })
       throw err
     }
 
+    const sessionId = getServerSessionId()
+
     // Attribute a referral (first-touch) for genuinely new users only. Never let
     // a referral hiccup fail the handle claim.
     if (isFirstOnboarding && data.referral) {
       await recordPendingReferral({
         refereeClerkId: clerkId,
         token: data.referral,
+        refereeSessionId: sessionId,
       }).catch(() => {})
     }
 
     // Migrate provisional XP banked while anonymous ("keep your XP", PUN-98).
     // Idempotent per session + capped; never let it fail the claim.
-    const claimedXp = await claimAnonXp(clerkId, getServerSessionId()).catch(
-      () => 0
-    )
+    const claimedXp = await claimAnonXp(clerkId, sessionId).catch(() => 0)
+
+    // Stitch any deferred anon referrals this sharer earned before signing up,
+    // and ensure their session→account link exists (PUN-119). Never fail the claim.
+    await stitchAnonReferralsOnSignup(clerkId, sessionId).catch(() => 0)
 
     return { ok: true, handle: display, claimedXp }
   })

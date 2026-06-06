@@ -39,6 +39,7 @@ import { Route as AdminAnalyticsRouteImport } from './routes/admin/analytics'
 import { Route as AdminActivityRouteImport } from './routes/admin/activity'
 import { Route as ApiSentryDiscordRouteImport } from './routes/api/sentry/discord'
 import { Route as ApiDiscordInteractionsRouteImport } from './routes/api/discord/interactions'
+import { Route as ApiCronRetentionReportRouteImport } from './routes/api/cron/retention-report'
 import { Route as ApiCronDiscordDailyRouteImport } from './routes/api/cron/discord-daily'
 import { Route as ApiAdminXpConfigRouteImport } from './routes/api/admin/xp-config'
 import { Route as ApiAdminTagsRouteImport } from './routes/api/admin/tags'
@@ -208,6 +209,11 @@ const ApiDiscordInteractionsRoute = ApiDiscordInteractionsRouteImport.update({
   path: '/api/discord/interactions',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCronRetentionReportRoute = ApiCronRetentionReportRouteImport.update({
+  id: '/api/cron/retention-report',
+  path: '/api/cron/retention-report',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCronDiscordDailyRoute = ApiCronDiscordDailyRouteImport.update({
   id: '/api/cron/discord-daily',
   path: '/api/cron/discord-daily',
@@ -337,6 +343,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/tags': typeof ApiAdminTagsRoute
   '/api/admin/xp-config': typeof ApiAdminXpConfigRoute
   '/api/cron/discord-daily': typeof ApiCronDiscordDailyRoute
+  '/api/cron/retention-report': typeof ApiCronRetentionReportRoute
   '/api/discord/interactions': typeof ApiDiscordInteractionsRoute
   '/api/sentry/discord': typeof ApiSentryDiscordRoute
   '/api/admin/artists/$id': typeof ApiAdminArtistsIdRouteWithChildren
@@ -387,6 +394,7 @@ export interface FileRoutesByTo {
   '/api/admin/tags': typeof ApiAdminTagsRoute
   '/api/admin/xp-config': typeof ApiAdminXpConfigRoute
   '/api/cron/discord-daily': typeof ApiCronDiscordDailyRoute
+  '/api/cron/retention-report': typeof ApiCronRetentionReportRoute
   '/api/discord/interactions': typeof ApiDiscordInteractionsRoute
   '/api/sentry/discord': typeof ApiSentryDiscordRoute
   '/api/admin/artists/$id': typeof ApiAdminArtistsIdRouteWithChildren
@@ -438,6 +446,7 @@ export interface FileRoutesById {
   '/api/admin/tags': typeof ApiAdminTagsRoute
   '/api/admin/xp-config': typeof ApiAdminXpConfigRoute
   '/api/cron/discord-daily': typeof ApiCronDiscordDailyRoute
+  '/api/cron/retention-report': typeof ApiCronRetentionReportRoute
   '/api/discord/interactions': typeof ApiDiscordInteractionsRoute
   '/api/sentry/discord': typeof ApiSentryDiscordRoute
   '/api/admin/artists/$id': typeof ApiAdminArtistsIdRouteWithChildren
@@ -490,6 +499,7 @@ export interface FileRouteTypes {
     | '/api/admin/tags'
     | '/api/admin/xp-config'
     | '/api/cron/discord-daily'
+    | '/api/cron/retention-report'
     | '/api/discord/interactions'
     | '/api/sentry/discord'
     | '/api/admin/artists/$id'
@@ -540,6 +550,7 @@ export interface FileRouteTypes {
     | '/api/admin/tags'
     | '/api/admin/xp-config'
     | '/api/cron/discord-daily'
+    | '/api/cron/retention-report'
     | '/api/discord/interactions'
     | '/api/sentry/discord'
     | '/api/admin/artists/$id'
@@ -590,6 +601,7 @@ export interface FileRouteTypes {
     | '/api/admin/tags'
     | '/api/admin/xp-config'
     | '/api/cron/discord-daily'
+    | '/api/cron/retention-report'
     | '/api/discord/interactions'
     | '/api/sentry/discord'
     | '/api/admin/artists/$id'
@@ -641,6 +653,7 @@ export interface RootRouteChildren {
   ApiAdminTagsRoute: typeof ApiAdminTagsRoute
   ApiAdminXpConfigRoute: typeof ApiAdminXpConfigRoute
   ApiCronDiscordDailyRoute: typeof ApiCronDiscordDailyRoute
+  ApiCronRetentionReportRoute: typeof ApiCronRetentionReportRoute
   ApiDiscordInteractionsRoute: typeof ApiDiscordInteractionsRoute
   ApiSentryDiscordRoute: typeof ApiSentryDiscordRoute
   ApiAdminSearchArtistsRoute: typeof ApiAdminSearchArtistsRoute
@@ -859,6 +872,13 @@ declare module '@tanstack/react-router' {
       path: '/api/discord/interactions'
       fullPath: '/api/discord/interactions'
       preLoaderRoute: typeof ApiDiscordInteractionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/cron/retention-report': {
+      id: '/api/cron/retention-report'
+      path: '/api/cron/retention-report'
+      fullPath: '/api/cron/retention-report'
+      preLoaderRoute: typeof ApiCronRetentionReportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/cron/discord-daily': {
@@ -1086,6 +1106,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminTagsRoute: ApiAdminTagsRoute,
   ApiAdminXpConfigRoute: ApiAdminXpConfigRoute,
   ApiCronDiscordDailyRoute: ApiCronDiscordDailyRoute,
+  ApiCronRetentionReportRoute: ApiCronRetentionReportRoute,
   ApiDiscordInteractionsRoute: ApiDiscordInteractionsRoute,
   ApiSentryDiscordRoute: ApiSentryDiscordRoute,
   ApiAdminSearchArtistsRoute: ApiAdminSearchArtistsRoute,

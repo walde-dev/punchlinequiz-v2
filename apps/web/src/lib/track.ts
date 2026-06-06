@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start"
 import { gameEvents } from "@workspace/db"
 import { db } from "./db"
+import { firstTouchSource } from "./acquisition"
 import { forwardToAxiom } from "./axiom"
 import { capturePostHog } from "./posthog"
 import { getSessionId, uuid } from "./session-id"
@@ -90,8 +91,15 @@ export const recordEvent = createServerFn({ method: "POST" })
 export function logEvent(name: string, props: Record<string, unknown> = {}): void {
   if (typeof window === "undefined") return
   const sessionId = getSessionId()
+  // Stamp the coarse first-touch source bucket (PUN-121) on every event for
+  // join-free "which channel converts" slicing. Caller-provided source wins.
+  const source = firstTouchSource()
+  const withSource =
+    source && props.source == null ? { ...props, source } : props
   // Stamp admin/QA sessions so the analytics dashboard can filter them out.
-  const enriched = isInternalSession() ? { ...props, internal: true } : props
+  const enriched = isInternalSession()
+    ? { ...withSource, internal: true }
+    : withSource
   // Single choke point: every product event goes to BOTH sinks.
   //  1) PostHog (client SDK) — product analytics: funnels, retention, replay.
   //  2) recordEvent server fn — raw backup in the gameEvents DB + Axiom logs.

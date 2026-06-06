@@ -14,6 +14,7 @@ import { Confetti } from "../components/confetti"
 import { EditBarDrawer } from "../components/edit-bar-drawer"
 import { LevelUpModal } from "../components/level-up-modal"
 import { SessionClaimCta } from "../components/session-claim-cta"
+import { SessionGate } from "../components/session-gate"
 import { SessionSummary } from "../components/session-summary"
 import { XpGain } from "../components/xp-gain"
 import { fetchArtists } from "../lib/admin-client"
@@ -28,6 +29,7 @@ import { isAdminFn } from "../lib/session"
 import { QUIZ_MIN_BARS } from "../lib/quiz"
 import { seo } from "../lib/seo"
 import { isFirstRun, markPlayed } from "../lib/first-run"
+import { getSessionsCompleted } from "../lib/session-progress"
 import { logEvent, newId, setInternalSession } from "../lib/track"
 import type {
   AnswerResult,
@@ -181,6 +183,21 @@ export function PlayInner({
   const [levelUp, setLevelUp] = useState<LevelInfo | null>(null)
   const [xpRefreshKey, setXpRefreshKey] = useState(0)
   const [anonCtaKey, setAnonCtaKey] = useState(0)
+
+  // Escalating 2nd-session signup gate (PUN-118). Opens on session-START — i.e.
+  // on mount (logo→remount, deep link) and after an in-place restart — once the
+  // device has completed ≥1 run. Soft (dismissible) at session 2, hard at 3+.
+  // SessionGate self-hides for signed-in users, so no auth check is needed here.
+  const [gate, setGate] = useState<{ open: boolean; hard: boolean }>({
+    open: false,
+    hard: false,
+  })
+  function maybeOpenGate() {
+    const completed = getSessionsCompleted()
+    if (completed >= 1) setGate({ open: true, hard: completed >= 2 })
+  }
+  // Mount = a fresh run starting from any entry point.
+  useEffect(() => maybeOpenGate(), [])
 
   // First-run cold-open (PUN-95/96). Captured once on mount, BEFORE we mark the
   // device as played, so the opening ramp + how-it-works hint only run for a
@@ -543,6 +560,8 @@ export function PlayInner({
       setStreak(0)
       setRound(next)
       resetRoundState()
+      // In-place "Play again" is a session-START too — re-evaluate the gate.
+      maybeOpenGate()
     } catch (err) {
       console.error(err)
       logEvent("session_restart_failed", { message: String(err) })
@@ -593,6 +612,11 @@ export function PlayInner({
         artistCtx={artistCtx}
         playMode={playMode}
         xpRefreshKey={xpRefreshKey}
+      />
+      <SessionGate
+        open={gate.open}
+        hard={gate.hard}
+        onProceed={() => setGate((g) => ({ ...g, open: false }))}
       />
       <div
         className="pq-spotlight pointer-events-none absolute inset-0"

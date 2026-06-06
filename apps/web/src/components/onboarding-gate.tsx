@@ -19,6 +19,7 @@ import { cn } from "@workspace/ui/lib/utils"
 import { HANDLE_MAX, HANDLE_MIN, validateHandle } from "../lib/handle"
 import { checkHandleFn, claimHandleFn, getOnboardingStatusFn } from "../lib/onboarding"
 import { clearReferralToken, getReferralToken } from "../lib/referral-client"
+import { clearDesiredHandle, getDesiredHandle } from "../lib/session-progress"
 import { logEvent } from "../lib/track"
 
 const ease = "cubic-bezier(0.16, 1, 0.3, 1)"
@@ -52,7 +53,14 @@ function OnboardingFlow() {
     getOnboardingStatusFn()
       .then((s) => {
         if (!active) return
-        setPhase(s.signedIn && !s.onboarded ? "prompt" : "hidden")
+        const needsPrompt = s.signedIn && !s.onboarded
+        // Prefill the handle the user typed pre-auth in the session gate / offer
+        // (PUN-118), so claiming is a one-tap confirm after sign-in.
+        if (needsPrompt) {
+          const carried = getDesiredHandle()
+          if (carried) setValue(carried)
+        }
+        setPhase(needsPrompt ? "prompt" : "hidden")
       })
       .catch(() => active && setPhase("hidden"))
     return () => {
@@ -101,6 +109,7 @@ function OnboardingFlow() {
           logEvent("xp_claimed", { xp: res.claimedXp })
         }
         clearReferralToken()
+        clearDesiredHandle()
         setPhase("hidden")
       } else {
         setAvailability({ state: "bad", reason: res.reason })

@@ -1,20 +1,23 @@
 import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "@tanstack/react-router"
-import { SignInButton, useAuth } from "@clerk/tanstack-react-start"
+import { useAuth } from "@clerk/tanstack-react-start"
 
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { createChallengeFn } from "../lib/challenge"
+import { getShareCarrierFn } from "../lib/referral"
 import {
   renderShareCard,
   shareFilenameFor,
   shareUrlFor,
 } from "../lib/share-card"
+import { incSessionsCompleted } from "../lib/session-progress"
 import { logEvent } from "../lib/track"
 import { DiscordJoinCard } from "./discord-cta"
 import type { TFunction } from "i18next"
+import type { ShareCarrier } from "../lib/referral"
 import type { ShareCardData } from "../lib/share-card"
 
 type Props = {
@@ -28,13 +31,7 @@ type Props = {
   onRestart: () => void
 }
 
-type ShareChannel =
-  | "native"
-  | "whatsapp"
-  | "twitter"
-  | "instagram"
-  | "download"
-  | "copy"
+type ShareChannel = "native" | "download" | "copy"
 
 const ease = "cubic-bezier(0.16, 1, 0.3, 1)"
 
@@ -93,15 +90,31 @@ export function SessionSummary({
   const [generating, setGenerating] = useState(true)
   const [copied, setCopied] = useState(false)
 
+  // Referral carrier (PUN-119): handle invite for signed-in sharers, opaque code
+  // for anon — appended so the share→land→signup loop is attributable.
+  const [carrier, setCarrier] = useState<ShareCarrier | null>(null)
+  useEffect(() => {
+    let active = true
+    getShareCarrierFn()
+      .then((c) => active && setCarrier(c))
+      .catch(() => {})
+    return () => {
+      active = false
+    }
+  }, [])
+
   const shareUrl = useMemo(
-    () => shareUrlFor({ mode, artistSlug }),
-    [mode, artistSlug]
+    () => shareUrlFor({ mode, artistSlug, carrier }),
+    [mode, artistSlug, carrier]
   )
 
   useEffect(() => {
     let cancelled = false
     let createdUrl: string | null = null
     setGenerating(true)
+    // Telemetry: we were blind to whether the card renders on real devices
+    // (the share button is disabled until the blob is ready). PUN-122.
+    const startedAt = performance.now()
     renderShareCard(cardData)
       .then((b) => {
         if (cancelled) return
@@ -109,16 +122,25 @@ export function SessionSummary({
         setBlob(b)
         setPreviewUrl(createdUrl)
         setGenerating(false)
+        logEvent("card_render_succeeded", {
+          ms: Math.round(performance.now() - startedAt),
+          mode,
+        })
       })
       .catch((err) => {
         console.error(err)
         if (!cancelled) setGenerating(false)
+        logEvent("card_render_failed", {
+          ms: Math.round(performance.now() - startedAt),
+          mode,
+          message: String(err),
+        })
       })
     return () => {
       cancelled = true
       if (createdUrl) URL.revokeObjectURL(createdUrl)
     }
-  }, [cardData])
+  }, [cardData, mode])
 
   useEffect(() => {
     logEvent("session_completed", {
@@ -127,6 +149,9 @@ export function SessionSummary({
       mode,
       artist_slug: artistSlug ?? null,
     })
+    // Bump the completed-runs counter that drives the escalating signup gate
+    // (PUN-118). This summary is the single place a finished run is observed.
+    incSessionsCompleted()
   }, [score, total, mode, artistSlug])
 
   function logShare(channel: ShareChannel) {
@@ -178,36 +203,22 @@ export function SessionSummary({
     try {
       logShare("native")
       await nav.share(canShareFile ? dataWithFile : { text, url: shareUrl })
+      // Resolves when the OS sheet completes a share (PUN-122 outcome telemetry).
+      logEvent("share_completed", {
+        channel: "native",
+        score,
+        total,
+        mode,
+        artist_slug: artistSlug ?? null,
+      })
     } catch {
-      // user cancelled — no-op
+      // AbortError = user dismissed the sheet without sharing.
+      logEvent("share_dismissed", {
+        channel: "native",
+        mode,
+        artist_slug: artistSlug ?? null,
+      })
     }
-  }
-
-  function onWhatsApp() {
-    logShare("whatsapp")
-    const text = encodeURIComponent(
-      `${t("session.shareText", { score, total })} ${shareUrl}`
-    )
-    window.open(`https://wa.me/?text=${text}`, "_blank", "noopener")
-  }
-
-  function onTwitter() {
-    logShare("twitter")
-    const text = encodeURIComponent(
-      t("session.shareTextTwitter", { score, total })
-    )
-    const url = encodeURIComponent(shareUrl)
-    window.open(
-      `https://twitter.com/intent/tweet?text=${text}&url=${url}`,
-      "_blank",
-      "noopener"
-    )
-  }
-
-  function onInstagram() {
-    logShare("instagram")
-    // Instagram has no web share intent — download the card and tell the user.
-    onDownload()
   }
 
   const hasNativeShare =
@@ -270,121 +281,74 @@ export function SessionSummary({
         )}
       </div>
 
-      {/* Action buttons */}
+      {/* Action buttons — decluttered (PUN-122): one PRIMARY continue + one
+          SECONDARY share. The native sheet covers WhatsApp/X/IG on mobile; the
+          explicit chips, Save and duplicate Copy were removed. */}
       <div className="flex flex-col gap-3">
+        {/* PRIMARY: keep playing — the action players actually want (replaces the
+            buried "restart" they were routing around via the logo). */}
+        <Button
+          size="lg"
+          onClick={onRestart}
+          className="cta-glow min-h-12 w-full text-base font-bold"
+        >
+          {t("session.nextBars")}
+          <span aria-hidden="true">→</span>
+        </Button>
+
+        {/* SECONDARY: the one share. Native share card on mobile; on desktop
+            (no navigator.share) fall back to saving the card + copy link. */}
         {hasNativeShare ? (
           <Button
-            size="lg"
+            type="button"
+            variant="ghost"
             onClick={onNativeShare}
             disabled={!blob}
-            className="cta-glow min-h-12 w-full text-base font-bold"
+            className="min-h-12 w-full border border-primary/50 text-base font-bold text-primary hover:bg-primary/10"
           >
             {t("common.shareCard")}
           </Button>
         ) : (
-          <Button
-            size="lg"
-            onClick={onDownload}
-            disabled={!blob}
-            className="cta-glow min-h-12 w-full text-base font-bold"
-          >
-            {t("common.saveCard")}
-          </Button>
-        )}
-
-        <div className="grid grid-cols-3 gap-2">
-          <ShareChip label="WhatsApp" onClick={onWhatsApp} />
-          <ShareChip label="X / Twitter" onClick={onTwitter} />
-          <ShareChip label="Instagram" onClick={onInstagram} />
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={onCopyLink}
-            className="min-h-11 border border-border/60 text-sm font-bold"
-          >
-            {copied ? `${t("common.linkCopied")} ✓` : t("common.copyLink")}
-          </Button>
-          {hasNativeShare && (
+          <>
             <Button
               type="button"
               variant="ghost"
               onClick={onDownload}
               disabled={!blob}
-              className="min-h-11 border border-border/60 text-sm font-bold"
+              className="min-h-12 w-full border border-primary/50 text-base font-bold text-primary hover:bg-primary/10"
             >
               {t("common.saveCard")}
             </Button>
-          )}
-          {!hasNativeShare && (
             <Button
               type="button"
               variant="ghost"
               onClick={onCopyLink}
-              className="min-h-11 border border-border/60 text-sm font-bold"
+              className="min-h-11 w-full border border-border/60 text-sm font-bold"
             >
               {copied ? `${t("common.linkCopied")} ✓` : t("common.copyLink")}
             </Button>
-          )}
-        </div>
+          </>
+        )}
 
-        {/* Challenge a friend — turns a finished run into a shareable board. */}
-        {isSignedIn ? (
+        {/* Challenge a friend — a signed-in UPGRADE of the share, not a competing
+            CTA (PUN-122). Signed-out players just get the share card above. */}
+        {isSignedIn && (
           <Button
             type="button"
             variant="ghost"
             onClick={createChallenge}
             disabled={creatingChallenge}
-            className="min-h-12 w-full border border-primary/50 text-base font-bold text-primary hover:bg-primary/10"
+            className="min-h-12 w-full text-sm font-bold text-muted-foreground hover:text-foreground"
           >
             {creatingChallenge
               ? t("challenge.creating")
               : t("profile.public.createChallenge")}
           </Button>
-        ) : (
-          <SignInButton mode="modal">
-            <Button
-              type="button"
-              variant="ghost"
-              className="min-h-12 w-full border border-primary/50 text-base font-bold text-primary hover:bg-primary/10"
-            >
-              {t("profile.public.createChallenge")}
-            </Button>
-          </SignInButton>
         )}
 
         {/* Community next-step — the post-game high is the right moment to ask. */}
         <DiscordJoinCard placement="session_summary" delay={0.15} />
-
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={onRestart}
-          className="min-h-12 w-full text-base font-bold text-muted-foreground hover:text-foreground"
-        >
-          {t("session.restart")}
-        </Button>
       </div>
     </div>
-  )
-}
-
-function ShareChip({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "group flex min-h-11 items-center justify-center rounded-full",
-        "border border-border/60 bg-card/40 px-3 text-xs font-bold tracking-tight",
-        "hover:border-primary/50 hover:bg-primary/10 hover:text-primary",
-        "focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none",
-        "transition-colors"
-      )}
-    >
-      {label}
-    </button>
   )
 }

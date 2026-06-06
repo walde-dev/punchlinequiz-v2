@@ -3,6 +3,7 @@ import { and, eq, sql } from "drizzle-orm"
 import { anonXp, anonXpClaims, users } from "@workspace/db"
 
 import { db } from "./db"
+import { weeklyRankForXp } from "./leaderboard"
 import { getServerSessionId } from "./log"
 import { loadXpConfig } from "./xp"
 
@@ -121,5 +122,31 @@ export const getAnonXpTotalFn = createServerFn({ method: "GET" }).handler(
       .limit(1)
     if (claim) return { total: 0, claimed: true }
     return { total: await sumAnonXp(sessionId), claimed: false }
+  },
+)
+
+export type AnonStanding = AnonXpTotal & {
+  /** Hypothetical weekly leaderboard rank for the banked total; null if 0 XP. */
+  weeklyRank: number | null
+}
+
+/**
+ * Banked XP + the rank that XP would claim on this week's board (PUN-118). Drives
+ * the rank-framed signup offer ("you'd be #X this week"). weeklyRank is null when
+ * there's nothing banked (no offer) or once the session is claimed.
+ */
+export const getAnonStandingFn = createServerFn({ method: "GET" }).handler(
+  async (): Promise<AnonStanding> => {
+    const sessionId = getServerSessionId()
+    if (!sessionId) return { total: 0, claimed: false, weeklyRank: null }
+    const [claim] = await db
+      .select({ x: anonXpClaims.xpClaimed })
+      .from(anonXpClaims)
+      .where(eq(anonXpClaims.sessionId, sessionId))
+      .limit(1)
+    if (claim) return { total: 0, claimed: true, weeklyRank: null }
+    const total = await sumAnonXp(sessionId)
+    const weeklyRank = total > 0 ? await weeklyRankForXp(total) : null
+    return { total, claimed: false, weeklyRank }
   },
 )

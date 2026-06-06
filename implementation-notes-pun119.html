@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Implementation notes — PUN-119 share→land→signup loop</title>
+<style>
+  body { font: 14px/1.5 -apple-system, system-ui, sans-serif; max-width: 820px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }
+  h1 { font-size: 1.4rem; }
+  h2 { font-size: 1.1rem; margin-top: 2rem; border-bottom: 1px solid #ddd; padding-bottom: 0.25rem; }
+  .entry { margin: 0.75rem 0 1.25rem; padding-left: 0.75rem; border-left: 3px solid #ddd; }
+  .entry.open { border-left-color: #d97706; }
+  .entry.deviation { border-left-color: #dc2626; }
+  .entry.decision { border-left-color: #2563eb; }
+  .entry.tradeoff { border-left-color: #7c3aed; }
+  .meta { color: #666; font-size: 0.85rem; }
+  code { background: #f3f3f3; padding: 0 0.25rem; border-radius: 3px; }
+</style>
+</head>
+<body>
+<h1>Implementation notes — PUN-119 (share→land→signup loop)</h1>
+<p class="meta">Spec: Linear PUN-119 (opaque anon carrier · attribution · stitch-on-signup · reward tease) · Started: 2026-06-06</p>
+
+<h2>Design decisions</h2>
+<div class="entry decision">
+  <strong>Two additive tables (migration 0020)</strong>
+  <p><code>anon_referral_codes</code> (opaque <code>code</code> → sharer <code>session_id</code>, unique per session) and <code>pending_anon_referrals</code> (deferred edges keyed by referee). Both additive — no change to the existing <code>referrals</code> table. SQL: <code>packages/db/drizzle/0020_thick_black_widow.sql</code>.</p>
+</div>
+<div class="entry decision">
+  <strong>Opaque code, never the session_id</strong>
+  <p><code>genReferralCode()</code> mints a 10-char code; <code>mintAnonReferralCode</code> is get-or-create (stable per session). Share URLs carry <code>?r=&lt;code&gt;</code> (anon) or <code>?i=&lt;handle&gt;</code> (signed-in), via <code>getShareCarrierFn</code>. The raw session_id (the game_events analytics key) is never exposed.</p>
+</div>
+<div class="entry decision">
+  <strong>Deferred attribution + stitch-on-signup</strong>
+  <p><code>recordPendingReferral</code> (referral.ts): anon code → sharer session → account if it exists (normal edge), else park in <code>pending_anon_referrals</code>. <code>stitchAnonReferralsOnSignup</code> runs from <code>claimHandleFn</code>: it writes a 0-XP <code>anon_xp_claims</code> link (so the session resolves even for 0-XP sharers — closes the "sharer signs up first" gap) and converts parked edges into real <code>referrals</code> rows. Existing confirm-on-activation + reward/cap path is reused unchanged.</p>
+</div>
+<div class="entry decision">
+  <strong>Landing capture + event restored</strong>
+  <p><code>captureReferralFromUrl()</code> (referral-client.ts) reads <code>?i=/?r=</code>, stores first-touch, returns the token only when newly captured. <code>&lt;ReferralCapture/&gt;</code> in <code>__root.tsx</code> fires <code>referral_landing_viewed</code> once — the event that had fired only once ever.</p>
+</div>
+<div class="entry decision">
+  <strong>Reward tease feeds PUN-118</strong>
+  <p><code>getAnonReferralTeaseFn</code> counts parked edges for the current anon session; <code>SessionGate</code> shows "N already joined from your link — claim them" as the offer subtitle when N&gt;0.</p>
+</div>
+
+<h2>Deviations from spec</h2>
+<p class="meta">None.</p>
+
+<h2>Tradeoffs considered</h2>
+<div class="entry tradeoff">
+  <strong>server-only import boundary</strong>
+  <p>First attempt imported <code>getServerSessionId</code> (from <code>log.ts</code>, which top-level-imports <code>react-start/server</code>) and used it in the plain function <code>recordPendingReferral</code> — the build's import-protection plugin rejected it (leaked into the client via the <code>/i</code> route). Fixed by referencing <code>getServerSessionId</code> ONLY inside createServerFn handlers (mirrors anon-xp.ts) and passing <code>refereeSessionId</code> into <code>recordPendingReferral</code> as a param.</p>
+</div>
+
+<h2>Open questions</h2>
+<div class="entry decision">
+  <strong>Migration applied ✓ (2026-06-06)</strong>
+  <p>0020 run against the live DB via <code>db:migrate</code>; <code>anon_referral_codes</code> + <code>pending_anon_referrals</code> verified present.</p>
+</div>
+<div class="entry open">
+  <strong>Referee-already-active timing</strong>
+  <p>A stitched edge confirms (and pays out) on the referee's NEXT correct answer. If the referee had already gone fully idle, the reward waits until they return. Acceptable for v1; flagging.</p>
+</div>
+<div class="entry open">
+  <strong>Other share surfaces</strong>
+  <p>The carrier is wired into the result-screen share (session-summary). Daily share (daily.tsx) and challenge links (/c) still use their own paths — extend <code>shareUrlFor</code> carrier usage there if you want full coverage.</p>
+</div>
+</body>
+</html>
