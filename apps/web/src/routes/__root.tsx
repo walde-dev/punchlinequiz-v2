@@ -5,7 +5,7 @@ import { I18nextProvider, useTranslation } from "react-i18next"
 
 import appCss from "@workspace/ui/globals.css?url"
 import { figtreeLatinWoff2 } from "@workspace/ui/lib/fonts"
-import i18n from "../i18n"
+import i18n, { LANG_STORAGE_KEY } from "../i18n"
 import { OnboardingGate } from "../components/onboarding-gate"
 import { AnalyticsIdentity } from "../components/analytics-identity"
 import { getBootstrapFlagsFn } from "../lib/flags"
@@ -81,9 +81,26 @@ function ErrorPage({ error }: { error: Error }) {
   )
 }
 
-/** Keeps <html lang="…"> in sync with the active i18n language client-side. */
+/** Keeps <html lang="…"> in sync with the active i18n language, and applies the
+ *  visitor's stored/detected language preference *after* hydration. i18n inits
+ *  pinned to "de" so SSR and the first client render match (no #418); here we
+ *  switch to the localStorage choice or browser language once mounted. */
 function LangSync() {
   const { i18n } = useTranslation()
+  // One-time post-hydration: honour the persisted toggle choice, else the
+  // browser language. Done here (not at init) so SSR + first client render both
+  // stay "de" and don't trip a hydration mismatch.
+  useEffect(() => {
+    let stored: string | null = null
+    try {
+      stored = localStorage.getItem(LANG_STORAGE_KEY)
+    } catch {
+      // localStorage blocked (private mode / cookies off) — fall back to nav.
+    }
+    const fromNav = navigator.language.toLowerCase().startsWith("en") ? "en" : "de"
+    const next = stored === "en" || stored === "de" ? stored : fromNav
+    if (next !== i18n.language) void i18n.changeLanguage(next)
+  }, [])
   useEffect(() => {
     document.documentElement.lang = i18n.language.startsWith("de") ? "de" : "en"
   }, [i18n.language])
