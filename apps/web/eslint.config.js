@@ -79,7 +79,19 @@ const reactHooksConfig = {
   },
 }
 
+/**
+ * Never lint build output. A standalone `ignores`-only object is a global
+ * ignore in flat config — without it, running `eslint` after a local build
+ * parses the generated bundles in `.output`/`.vercel`/`.nitro` and reports
+ * dozens of bogus parse/rule errors. (CI lints a clean checkout, so this only
+ * bit local runs.)
+ */
+const ignores = {
+  ignores: [".output/**", ".vercel/**", ".nitro/**", "dist/**"],
+}
+
 export default [
+  ignores,
   ...tanstackConfig,
   noHandRolledUi,
   launchRelaxations,
