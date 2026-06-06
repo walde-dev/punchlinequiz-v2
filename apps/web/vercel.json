@@ -11,6 +11,10 @@
       "destination": "https://eu-assets.i.posthog.com/static/:path*"
     },
     {
+      "source": "/ingest/s",
+      "destination": "https://o4511495816478720.ingest.de.sentry.io/api/4511495818182736/envelope/"
+    },
+    {
       "source": "/ingest/:path*",
       "destination": "https://eu.i.posthog.com/:path*"
     }

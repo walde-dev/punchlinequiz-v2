@@ -27,6 +27,15 @@ function initSentry() {
   void import("@sentry/tanstackstart-react").then((Sentry) => {
     Sentry.init({
       dsn,
+      // First-party tunnel: ship envelopes through our own origin (a Vercel
+      // rewrite forwards /ingest/s → the Sentry envelope endpoint) instead of
+      // posting straight to *.ingest.de.sentry.io. The direct host is on
+      // EasyPrivacy, so Brave Shields / uBlock silently drop it — which is
+      // exactly why iOS-Brave crashes (the "can't select an answer" reports)
+      // never reached us. Same-origin requests aren't blocked by standard
+      // shields, so this restores error visibility for blocked clients. Reuses
+      // the proven `/ingest` prefix that already carries PostHog.
+      tunnel: "/ingest/s",
       environment: import.meta.env.VITE_SENTRY_ENVIRONMENT ?? import.meta.env.MODE,
       release: import.meta.env.VITE_SENTRY_RELEASE,
       tracesSampleRate: 0,
