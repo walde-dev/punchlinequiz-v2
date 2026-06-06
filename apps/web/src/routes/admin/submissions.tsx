@@ -8,6 +8,7 @@ import { Textarea } from "@workspace/ui/components/textarea"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { AdminShell } from "../../components/admin-shell"
+import { ArtistCombobox, TrackCombobox } from "../../components/deezer-combobox"
 import {
   approveSubmission,
   fetchSubmissions,
@@ -195,16 +196,24 @@ function SubmissionCard({
           label={t("admin.submissions.artist")}
           hint={submission.artistHint}
         >
-          <Input value={artist} onChange={(e) => setArtist(e.target.value)} />
+          <ArtistCombobox value={artist} onChange={setArtist} />
         </Field>
         <Field label={t("admin.submissions.song")} hint={submission.songHint}>
-          <Input value={song} onChange={(e) => setSong(e.target.value)} />
+          <TrackCombobox
+            value={song}
+            onChange={setSong}
+            onPickTrack={(tr) => {
+              setSong(tr.title)
+              // Only the artist is part of an approval; album/year aren't.
+              if (!artist.trim() && tr.artistName) setArtist(tr.artistName)
+            }}
+          />
         </Field>
         <Field label={t("admin.submissions.distractor1")}>
-          <Input value={d1} onChange={(e) => setD1(e.target.value)} />
+          <ArtistCombobox value={d1} onChange={setD1} />
         </Field>
         <Field label={t("admin.submissions.distractor2")}>
-          <Input value={d2} onChange={(e) => setD2(e.target.value)} />
+          <ArtistCombobox value={d2} onChange={setD2} />
         </Field>
       </div>
 

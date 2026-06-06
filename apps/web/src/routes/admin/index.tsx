@@ -35,11 +35,11 @@ import {
   getDeezerTrack,
   patchBar,
   searchDeezerArtists,
-  searchDeezerTracks,
   setArtistTags,
 } from "../../lib/admin-client"
 import { AdminShell } from "../../components/admin-shell"
 import { Combobox } from "../../components/combobox"
+import { ArtistCombobox, TrackCombobox } from "../../components/deezer-combobox"
 import { EditBarDrawer } from "../../components/edit-bar-drawer"
 import { TagEditor } from "../../components/tag-editor"
 import type { SelectedTag } from "../../components/tag-editor"
@@ -975,97 +975,6 @@ function FilterArtistCombobox({
           }))
       }}
       placeholder={t("admin.dashboard.filterArtistPlaceholder")}
-    />
-  )
-}
-
-function ArtistCombobox({
-  value,
-  onChange,
-}: {
-  value: string
-  onChange: (v: string) => void
-}) {
-  const { t } = useTranslation()
-  return (
-    <Combobox
-      value={value}
-      onChange={onChange}
-      onPick={(item) => onChange(item.label)}
-      search={async (q): Promise<Array<ComboboxItem>> => {
-        const hits = await searchDeezerArtists(q)
-        return hits.map((a) => ({
-          key: a.id,
-          label: a.name,
-          imageUrl: a.imageUrl,
-        }))
-      }}
-      placeholder={t("admin.create.deezerSearchPlaceholder")}
-      required
-    />
-  )
-}
-
-function TrackCombobox({
-  value,
-  onChange,
-  onPickTrack,
-}: {
-  value: string
-  onChange: (v: string) => void
-  onPickTrack: (t: {
-    trackId: string
-    title: string
-    artistName: string
-    albumTitle: string
-    albumArtUrl: string | null
-    releaseYear: number | null
-  }) => void | Promise<void>
-}) {
-  const { t } = useTranslation()
-  return (
-    <Combobox
-      value={value}
-      onChange={onChange}
-      onPick={(item) => {
-        const meta = (
-          item as ComboboxItem & {
-            meta?: {
-              title: string
-              artistName: string
-              albumTitle: string
-              albumArtUrl: string | null
-              releaseYear: number | null
-            }
-          }
-        ).meta
-        if (meta) {
-          onPickTrack({ trackId: item.key, ...meta })
-        } else {
-          onChange(item.label)
-        }
-      }}
-      search={async (q): Promise<Array<ComboboxItem>> => {
-        const hits = await searchDeezerTracks(q)
-        return hits.map((t) => ({
-          key: t.trackId,
-          label: t.title,
-          sublabel: `${t.artistName}${t.albumTitle ? ` · ${t.albumTitle}` : ""}${
-            t.releaseYear ? ` · ${t.releaseYear}` : ""
-          }`,
-          imageUrl: t.albumArtUrl,
-          // Carry the full hit so onPick can prefill artist/album/year/cover.
-          meta: {
-            title: t.title,
-            artistName: t.artistName,
-            albumTitle: t.albumTitle,
-            albumArtUrl: t.albumArtUrl,
-            releaseYear: t.releaseYear,
-          },
-        }))
-      }}
-      placeholder={t("admin.create.trackSearchPlaceholder")}
-      required
     />
   )
 }
