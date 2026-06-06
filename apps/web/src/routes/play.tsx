@@ -576,7 +576,7 @@ export function PlayInner({
                   onClick={onEditClick}
                   disabled={editLoading}
                   className={cn(
-                    "rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-primary",
+                    "shrink-0 whitespace-nowrap rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-primary",
                     "hover:bg-primary/20 disabled:opacity-50",
                   )}
                 >
@@ -683,12 +683,12 @@ function BarDisplay({
     >
       <div className="flex w-full items-center justify-between gap-2">
         <span
-          className="text-xs font-semibold tracking-[0.16em] uppercase text-primary/70"
+          className="shrink-0 whitespace-nowrap text-xs font-semibold tracking-[0.16em] uppercase text-primary/70"
           aria-label={t("play.scoreAria", { score: results.filter(Boolean).length, total: roundSize })}
         >
           {t("play.progress", { n: current, total: roundSize })}
         </span>
-        <div className="flex items-center gap-2.5">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
           <RoundProgress total={roundSize} current={current - 1} results={results} />
           {adminBadge}
         </div>
@@ -731,7 +731,7 @@ function RoundProgress({
   results: Array<boolean>
 }) {
   return (
-    <span className="flex items-center gap-1.5" aria-hidden="true">
+    <span className="flex min-w-0 items-center gap-1 sm:gap-1.5" aria-hidden="true">
       {Array.from({ length: total }).map((_, i) => {
         const answered = i < results.length
         // Only pulse the on-screen bar while it's still unanswered; once it's
@@ -741,7 +741,7 @@ function RoundProgress({
           <span
             key={i}
             className={cn(
-              "inline-block h-1.5 w-4 rounded-full transition-colors",
+              "inline-block h-1.5 w-2.5 shrink-0 rounded-full transition-colors sm:w-4",
               answered
                 ? results[i]
                   ? "bg-primary"
