@@ -564,3 +564,41 @@ export const referrals = pgTable(
 
 export type Referral = typeof referrals.$inferSelect
 export type NewReferral = typeof referrals.$inferInsert
+
+/**
+ * Opaque anon referral codes (PUN-119). Maps a short shareable code to the
+ * sharer's anonymous session, so anon shares are attributable WITHOUT exposing
+ * the session_id (the game_events analytics key) in public share URLs. One
+ * stable code per session — minted once on first share, reused thereafter.
+ */
+export const anonReferralCodes = pgTable(
+  "anon_referral_codes",
+  {
+    code: varchar("code", { length: 16 }).primaryKey(),
+    sessionId: varchar("session_id", { length: 64 }).notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    bySession: uniqueIndex("anon_referral_codes_session_uq").on(t.sessionId),
+  }),
+)
+
+/**
+ * Deferred anon referral edges (PUN-119). When a referee signs up via an anon
+ * share whose sharer has no account yet, the referrer's clerkId is unknown — park
+ * the edge here keyed by referee. When the sharer later signs up, we stitch it
+ * into `referrals`. One pending edge per referee (first-touch), mirroring
+ * referrals_referee_uq.
+ */
+export const pendingAnonReferrals = pgTable("pending_anon_referrals", {
+  refereeClerkId: varchar("referee_clerk_id", { length: 64 })
+    .primaryKey()
+    .references(() => users.clerkId, { onDelete: "cascade" }),
+  referrerSessionId: varchar("referrer_session_id", { length: 64 }).notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+})
+
+export type AnonReferralCode = typeof anonReferralCodes.$inferSelect
+export type NewAnonReferralCode = typeof anonReferralCodes.$inferInsert
+export type PendingAnonReferral = typeof pendingAnonReferrals.$inferSelect
+export type NewPendingAnonReferral = typeof pendingAnonReferrals.$inferInsert

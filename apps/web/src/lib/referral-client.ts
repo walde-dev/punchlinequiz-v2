@@ -27,10 +27,39 @@ export function getReferralToken(): ReferralToken | null {
     const raw = window.localStorage.getItem(KEY)
     if (!raw) return null
     const t = JSON.parse(raw) as Partial<ReferralToken>
-    if ((t.source === "invite" || t.source === "challenge") && typeof t.value === "string") {
+    if (
+      (t.source === "invite" || t.source === "challenge" || t.source === "anon") &&
+      typeof t.value === "string"
+    ) {
       return { source: t.source, value: t.value }
     }
     return null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Capture a referral carrier from the current URL (PUN-119): `?i=<handle>` for a
+ * signed-in inviter, `?r=<code>` for an anon sharer. First-touch wins. Returns
+ * the token only when it was NEWLY stored, so the caller can fire the
+ * referral_landing_viewed event exactly once.
+ */
+export function captureReferralFromUrl(): ReferralToken | null {
+  if (typeof window === "undefined") return null
+  try {
+    const params = new URLSearchParams(window.location.search)
+    const invite = params.get("i")
+    const code = params.get("r")
+    const token: ReferralToken | null = invite
+      ? { source: "invite", value: invite }
+      : code
+        ? { source: "anon", value: code }
+        : null
+    if (!token) return null
+    const alreadyHad = !!window.localStorage.getItem(KEY)
+    setReferralToken(token) // first-touch: won't overwrite an existing token
+    return alreadyHad ? null : token
   } catch {
     return null
   }

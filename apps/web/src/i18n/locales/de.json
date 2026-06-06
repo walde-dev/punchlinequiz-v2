@@ -69,7 +69,9 @@
     "banked": {
       "label": "{{xp}} XP gebunkert",
       "cta": "Sichern",
-      "aria": "{{xp}} XP gesammelt — anmelden, um sie zu behalten"
+      "aria": "{{xp}} XP gesammelt — anmelden, um sie zu behalten",
+      "rankLabel": "#{{rank}} diese Woche",
+      "rankCta": "Sichern"
     }
   },
   "profile": {
@@ -297,7 +299,10 @@
     "claim": {
       "headline": "{{xp}} XP warten auf dich.",
       "sub": "Anmelden und deine XP + deinen Rang sichern.",
-      "cta": "XP sichern"
+      "cta": "XP sichern",
+      "rankHeadline": "Du wärst #{{rank}} diese Woche.",
+      "rankSub": "Schnapp dir deinen @namen und sicher dir den Rang.",
+      "rankCta": "Platz sichern"
     },
     "restart": "Nochmal — neue Runde",
     "shareText": "{{score}}/{{total}} bei punchline/quiz — schaffst du mehr?",
@@ -310,7 +315,8 @@
       "solid": "Solide.",
       "half": "Halb durch.",
       "tryAgain": "Beim nächsten besser."
-    }
+    },
+    "nextBars": "Nächste Bars"
   },
   "quiz": {
     "eyebrow": "/ Artist-Quiz",
@@ -751,5 +757,15 @@
     "celebrateOne": "Deine Bar ist live! ✊",
     "celebrateMany": "{{count}} deiner Bars sind live! ✊",
     "playLive": "Jetzt spielen"
+  },
+  "sessionGate": {
+    "eyebrow": "/ dein platz",
+    "title": "Sicher dir deinen Rang",
+    "titleRank": "Du wärst #{{rank}} diese Woche",
+    "subtitle": "Schnapp dir deinen @namen, damit dein Rang bleibt. Dauert 'ne Sekunde.",
+    "placeholder": "deinname",
+    "cta": "Platz sichern",
+    "dismiss": "Später",
+    "tease": "{{joined}} kamen über deinen Link — sicher sie dir"
   }
 }

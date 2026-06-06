@@ -213,19 +213,29 @@ export async function renderShareCard(data: ShareCardData): Promise<Blob> {
   })
 }
 
-export function shareUrlFor(data: { mode: ShareMode; artistSlug?: string | null }): string {
+export function shareUrlFor(data: {
+  mode: ShareMode
+  artistSlug?: string | null
+  /** Referral carrier appended for attribution (PUN-119): ?i=<handle> | ?r=<code>. */
+  carrier?: { param: "i" | "r"; value: string } | null
+}): string {
   const origin =
     typeof window !== "undefined" ? window.location.origin : "https://www.punchlinequiz.de"
+  const carrierQs = data.carrier
+    ? `${data.carrier.param}=${encodeURIComponent(data.carrier.value)}`
+    : ""
   // Artist-mode shares point at the named quiz landing (PUN-107) — the canonical
   // playable per-artist surface and the Reddit/WhatsApp drop target. Cloze stays
   // on /play (finishing-lines isn't a quiz).
   if (data.artistSlug && data.mode !== "cloze") {
-    return `${origin}/quiz/${data.artistSlug}`
+    const url = `${origin}/quiz/${data.artistSlug}`
+    return carrierQs ? `${url}?${carrierQs}` : url
   }
   const base = `${origin}/play`
   const params = new URLSearchParams()
   if (data.mode === "cloze") params.set("mode", "cloze")
   if (data.artistSlug) params.set("artist", data.artistSlug)
+  if (data.carrier) params.set(data.carrier.param, data.carrier.value)
   const qs = params.toString()
   return qs ? `${base}?${qs}` : base
 }

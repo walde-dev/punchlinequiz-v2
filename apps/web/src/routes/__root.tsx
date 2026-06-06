@@ -10,6 +10,9 @@ import { OnboardingGate } from "../components/onboarding-gate"
 import { AnalyticsIdentity } from "../components/analytics-identity"
 import { SiteFooter } from "../components/site-footer"
 import { getBootstrapFlagsFn } from "../lib/flags"
+import { captureFirstTouch, firstSessionStartThisTab } from "../lib/acquisition"
+import { captureReferralFromUrl } from "../lib/referral-client"
+import { logEvent } from "../lib/track"
 import { DEFAULT_DESCRIPTION, OG_DEFAULT_SUBTITLE, SITE_NAME, ogImageUrl } from "../lib/seo"
 import type { BootstrapFlags } from "../lib/flags"
 
@@ -108,6 +111,33 @@ function LangSync() {
   return null
 }
 
+/** On any landing: capture acquisition first-touch + fire session_started once
+ *  (PUN-121), and capture a share carrier (?i=/?r=) + fire referral_landing_viewed
+ *  once, restoring the share→land→signup loop (PUN-119). */
+function ReferralCapture() {
+  useEffect(() => {
+    // Acquisition first-touch (PUN-121): persist + a dedicated, full-fidelity
+    // session_started event, once per tab.
+    const ft = captureFirstTouch()
+    if (ft && firstSessionStartThisTab()) {
+      logEvent("session_started", {
+        first_source: ft.source,
+        referrer: ft.referrer,
+        landing_path: ft.landingPath,
+        utm_source: ft.utmSource ?? null,
+        utm_medium: ft.utmMedium ?? null,
+        utm_campaign: ft.utmCampaign ?? null,
+      })
+    }
+    // Referral carrier (PUN-119).
+    const token = captureReferralFromUrl()
+    if (token) {
+      logEvent("referral_landing_viewed", { referral_source: token.source })
+    }
+  }, [])
+  return null
+}
+
 function NotFound() {
   const { t } = useTranslation()
   return (
@@ -139,6 +169,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                 on immersive game routes and the home page (which ships its own). */}
             <SiteFooter />
             <OnboardingGate />
+            <ReferralCapture />
             <AnalyticsIdentity />
           </I18nextProvider>
         </ClerkProvider>

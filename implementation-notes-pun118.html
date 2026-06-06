@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Implementation notes — PUN-118 signup conversion</title>
+<style>
+  body { font: 14px/1.5 -apple-system, system-ui, sans-serif; max-width: 820px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }
+  h1 { font-size: 1.4rem; }
+  h2 { font-size: 1.1rem; margin-top: 2rem; border-bottom: 1px solid #ddd; padding-bottom: 0.25rem; }
+  .entry { margin: 0.75rem 0 1.25rem; padding-left: 0.75rem; border-left: 3px solid #ddd; }
+  .entry.open { border-left-color: #d97706; }
+  .entry.deviation { border-left-color: #dc2626; }
+  .entry.decision { border-left-color: #2563eb; }
+  .entry.tradeoff { border-left-color: #7c3aed; }
+  .meta { color: #666; font-size: 0.85rem; }
+  code { background: #f3f3f3; padding: 0 0.25rem; border-radius: 3px; }
+</style>
+</head>
+<body>
+<h1>Implementation notes — PUN-118 (signup conversion)</h1>
+<p class="meta">Spec: Linear PUN-118 (rank+handle reframe · escalating 2nd-session gate · handle-carry) · Started: 2026-06-06</p>
+
+<h2>Design decisions</h2>
+<div class="entry decision">
+  <strong>Weekly rank computed from a raw XP value</strong>
+  <p>Added <code>weeklyRankForXp(xp)</code> in <code>apps/web/src/lib/leaderboard.ts</code> (exported alongside <code>currentWeekStartUtc</code>), reusing the existing weekly XP union (user_punchline_xp + user_daily_xp, onboarded users only). <code>getAnonStandingFn</code> in <code>apps/web/src/lib/anon-xp.ts</code> wraps it: returns <code>{total, claimed, weeklyRank}</code> for the current anon session. Rank is the anon player's banked total compared against the live weekly distribution — an honest "where you'd land".</p>
+</div>
+<div class="entry decision">
+  <strong>Gate triggers on session-START, in play.tsx, covering all entry points</strong>
+  <p>Counter <code>pq.sessions_completed</code> (localStorage, <code>lib/session-progress.ts</code>) is incremented in <code>session-summary.tsx</code> when a run completes. <code>PlayInner</code> calls <code>maybeOpenGate()</code> on mount (covers logo→remount + deep links) and at the end of <code>onRestartSession</code> (covers in-place "Play again"). This sidesteps the buried-button problem (replay finding) without threading the gate through the round state machine.</p>
+</div>
+<div class="entry decision">
+  <strong>Handle-carry via localStorage</strong>
+  <p><code>pq.desired_handle</code> (lib/session-progress.ts). The gate/CTA lets the user type a handle pre-auth (live availability via <code>checkHandleFn</code>, which already works for anon callers), saves it, then opens Clerk sign-in. <code>onboarding-gate.tsx</code> prefills its handle field from it and clears it on successful claim.</p>
+</div>
+<div class="entry decision">
+  <strong>Gate self-guards on auth; play.tsx stays auth-agnostic</strong>
+  <p><code>SessionGate</code> wraps its body in Clerk <code>&lt;Show when="signed-out"&gt;</code>, so play.tsx can open it purely off the counter and signed-in users never see it.</p>
+</div>
+
+<h2>Deviations from spec</h2>
+<p class="meta">None yet.</p>
+
+<h2>Tradeoffs considered</h2>
+<div class="entry tradeoff">
+  <strong>Counter increment location</strong>
+  <p>Considered incrementing where <code>phase</code> becomes "session-complete" in play.tsx vs. in session-summary.tsx's existing <code>session_completed</code> effect. Picked session-summary: it is the single place a finished run is observed (natural end, restart-fail end, daily), so the counter stays consistent with the event.</p>
+</div>
+
+<h2>Open questions</h2>
+<div class="entry decision">
+  <strong>Hard gate at session 3+ — CONFIRMED (2026-06-06)</strong>
+  <p>User confirmed the hard wall at session 3+ is wanted ("we need a hard gate otherwise noone signs up"). Shipping as implemented; thresholds remain named constants for tuning.</p>
+</div>
+<div class="entry decision">
+  <strong>Gating returning users on arrival — accepted</strong>
+  <p>Covered by the same confirmation: returning anon players who already completed sessions are gated on arrival (proven intent). Kept as implemented.</p>
+</div>
+</body>
+</html>

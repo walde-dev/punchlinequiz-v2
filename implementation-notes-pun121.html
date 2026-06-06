@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Implementation notes — PUN-121 acquisition source capture</title>
+<style>
+  body { font: 14px/1.5 -apple-system, system-ui, sans-serif; max-width: 820px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }
+  h1 { font-size: 1.4rem; }
+  h2 { font-size: 1.1rem; margin-top: 2rem; border-bottom: 1px solid #ddd; padding-bottom: 0.25rem; }
+  .entry { margin: 0.75rem 0 1.25rem; padding-left: 0.75rem; border-left: 3px solid #ddd; }
+  .entry.open { border-left-color: #d97706; }
+  .entry.deviation { border-left-color: #dc2626; }
+  .entry.decision { border-left-color: #2563eb; }
+  .entry.tradeoff { border-left-color: #7c3aed; }
+  .meta { color: #666; font-size: 0.85rem; }
+  code { background: #f3f3f3; padding: 0 0.25rem; border-radius: 3px; }
+</style>
+</head>
+<body>
+<h1>Implementation notes — PUN-121 (acquisition source capture)</h1>
+<p class="meta">Spec: Linear PUN-121 (first-touch persisted + session_started event; full referrer/utm/path) · Started: 2026-06-06</p>
+
+<h2>Design decisions</h2>
+<div class="entry decision">
+  <strong>Both storage modes</strong>
+  <p><code>apps/web/src/lib/acquisition.ts</code>: <code>captureFirstTouch()</code> persists first-touch to <code>pq.first_touch</code> (first-touch wins); <code>&lt;ReferralCapture/&gt;</code> in <code>__root.tsx</code> fires a dedicated full-fidelity <code>session_started</code> event once per tab (sessionStorage guard). The coarse <code>source</code> bucket is also stamped on EVERY event in <code>track.ts</code> for join-free slicing.</p>
+</div>
+<div class="entry decision">
+  <strong>Full fidelity + coarse bucket</strong>
+  <p><code>session_started</code> carries referrer, landing path, utm_source/medium/campaign. Every other event carries just the <code>source</code> bucket (<code>reddit | search | share | direct | internal | referral | &lt;utm_source&gt;</code>). A landing with a <code>?r=/?i=</code> carrier buckets as <code>share</code> — reinforcing PUN-119.</p>
+</div>
+
+<h2>Deviations from spec</h2>
+<p class="meta">None functionally; see the PII note below (a guardrail on top of the chosen full-fidelity capture).</p>
+
+<h2>Tradeoffs considered</h2>
+<div class="entry tradeoff">
+  <strong>Stamp source on all events vs. only the 3 named events</strong>
+  <p>The ticket listed round_started/handle_claimed/share_clicked. Implemented as a single choke-point in <code>logEvent</code> stamping the small bucket on ALL client events — strictly more useful for slicing and cheaper than per-call wiring. The bucket is not PII; full referrer/path stays only on session_started.</p>
+</div>
+
+<h2>Open questions</h2>
+<div class="entry decision">
+  <strong>PII deviation — CONFIRMED accepted (2026-06-06)</strong>
+  <p>User accepted full referrer/path fidelity on <code>game_events</code> (consistent with the PostHog PII stance). <code>redact()</code> remains as the credential/email guardrail.</p>
+</div>
+</body>
+</html>

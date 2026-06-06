@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Implementation notes — PUN-120 retention watch</title>
+<style>
+  body { font: 14px/1.5 -apple-system, system-ui, sans-serif; max-width: 820px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }
+  h1 { font-size: 1.4rem; }
+  h2 { font-size: 1.1rem; margin-top: 2rem; border-bottom: 1px solid #ddd; padding-bottom: 0.25rem; }
+  .entry { margin: 0.75rem 0 1.25rem; padding-left: 0.75rem; border-left: 3px solid #ddd; }
+  .entry.open { border-left-color: #d97706; }
+  .entry.deviation { border-left-color: #dc2626; }
+  .entry.decision { border-left-color: #2563eb; }
+  .entry.tradeoff { border-left-color: #7c3aed; }
+  .meta { color: #666; font-size: 0.85rem; }
+  code { background: #f3f3f3; padding: 0 0.25rem; border-radius: 3px; }
+</style>
+</head>
+<body>
+<h1>Implementation notes — PUN-120 (retention watch)</h1>
+<p class="meta">Spec: Linear PUN-120 (DB canonical + PostHog visual + daily Discord post) · Started: 2026-06-06</p>
+
+<h2>Design decisions</h2>
+<div class="entry decision">
+  <strong>Canonical DB computation</strong>
+  <p><code>apps/web/src/lib/retention.ts</code> — <code>computeRetention(days)</code> over <code>game_events</code>: cohort = anon sessions by first-qualifying-play UTC day; returning = <code>round_started</code>/<code>daily_opened</code> on a later day. Returns per-day cohort size + D1 + D7, with rates null until the window matures. <code>formatRetentionMessage</code> renders a monospace Discord table.</p>
+</div>
+<div class="entry decision">
+  <strong>Daily Discord post via cron</strong>
+  <p><code>apps/web/src/routes/api/cron/retention-report.ts</code> — CRON_SECRET-guarded (same pattern as discord-daily), posts to <code>DISCORD_ALERTS_CHANNEL_ID</code> (staff, not the public daily channel). Scheduled <code>0 7 * * *</code> in <code>vercel.json</code>. <code>?force=1</code> for ad-hoc runs.</p>
+</div>
+<div class="entry decision">
+  <strong>PostHog visual leg</strong>
+  <p>Added a HogQL "Retention watch — D1/D7 by cohort day" insight to <code>scripts/posthog/dashboards.ts</code>, mirroring the DB definition (person_id cohorts over the same two events). Applied via the existing apply.ts.</p>
+</div>
+<div class="entry decision">
+  <strong>Anon floor caveat baked into the output</strong>
+  <p>The Discord message header and the insight description both state this is a floor (localStorage session resets) and signed-in retention is the true number.</p>
+</div>
+
+<h2>Deviations from spec</h2>
+<p class="meta">None.</p>
+
+<h2>Tradeoffs considered</h2>
+<div class="entry tradeoff">
+  <strong>Cron route triggers a routeTree.gen.ts regen</strong>
+  <p>Adding the route required the TanStack router codegen to run (via build) so the new path types in. The regenerated <code>routeTree.gen.ts</code> is part of the change — expected.</p>
+</div>
+
+<h2>Open questions</h2>
+<div class="entry decision">
+  <strong>PostHog insight applied ✓ (2026-06-06)</strong>
+  <p>apply.ts run: "Retention watch — D1/D7 by cohort day (anon floor)" created on the launch dashboard (PostHog project 192493).</p>
+</div>
+<div class="entry open">
+  <strong>Discord post deferred (user decision)</strong>
+  <p>Cron + formatter are shipped, but Discord delivery is intentionally not enabled for now — the post no-ops until <code>DISCORD_ALERTS_CHANNEL_ID</code> + <code>DISCORD_BOT_TOKEN</code> are set. The DB SQL + PostHog insight cover the watch in the meantime.</p>
+</div>
+</body>
+</html>
