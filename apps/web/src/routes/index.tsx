@@ -114,6 +114,15 @@ function HomePage() {
             {t("home.footerDaily")}
           </Link>
           <DiscordFooterLink placement="home_footer" />
+          <Link to="/impressum" className="transition-colors hover:text-primary">
+            {t("nav.imprint")}
+          </Link>
+          <Link to="/datenschutz" className="transition-colors hover:text-primary">
+            {t("nav.privacy")}
+          </Link>
+          <Link to="/nutzungsbedingungen" className="transition-colors hover:text-primary">
+            {t("nav.terms")}
+          </Link>
         </nav>
         <p className="text-xs text-muted-foreground/40">{t("home.madeWith")}</p>
       </footer>

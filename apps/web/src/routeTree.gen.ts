@@ -13,8 +13,11 @@ import { Route as SubmitRouteImport } from './routes/submit'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PlayRouteImport } from './routes/play'
+import { Route as NutzungsbedingungenRouteImport } from './routes/nutzungsbedingungen'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
+import { Route as ImpressumRouteImport } from './routes/impressum'
 import { Route as FinishingRouteImport } from './routes/finishing'
+import { Route as DatenschutzRouteImport } from './routes/datenschutz'
 import { Route as DailyRouteImport } from './routes/daily'
 import { Route as ArtistsRouteImport } from './routes/artists'
 import { Route as IndexRouteImport } from './routes/index'
@@ -74,14 +77,29 @@ const PlayRoute = PlayRouteImport.update({
   path: '/play',
   getParentRoute: () => rootRouteImport,
 } as any)
+const NutzungsbedingungenRoute = NutzungsbedingungenRouteImport.update({
+  id: '/nutzungsbedingungen',
+  path: '/nutzungsbedingungen',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LeaderboardRoute = LeaderboardRouteImport.update({
   id: '/leaderboard',
   path: '/leaderboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ImpressumRoute = ImpressumRouteImport.update({
+  id: '/impressum',
+  path: '/impressum',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FinishingRoute = FinishingRouteImport.update({
   id: '/finishing',
   path: '/finishing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DatenschutzRoute = DatenschutzRouteImport.update({
+  id: '/datenschutz',
+  path: '/datenschutz',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DailyRoute = DailyRouteImport.update({
@@ -279,8 +297,11 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/artists': typeof ArtistsRoute
   '/daily': typeof DailyRoute
+  '/datenschutz': typeof DatenschutzRoute
   '/finishing': typeof FinishingRoute
+  '/impressum': typeof ImpressumRoute
   '/leaderboard': typeof LeaderboardRoute
+  '/nutzungsbedingungen': typeof NutzungsbedingungenRoute
   '/play': typeof PlayRoute
   '/profile': typeof ProfileRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -325,8 +346,11 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/artists': typeof ArtistsRoute
   '/daily': typeof DailyRoute
+  '/datenschutz': typeof DatenschutzRoute
   '/finishing': typeof FinishingRoute
+  '/impressum': typeof ImpressumRoute
   '/leaderboard': typeof LeaderboardRoute
+  '/nutzungsbedingungen': typeof NutzungsbedingungenRoute
   '/play': typeof PlayRoute
   '/profile': typeof ProfileRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -372,8 +396,11 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/artists': typeof ArtistsRoute
   '/daily': typeof DailyRoute
+  '/datenschutz': typeof DatenschutzRoute
   '/finishing': typeof FinishingRoute
+  '/impressum': typeof ImpressumRoute
   '/leaderboard': typeof LeaderboardRoute
+  '/nutzungsbedingungen': typeof NutzungsbedingungenRoute
   '/play': typeof PlayRoute
   '/profile': typeof ProfileRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -420,8 +447,11 @@ export interface FileRouteTypes {
     | '/'
     | '/artists'
     | '/daily'
+    | '/datenschutz'
     | '/finishing'
+    | '/impressum'
     | '/leaderboard'
+    | '/nutzungsbedingungen'
     | '/play'
     | '/profile'
     | '/sitemap.xml'
@@ -466,8 +496,11 @@ export interface FileRouteTypes {
     | '/'
     | '/artists'
     | '/daily'
+    | '/datenschutz'
     | '/finishing'
+    | '/impressum'
     | '/leaderboard'
+    | '/nutzungsbedingungen'
     | '/play'
     | '/profile'
     | '/sitemap.xml'
@@ -512,8 +545,11 @@ export interface FileRouteTypes {
     | '/'
     | '/artists'
     | '/daily'
+    | '/datenschutz'
     | '/finishing'
+    | '/impressum'
     | '/leaderboard'
+    | '/nutzungsbedingungen'
     | '/play'
     | '/profile'
     | '/sitemap.xml'
@@ -559,8 +595,11 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ArtistsRoute: typeof ArtistsRoute
   DailyRoute: typeof DailyRoute
+  DatenschutzRoute: typeof DatenschutzRoute
   FinishingRoute: typeof FinishingRoute
+  ImpressumRoute: typeof ImpressumRoute
   LeaderboardRoute: typeof LeaderboardRoute
+  NutzungsbedingungenRoute: typeof NutzungsbedingungenRoute
   PlayRoute: typeof PlayRoute
   ProfileRoute: typeof ProfileRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
@@ -627,6 +666,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlayRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/nutzungsbedingungen': {
+      id: '/nutzungsbedingungen'
+      path: '/nutzungsbedingungen'
+      fullPath: '/nutzungsbedingungen'
+      preLoaderRoute: typeof NutzungsbedingungenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/leaderboard': {
       id: '/leaderboard'
       path: '/leaderboard'
@@ -634,11 +680,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LeaderboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/impressum': {
+      id: '/impressum'
+      path: '/impressum'
+      fullPath: '/impressum'
+      preLoaderRoute: typeof ImpressumRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/finishing': {
       id: '/finishing'
       path: '/finishing'
       fullPath: '/finishing'
       preLoaderRoute: typeof FinishingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/datenschutz': {
+      id: '/datenschutz'
+      path: '/datenschutz'
+      fullPath: '/datenschutz'
+      preLoaderRoute: typeof DatenschutzRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/daily': {
@@ -972,8 +1032,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ArtistsRoute: ArtistsRoute,
   DailyRoute: DailyRoute,
+  DatenschutzRoute: DatenschutzRoute,
   FinishingRoute: FinishingRoute,
+  ImpressumRoute: ImpressumRoute,
   LeaderboardRoute: LeaderboardRoute,
+  NutzungsbedingungenRoute: NutzungsbedingungenRoute,
   PlayRoute: PlayRoute,
   ProfileRoute: ProfileRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,

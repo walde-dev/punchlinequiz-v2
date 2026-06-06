@@ -29,7 +29,15 @@
     "leaderboard": "Rangliste",
     "profile": "Profil",
     "submit": "Bar einreichen",
-    "menu": "Menü"
+    "menu": "Menü",
+    "imprint": "Impressum",
+    "privacy": "Datenschutz",
+    "terms": "Nutzungsbedingungen",
+    "contact": "Kontakt"
+  },
+  "legal": {
+    "rights": "Alle Rechte vorbehalten.",
+    "backToApp": "Zurück zur App"
   },
   "xp": {
     "suffix": "XP",

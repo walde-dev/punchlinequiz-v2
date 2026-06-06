@@ -29,7 +29,15 @@
     "leaderboard": "Leaderboard",
     "profile": "Profile",
     "submit": "Submit a bar",
-    "menu": "Menu"
+    "menu": "Menu",
+    "imprint": "Imprint",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "contact": "Contact"
+  },
+  "legal": {
+    "rights": "All rights reserved.",
+    "backToApp": "Back to the app"
   },
   "xp": {
     "suffix": "XP",

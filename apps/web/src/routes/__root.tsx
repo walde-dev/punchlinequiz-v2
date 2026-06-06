@@ -8,6 +8,7 @@ import { figtreeLatinWoff2 } from "@workspace/ui/lib/fonts"
 import i18n, { LANG_STORAGE_KEY } from "../i18n"
 import { OnboardingGate } from "../components/onboarding-gate"
 import { AnalyticsIdentity } from "../components/analytics-identity"
+import { SiteFooter } from "../components/site-footer"
 import { getBootstrapFlagsFn } from "../lib/flags"
 import { DEFAULT_DESCRIPTION, OG_DEFAULT_SUBTITLE, SITE_NAME, ogImageUrl } from "../lib/seo"
 import type { BootstrapFlags } from "../lib/flags"
@@ -134,6 +135,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             <Suspense fallback={<div className="min-h-svh bg-background" />}>
               {children}
             </Suspense>
+            {/* Site-wide legal footer (Impressum/Datenschutz/Terms). Self-hides
+                on immersive game routes and the home page (which ships its own). */}
+            <SiteFooter />
             <OnboardingGate />
             <AnalyticsIdentity />
           </I18nextProvider>
