@@ -152,8 +152,9 @@ function ProfileView({ data }: { data: Extract<PublicProfileResult, { found: tru
           <StatTile label={t("profile.stats.daysCompleted")} value={profile.daysCompleted} />
         </section>
 
-        {/* Rank ladder — full progression, current rank centered. */}
-        <section className="flex flex-col gap-3" style={{ animation: `pq-fade-up 0.55s ${ease} 0.1s both` }}>
+        {/* Rank ladder — full progression, current rank centered. min-w-0 keeps
+            the horizontal scroller from stretching the column to fit all ranks. */}
+        <section className="flex min-w-0 flex-col gap-3" style={{ animation: `pq-fade-up 0.55s ${ease} 0.1s both` }}>
           <SectionHeading>{t("profile.levelsTitle")}</SectionHeading>
           <LevelLadder levels={data.allLevels} totalXp={profile.totalXp} currentRank={profile.level.rank} youAreHere={data.isOwner} />
         </section>

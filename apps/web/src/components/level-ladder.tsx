@@ -44,7 +44,9 @@ export function LevelLadder({
     <ol
       ref={scrollerRef}
       className={cn(
-        "flex snap-x gap-2.5 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+        // min-w-0 + max-w-full so the scroller can shrink inside flex/grid
+        // parents and actually scroll, rather than stretching to fit all ranks.
+        "flex min-w-0 max-w-full snap-x gap-2.5 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
         className,
       )}
     >

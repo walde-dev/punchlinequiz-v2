@@ -70,7 +70,9 @@ export function XpGuideDialog({
           </ul>
         </div>
 
-        <div className="flex flex-col gap-2">
+        {/* min-w-0 lets the ladder's overflow-x-auto engage instead of stretching
+            the grid cell (and the whole dialog) to fit every rank. */}
+        <div className="flex min-w-0 flex-col gap-2">
           <h3 className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary/80">
             {t("xp.guide.levelsTitle")}
           </h3>
