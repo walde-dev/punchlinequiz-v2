@@ -45,9 +45,30 @@ export const recordEvent = createServerFn({ method: "POST" })
   .inputValidator((d: { sessionId: string; name: string; props?: Record<string, unknown> }) => d)
   .handler(async ({ data }) => {
     const props = data.props ?? {}
+
+    // Stamp the signed-in Clerk id onto the event server-side. Client events are
+    // keyed by the anon session UUID (which never changes after signup), so the
+    // only other account link is anon_xp_claims — and a user who banked no XP at
+    // signup has no claim row. `actor_user_id` closes that gap so every
+    // authenticated action is directly attributable in the activity log.
+    // Dynamic import keeps Clerk's server SDK out of the client bundle (track.ts
+    // is also imported client-side for logEvent).
+    const enriched: Record<string, unknown> = { ...props }
+    if (enriched.actor_user_id == null) {
+      try {
+        const { auth } = await import("@clerk/tanstack-react-start/server")
+        const session = await auth()
+        if (session.isAuthenticated && session.userId) {
+          enriched.actor_user_id = session.userId
+        }
+      } catch {
+        // No auth context / not signed in — leave the event anonymous.
+      }
+    }
+
     // Persist to DB — fire-and-forget catch so analytics never block flow
     db.insert(gameEvents)
-      .values({ sessionId: data.sessionId, name: data.name, props })
+      .values({ sessionId: data.sessionId, name: data.name, props: enriched })
       .catch((e) => console.error("[track] db insert failed", e))
 
     forwardToAxiom([
@@ -55,7 +76,7 @@ export const recordEvent = createServerFn({ method: "POST" })
         event: data.name,
         session_id: data.sessionId,
         timestamp: new Date().toISOString(),
-        ...props,
+        ...enriched,
       },
     ])
     return { ok: true }

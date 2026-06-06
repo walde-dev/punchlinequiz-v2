@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start"
 import { getRequest } from "@tanstack/react-start/server"
 import { and, desc, gte, inArray, like, lt, lte, ne, notInArray, notLike, or, sql } from "drizzle-orm"
 
-import { gameEvents, users } from "@workspace/db"
+import { anonXpClaims, gameEvents, users } from "@workspace/db"
 
 import { db } from "./db"
 import { requireAdmin } from "./auth"
@@ -116,11 +116,22 @@ function str(v: unknown): string | null {
   return typeof v === "string" && v.length > 0 ? v : null
 }
 
-/** The Clerk user id an event is attributable to, if any. */
-function actorUserId(sessionId: string, props: Record<string, unknown>): string | null {
+/**
+ * The Clerk user id an event is attributable to, if any. Three signals, in
+ * order: an explicit `actor_user_id` prop (server-side admin events), a Clerk
+ * id used directly as the session id, or — the common case for client play
+ * events — an anon session id that was later claimed by an account, resolved
+ * via the `anon_xp_claims` mapping passed in `sessionToClerk`.
+ */
+function actorUserId(
+  sessionId: string,
+  props: Record<string, unknown>,
+  sessionToClerk: Map<string, string>,
+): string | null {
   const explicit = str(props.actor_user_id)
   if (explicit) return explicit
-  return sessionId.startsWith("user_") ? sessionId : null
+  if (sessionId.startsWith("user_")) return sessionId
+  return sessionToClerk.get(sessionId) ?? null
 }
 
 // ─── Input validation ─────────────────────────────────────────────────────────
@@ -157,13 +168,20 @@ function validate(d: ActivityFilters): Required<ActivityFilters> {
 }
 
 /** An event is attributable to a signed-in Clerk user when its session id is a
- *  Clerk id, or props carry an explicit `actor_user_id` (anon play later
- *  stitched onto an account). Everything else — anon sessions, the admin token,
- *  the system actor — counts as "not a registered user". */
+ *  Clerk id, props carry an explicit `actor_user_id` (server-side admin
+ *  events), or its anon session id was claimed by an account at signup. The
+ *  last case is the common one — client play events keep the anon session id
+ *  forever, so the `anon_xp_claims` mapping is the only link to the account.
+ *  Everything else — unclaimed anon sessions, the admin token, the system
+ *  actor — counts as "not a registered user". */
 function registeredCondition(): SQL {
   return or(
     like(gameEvents.sessionId, "user_%"),
     sql`(${gameEvents.props} ->> 'actor_user_id') is not null`,
+    inArray(
+      gameEvents.sessionId,
+      db.select({ sessionId: anonXpClaims.sessionId }).from(anonXpClaims),
+    ),
   ) as SQL
 }
 
@@ -178,10 +196,12 @@ export const getActivityLog = createServerFn({ method: "GET" })
     const to = data.to ? new Date(`${data.to}T23:59:59.999Z`) : null
     const like_ = data.q ? `%${data.q}%` : null
 
-    // Events store only the Clerk id, never the handle — so a free-text search
-    // like "urus" can't hit the events table directly. Resolve matching handles
-    // to their Clerk ids first, then match those ids in the feed query below.
+    // Events store only the Clerk id (and usually only the anon session id),
+    // never the handle — so a free-text search like "urus" can't hit the events
+    // table directly. Resolve matching handles to their Clerk ids, plus the anon
+    // session ids those accounts claimed at signup, then match all of them below.
     let handleUserIds: Array<string> = []
+    let handleSessionIds: Array<string> = []
     if (like_) {
       const bare = data.q!.replace(/^@/, "")
       const matched = await db
@@ -190,6 +210,13 @@ export const getActivityLog = createServerFn({ method: "GET" })
         .where(sql`${users.handle} ilike ${`%${bare}%`}`)
         .limit(100)
       handleUserIds = matched.map((u) => u.clerkId)
+      if (handleUserIds.length > 0) {
+        const claims = await db
+          .select({ sessionId: anonXpClaims.sessionId })
+          .from(anonXpClaims)
+          .where(inArray(anonXpClaims.clerkId, handleUserIds))
+        handleSessionIds = claims.map((c) => c.sessionId)
+      }
     }
 
     const where = and(
@@ -208,6 +235,9 @@ export const getActivityLog = createServerFn({ method: "GET" })
                   inArray(gameEvents.sessionId, handleUserIds),
                   inArray(sql`(${gameEvents.props} ->> 'actor_user_id')`, handleUserIds),
                 )
+              : undefined,
+            handleSessionIds.length > 0
+              ? inArray(gameEvents.sessionId, handleSessionIds)
               : undefined,
           )
         : undefined,
@@ -230,10 +260,34 @@ export const getActivityLog = createServerFn({ method: "GET" })
     const hasMore = rows.length > data.limit
     const page = hasMore ? rows.slice(0, data.limit) : rows
 
+    // Resolve anon session ids on this page to the account that claimed them
+    // (play events keep the anon session id even after signup — the claim row
+    // is the only link). Batched so a page is at most one extra query.
+    const sessionToClerk = new Map<string, string>()
+    const anonSessions = [
+      ...new Set(
+        page
+          .filter(
+            (r) =>
+              !r.sessionId.startsWith("user_") &&
+              r.sessionId !== "admin" &&
+              r.sessionId !== "admin_token",
+          )
+          .map((r) => r.sessionId),
+      ),
+    ]
+    if (anonSessions.length > 0) {
+      const claims = await db
+        .select({ sessionId: anonXpClaims.sessionId, clerkId: anonXpClaims.clerkId })
+        .from(anonXpClaims)
+        .where(inArray(anonXpClaims.sessionId, anonSessions))
+      for (const c of claims) sessionToClerk.set(c.sessionId, c.clerkId)
+    }
+
     // Batch-resolve Clerk identities (handle + avatar) for attributable rows.
     const userIds = new Set<string>()
     for (const r of page) {
-      const uid = actorUserId(r.sessionId, r.props)
+      const uid = actorUserId(r.sessionId, r.props, sessionToClerk)
       if (uid) userIds.add(uid)
     }
     const userMap = new Map<string, { handle: string | null; imageUrl: string | null }>()
@@ -246,7 +300,7 @@ export const getActivityLog = createServerFn({ method: "GET" })
     }
 
     const items: Array<ActivityItem> = page.map((r) => {
-      const uid = actorUserId(r.sessionId, r.props)
+      const uid = actorUserId(r.sessionId, r.props, sessionToClerk)
       let actor: ActivityActor
       if (uid) {
         const u = userMap.get(uid)
