@@ -103,25 +103,6 @@ function HomePage() {
   )
 }
 
-/** Minimal gold calendar glyph for the Daily row — no stock art, just a stroke. */
-function DailyGlyph() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-7 w-7 text-primary"
-      aria-hidden="true"
-    >
-      <rect x="3" y="4.5" width="18" height="16" rx="3" />
-      <path d="M3 9h18M8 3v3M16 3v3" />
-    </svg>
-  )
-}
-
 /**
  * Gold hero PNG (mic / cloze art) dropped into the circular ring. Same
  * mix-blend-screen + radial-mask trick used elsewhere: kills the PNG's
@@ -156,7 +137,7 @@ function ModeStack({ dailyNumber }: { dailyNumber: number | null }) {
       {dailyNumber !== null && (
         <ModeRow
           to="/daily"
-          icon={<DailyGlyph />}
+          icon={<ModeImage src="/calendar.png" />}
           title={t("home.modes.dailyTitle")}
           description={t("home.modes.dailyDesc")}
           badge={t("home.dailyBadge", { number: dailyNumber })}
