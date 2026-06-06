@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { eq } from "drizzle-orm"
-import { punchlines, punchlineSubmissions } from "@workspace/db"
+import { punchlineSubmissions, punchlines } from "@workspace/db"
 
 import { db } from "../../../lib/db"
 import {
@@ -39,9 +39,14 @@ export const Route = createFileRoute("/api/admin/submissions/$id")({
             .from(punchlineSubmissions)
             .where(eq(punchlineSubmissions.id, id))
             .limit(1)
-          if (!submission) return errorJson("not_found", "Submission not found.", 404)
+          if (!submission)
+            return errorJson("not_found", "Submission not found.", 404)
           if (submission.status !== "pending") {
-            return errorJson("already_resolved", "Submission already resolved.", 409)
+            return errorJson(
+              "already_resolved",
+              "Submission already resolved.",
+              409
+            )
           }
 
           const body = await readJsonBody<Record<string, unknown>>(request)
@@ -50,9 +55,17 @@ export const Route = createFileRoute("/api/admin/submissions/$id")({
           if (action === "reject") {
             await db
               .update(punchlineSubmissions)
-              .set({ status: "rejected", rejectionReason: optionalString(body.reason, "reason", { max: 500 }) ?? null })
+              .set({
+                status: "rejected",
+                rejectionReason:
+                  optionalString(body.reason, "reason", { max: 500 }) ?? null,
+              })
               .where(eq(punchlineSubmissions.id, id))
-            audit("review_submission", { submissionId: id, action: "reject" }, actor)
+            audit(
+              "review_submission",
+              { submissionId: id, action: "reject" },
+              actor
+            )
             return json({ ok: true, action: "reject" })
           }
 
@@ -65,14 +78,23 @@ export const Route = createFileRoute("/api/admin/submissions/$id")({
             artist: requireString(body.artist, "artist", { max: 200 }),
             song: requireString(body.song, "song", { max: 300 }),
             line: requireString(body.line, "line", { max: 1000 }),
-            distractor1: requireString(body.distractor1, "distractor1", { max: 200 }),
-            distractor2: requireString(body.distractor2, "distractor2", { max: 200 }),
-            perfectSolution: optionalStringArray(body.perfectSolution, "perfectSolution"),
+            distractor1: requireString(body.distractor1, "distractor1", {
+              max: 200,
+            }),
+            distractor2: requireString(body.distractor2, "distractor2", {
+              max: 200,
+            }),
+            perfectSolution: optionalStringArray(
+              body.perfectSolution,
+              "perfectSolution"
+            ),
           })
 
           // Flip to reviewed (admin completion IS the review) + optional cloze,
           // and credit the contributor on the bar itself (PUN-67 attribution).
-          const clozePrompt = optionalString(body.clozePrompt, "clozePrompt", { max: 1000 })
+          const clozePrompt = optionalString(body.clozePrompt, "clozePrompt", {
+            max: 1000,
+          })
           await db
             .update(punchlines)
             .set({
@@ -104,7 +126,7 @@ export const Route = createFileRoute("/api/admin/submissions/$id")({
               tierUp: grant.awarded ? grant.tierUp : false,
               newTier: grant.awarded ? grant.newTier : null,
             },
-            actor,
+            actor
           )
           return json({
             ok: true,

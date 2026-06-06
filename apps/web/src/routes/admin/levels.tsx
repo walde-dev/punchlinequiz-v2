@@ -37,7 +37,7 @@ function previewSlot(_row: LevelRow, index: number): number {
 
 function AdminLevelsPage() {
   const { t } = useTranslation()
-  const [rows, setRows] = useState<LevelRow[]>([])
+  const [rows, setRows] = useState<Array<LevelRow>>([])
   const [err, setErr] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -45,17 +45,21 @@ function AdminLevelsPage() {
   useEffect(() => {
     fetch("/api/admin/levels", { credentials: "same-origin" })
       .then((r) => r.json())
-      .then((d) => setRows(d.items as LevelRow[]))
+      .then((d) => setRows(d.items as Array<LevelRow>))
       .catch((e) => setErr(String(e)))
   }, [])
 
   function update(i: number, patch: Partial<LevelRow>) {
-    setRows((r) => r.map((row, idx) => (idx === i ? { ...row, ...patch } : row)))
+    setRows((r) =>
+      r.map((row, idx) => (idx === i ? { ...row, ...patch } : row))
+    )
   }
 
   function addRow() {
     const last = rows[rows.length - 1]
-    const nextThreshold = last ? last.threshold + Math.max(500, Math.round(last.threshold * 0.6)) : 0
+    const nextThreshold = last
+      ? last.threshold + Math.max(500, Math.round(last.threshold * 0.6))
+      : 0
     setRows((r) => [
       ...r,
       { threshold: nextThreshold, nameDe: "", nameEn: "", accent: "primary" },
@@ -85,9 +89,10 @@ function AdminLevelsPage() {
         credentials: "same-origin",
         body: JSON.stringify(payload),
       })
-      if (!res.ok) throw new Error((await res.json()).message || `HTTP ${res.status}`)
+      if (!res.ok)
+        throw new Error((await res.json()).message || `HTTP ${res.status}`)
       const json = await res.json()
-      setRows(json.items as LevelRow[])
+      setRows(json.items as Array<LevelRow>)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch (e) {
@@ -101,11 +106,15 @@ function AdminLevelsPage() {
     <AdminShell>
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
         <header className="flex flex-col gap-1">
-          <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-primary/80">
+          <span className="text-[10px] font-bold tracking-[0.22em] text-primary/80 uppercase">
             {t("admin.levels.eyebrow")}
           </span>
-          <h1 className="text-2xl font-extrabold tracking-tight">{t("admin.levels.title")}</h1>
-          <p className="text-sm text-muted-foreground">{t("admin.levels.subtitle")}</p>
+          <h1 className="text-2xl font-extrabold tracking-tight">
+            {t("admin.levels.title")}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {t("admin.levels.subtitle")}
+          </p>
         </header>
 
         {err && (
@@ -115,7 +124,7 @@ function AdminLevelsPage() {
         )}
 
         <div className="flex flex-col gap-2">
-          <div className="grid grid-cols-[3rem_6rem_1fr_1fr_5rem_3rem] gap-3 px-3 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+          <div className="grid grid-cols-[3rem_6rem_1fr_1fr_5rem_3rem] gap-3 px-3 text-[10px] font-bold tracking-[0.14em] text-muted-foreground uppercase">
             <span />
             <span>{t("admin.levels.col.threshold")}</span>
             <span>{t("admin.levels.col.nameDe")}</span>
@@ -142,7 +151,8 @@ function AdminLevelsPage() {
                 onError={(e) => {
                   // Levels added beyond rank-10 don't ship a badge — hide
                   // the broken image cleanly.
-                  ;(e.currentTarget as HTMLImageElement).style.visibility = "hidden"
+                  ;(e.currentTarget as HTMLImageElement).style.visibility =
+                    "hidden"
                 }}
               />
               <Input
@@ -150,7 +160,9 @@ function AdminLevelsPage() {
                 min={0}
                 step={50}
                 value={r.threshold}
-                onChange={(e) => update(i, { threshold: Number(e.target.value) })}
+                onChange={(e) =>
+                  update(i, { threshold: Number(e.target.value) })
+                }
                 className="text-right font-bold tabular-nums"
               />
               <Input
@@ -178,7 +190,7 @@ function AdminLevelsPage() {
                 onClick={() => removeRow(i)}
                 className={cn(
                   "h-9 rounded-full border border-border/40 text-sm font-bold text-muted-foreground",
-                  "hover:border-destructive/40 hover:text-destructive",
+                  "hover:border-destructive/40 hover:text-destructive"
                 )}
                 aria-label={t("admin.levels.removeAria")}
               >
@@ -189,7 +201,7 @@ function AdminLevelsPage() {
           <button
             type="button"
             onClick={addRow}
-            className="self-start rounded-full border border-dashed border-border/40 px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground hover:border-primary/40 hover:text-primary"
+            className="self-start rounded-full border border-dashed border-border/40 px-4 py-2 text-xs font-bold tracking-[0.14em] text-muted-foreground uppercase hover:border-primary/40 hover:text-primary"
           >
             + {t("admin.levels.addRow")}
           </button>
@@ -197,7 +209,9 @@ function AdminLevelsPage() {
 
         <div className="flex items-center justify-end gap-3">
           {saved && (
-            <span className="text-xs font-bold text-primary">✓ {t("admin.levels.saved")}</span>
+            <span className="text-xs font-bold text-primary">
+              ✓ {t("admin.levels.saved")}
+            </span>
           )}
           <Button
             onClick={onSave}

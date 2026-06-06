@@ -1,8 +1,8 @@
 import * as React from "react"
 import { Input as InputPrimitive } from "@base-ui/react/input"
-import { cva, type VariantProps } from "class-variance-authority"
-
+import { cva } from "class-variance-authority"
 import { cn } from "@workspace/ui/lib/utils"
+import type { VariantProps } from "class-variance-authority"
 
 const inputVariants = cva(
   "w-full min-w-0 border border-border/60 bg-background/60 text-foreground transition-colors outline-none placeholder:text-muted-foreground/50 focus-visible:border-primary/60 focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/30",

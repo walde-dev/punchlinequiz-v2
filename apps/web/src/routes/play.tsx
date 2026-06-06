@@ -1,7 +1,6 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router"
+import { Link, createFileRoute, redirect } from "@tanstack/react-router"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import type { TFunction } from "i18next"
 
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
@@ -17,38 +16,44 @@ import { LevelUpModal } from "../components/level-up-modal"
 import { SessionClaimCta } from "../components/session-claim-cta"
 import { SessionSummary } from "../components/session-summary"
 import { XpGain } from "../components/xp-gain"
-import type { LevelInfo, XpGrantResult } from "../lib/xp"
-import {
-  fetchArtists,
-  type ArtistRow,
-  type BarRow,
-} from "../lib/admin-client"
+import { fetchArtists } from "../lib/admin-client"
 import {
   getArtistContext,
   getRound,
   submitAnswer,
   submitClozeGuess,
   submitSongGuess,
-  type AnswerResult,
-  type ArtistChoice,
-  type ArtistContext,
-  type ClozeGuessResult,
-  type Round,
-  type SongGuessResult,
-  type SongReveal,
 } from "../lib/game"
 import { isAdminFn } from "../lib/session"
 import { QUIZ_MIN_BARS } from "../lib/quiz"
 import { seo } from "../lib/seo"
 import { isFirstRun, markPlayed } from "../lib/first-run"
 import { logEvent, newId, setInternalSession } from "../lib/track"
+import type {
+  AnswerResult,
+  ArtistChoice,
+  ArtistContext,
+  ClozeGuessResult,
+  Round,
+  SongGuessResult,
+  SongReveal,
+} from "../lib/game"
+import type { ArtistRow, BarRow } from "../lib/admin-client"
+import type { LevelInfo, XpGrantResult } from "../lib/xp"
+import type { TFunction } from "i18next"
 
 type PlayMode = "artist" | "cloze"
 type PlaySearch = { artist?: string; mode?: PlayMode }
 
 export const Route = createFileRoute("/play")({
   component: PlayPage,
-  head: () => seo({ title: "Bars erraten", description: "Errate den Künstler hinter jeder Punchline. Wie tief sitzt dein Rap-Wissen?", path: "/play" }),
+  head: () =>
+    seo({
+      title: "Bars erraten",
+      description:
+        "Errate den Künstler hinter jeder Punchline. Wie tief sitzt dein Rap-Wissen?",
+      path: "/play",
+    }),
   validateSearch: (search: Record<string, unknown>): PlaySearch => ({
     artist: typeof search.artist === "string" ? search.artist : undefined,
     mode: search.mode === "cloze" ? "cloze" : undefined,
@@ -58,14 +63,25 @@ export const Route = createFileRoute("/play")({
     const artistSlug = deps.artist
     const mode: PlayMode = deps.mode === "cloze" ? "cloze" : "artist"
     const [artistCtx, session] = await Promise.all([
-      artistSlug ? getArtistContext({ data: { slug: artistSlug } }) : Promise.resolve(null),
+      artistSlug
+        ? getArtistContext({ data: { slug: artistSlug } })
+        : Promise.resolve(null),
       isAdminFn(),
     ])
     // PUN-108: classic per-artist play now lives at /quiz/$slug for qualifying
     // artists (≥15 bars). Redirect there; sub-threshold artists keep playing
     // here as before, and cloze (finishing-lines) is never a quiz so it stays.
-    if (artistSlug && mode === "artist" && artistCtx && artistCtx.punchlineCount >= QUIZ_MIN_BARS) {
-      throw redirect({ to: "/quiz/$slug", params: { slug: artistSlug }, statusCode: 301 })
+    if (
+      artistSlug &&
+      mode === "artist" &&
+      artistCtx &&
+      artistCtx.punchlineCount >= QUIZ_MIN_BARS
+    ) {
+      throw redirect({
+        to: "/quiz/$slug",
+        params: { slug: artistSlug },
+        statusCode: 301,
+      })
     }
     if (artistSlug && (!artistCtx || artistCtx.punchlineCount === 0)) {
       return { round: null, artistCtx, mode, isAdmin: session.admin }
@@ -90,11 +106,21 @@ export const Route = createFileRoute("/play")({
 
 const ease = "cubic-bezier(0.16, 1, 0.3, 1)"
 
-type Phase = "guessing" | "song-guessing" | "revealing" | "loading-next" | "session-complete"
+type Phase =
+  | "guessing"
+  | "song-guessing"
+  | "revealing"
+  | "loading-next"
+  | "session-complete"
 
 const ROUND_SIZE = 10
 
-type ClozeOutcome = { guess: string; isCorrect: boolean; correctAnswer: string; fullLine: string }
+type ClozeOutcome = {
+  guess: string
+  isCorrect: boolean
+  correctAnswer: string
+  fullLine: string
+}
 
 function PlayPage() {
   const loaded = Route.useLoaderData()
@@ -134,18 +160,24 @@ export function PlayInner({
   const [artistResult, setArtistResult] = useState<AnswerResult | null>(null)
   const [songResult, setSongResult] = useState<SongGuessResult | null>(null)
   const [clozeOutcome, setClozeOutcome] = useState<ClozeOutcome | null>(null)
-  const [clozeWrongTries, setClozeWrongTries] = useState<string[]>([])
+  const [clozeWrongTries, setClozeWrongTries] = useState<Array<string>>([])
   const CLOZE_MAX_TRIES = 3
   const [streak, setStreak] = useState(0)
   const [score, setScore] = useState({ right: 0, total: 0 })
   const [results, setResults] = useState<Array<boolean>>([])
   const [confettiKey, setConfettiKey] = useState(0)
   const [wrongShake, setWrongShake] = useState(0)
-  const [editing, setEditing] = useState<{ bar: BarRow; artists: ArtistRow[] } | null>(null)
+  const [editing, setEditing] = useState<{
+    bar: BarRow
+    artists: Array<ArtistRow>
+  } | null>(null)
   const [editLoading, setEditLoading] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
-  const artistsCacheRef = useRef<ArtistRow[] | null>(null)
-  const [xpGrant, setXpGrant] = useState<{ key: number; grant: XpGrantResult } | null>(null)
+  const artistsCacheRef = useRef<Array<ArtistRow> | null>(null)
+  const [xpGrant, setXpGrant] = useState<{
+    key: number
+    grant: XpGrantResult
+  } | null>(null)
   const [levelUp, setLevelUp] = useState<LevelInfo | null>(null)
   const [xpRefreshKey, setXpRefreshKey] = useState(0)
   const [anonCtaKey, setAnonCtaKey] = useState(0)
@@ -156,7 +188,7 @@ export function PlayInner({
   // always current and don't re-trigger effects.
   const firstRunRef = useRef(false)
   /** Punchline ids served during the opening starter ramp (max 3). */
-  const openingServedRef = useRef<number[]>([])
+  const openingServedRef = useRef<Array<number>>([])
   const earlyWinFiredRef = useRef(false)
   const playedMarkedRef = useRef(false)
   const [showHint, setShowHint] = useState(false)
@@ -181,7 +213,10 @@ export function PlayInner({
     logEvent("explainer_dismissed", { punchline_id: round.punchlineId })
   }
 
-  function consumeXp(grant: XpGrantResult | null | undefined, isCorrect: boolean) {
+  function consumeXp(
+    grant: XpGrantResult | null | undefined,
+    isCorrect: boolean
+  ) {
     if (!isCorrect) return
     // Anonymous on correct answer: server returns null. Surface a soft nudge.
     if (grant === null) {
@@ -331,7 +366,10 @@ export function PlayInner({
       }
     } catch (err) {
       console.error(err)
-      logEvent("answer_failed", { punchline_id: round.punchlineId, message: String(err) })
+      logEvent("answer_failed", {
+        punchline_id: round.punchlineId,
+        message: String(err),
+      })
       setSelectedId(null)
     }
   }
@@ -395,7 +433,10 @@ export function PlayInner({
       setClozeOutcome(null)
     } catch (err) {
       console.error(err)
-      logEvent("cloze_failed", { punchline_id: round.punchlineId, message: String(err) })
+      logEvent("cloze_failed", {
+        punchline_id: round.punchlineId,
+        message: String(err),
+      })
     }
   }
 
@@ -432,7 +473,10 @@ export function PlayInner({
       setPhase("revealing")
     } catch (err) {
       console.error(err)
-      logEvent("song_guess_failed", { punchline_id: round.punchlineId, message: String(err) })
+      logEvent("song_guess_failed", {
+        punchline_id: round.punchlineId,
+        message: String(err),
+      })
     }
   }
 
@@ -463,7 +507,10 @@ export function PlayInner({
         },
       })
       if (inOpeningRamp) {
-        openingServedRef.current = [...openingServedRef.current, next.punchlineId]
+        openingServedRef.current = [
+          ...openingServedRef.current,
+          next.punchlineId,
+        ]
       }
       setRound(next)
       resetRoundState()
@@ -507,7 +554,10 @@ export function PlayInner({
     return (
       <div className="relative flex min-h-svh flex-col overflow-hidden">
         <AppHeader streak={streak} artistCtx={artistCtx} playMode={playMode} />
-        <div className="pq-spotlight pointer-events-none absolute inset-0" aria-hidden="true" />
+        <div
+          className="pq-spotlight pointer-events-none absolute inset-0"
+          aria-hidden="true"
+        />
         <main className="relative flex flex-1 flex-col px-5 pt-20 pb-8 md:px-8">
           {/* Claim CTA sits ABOVE the summary, never gating the freely-clickable
               "Play again" inside it (PUN-100 hard constraint). */}
@@ -532,7 +582,10 @@ export function PlayInner({
   // is already recorded in `results`; while guessing it's the next, not-yet-
   // recorded bar. Only advance the counter after the user clicks "Nächste Bar".
   const currentBarRecorded = phase === "revealing" || phase === "loading-next"
-  const currentBar = Math.min(results.length + (currentBarRecorded ? 0 : 1), roundSize)
+  const currentBar = Math.min(
+    results.length + (currentBarRecorded ? 0 : 1),
+    roundSize
+  )
   return (
     <div className="relative flex min-h-svh flex-col overflow-hidden">
       <AppHeader
@@ -541,7 +594,10 @@ export function PlayInner({
         playMode={playMode}
         xpRefreshKey={xpRefreshKey}
       />
-      <div className="pq-spotlight pointer-events-none absolute inset-0" aria-hidden="true" />
+      <div
+        className="pq-spotlight pointer-events-none absolute inset-0"
+        aria-hidden="true"
+      />
 
       <main className="relative flex flex-1 flex-col px-5 pt-20 pb-8 md:px-8">
         <div className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-6">
@@ -576,8 +632,8 @@ export function PlayInner({
                   onClick={onEditClick}
                   disabled={editLoading}
                   className={cn(
-                    "shrink-0 whitespace-nowrap rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-primary",
-                    "hover:bg-primary/20 disabled:opacity-50",
+                    "shrink-0 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[10px] font-bold tracking-[0.16em] whitespace-nowrap text-primary uppercase",
+                    "hover:bg-primary/20 disabled:opacity-50"
                   )}
                 >
                   {editLoading ? "…" : `✎ ${t("play.edit")}`}
@@ -596,7 +652,11 @@ export function PlayInner({
             {xpGrant && <XpGain key={xpGrant.key} xp={xpGrant.grant} />}
             <AnonymousXpCta triggerKey={anonCtaKey} />
             {showHint && firstRunRef.current && results.length === 0 && (
-              <FirstRunHint phase={phase} mode={round.mode} onDismiss={dismissHint} />
+              <FirstRunHint
+                phase={phase}
+                mode={round.mode}
+                onDismiss={dismissHint}
+              />
             )}
             {phase === "guessing" && round.mode === "artist" && (
               <Choices
@@ -619,17 +679,19 @@ export function PlayInner({
                 onSubmit={onSongSubmit}
               />
             )}
-            {phase !== "guessing" && phase !== "song-guessing" && artistResult && (
-              <Reveal
-                mode={round.mode}
-                artistResult={artistResult}
-                songResult={songResult}
-                clozeOutcome={clozeOutcome}
-                onNext={onNext}
-                loading={phase === "loading-next"}
-                isLastRound={isLastRound}
-              />
-            )}
+            {phase !== "guessing" &&
+              phase !== "song-guessing" &&
+              artistResult && (
+                <Reveal
+                  mode={round.mode}
+                  artistResult={artistResult}
+                  songResult={songResult}
+                  clozeOutcome={clozeOutcome}
+                  onNext={onNext}
+                  loading={phase === "loading-next"}
+                  isLastRound={isLastRound}
+                />
+              )}
           </div>
         </div>
       </main>
@@ -647,7 +709,6 @@ export function PlayInner({
     </div>
   )
 }
-
 
 function BarDisplay({
   line,
@@ -683,30 +744,39 @@ function BarDisplay({
     >
       <div className="flex w-full items-center justify-between gap-2">
         <span
-          className="shrink-0 whitespace-nowrap text-xs font-semibold tracking-[0.16em] uppercase text-primary/70"
-          aria-label={t("play.scoreAria", { score: results.filter(Boolean).length, total: roundSize })}
+          className="shrink-0 text-xs font-semibold tracking-[0.16em] whitespace-nowrap text-primary/70 uppercase"
+          aria-label={t("play.scoreAria", {
+            score: results.filter(Boolean).length,
+            total: roundSize,
+          })}
         >
           {t("play.progress", { n: current, total: roundSize })}
         </span>
         <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
-          <RoundProgress total={roundSize} current={current - 1} results={results} />
+          <RoundProgress
+            total={roundSize}
+            current={current - 1}
+            results={results}
+          />
           {adminBadge}
         </div>
       </div>
       <blockquote
-        className="font-extrabold leading-[1.18] tracking-tight text-balance"
+        className="leading-[1.18] font-extrabold tracking-tight text-balance"
         style={{
           fontSize: "clamp(1.6rem, 5.5vw, 2.5rem)",
           animation: shakeKey ? `pq-shake 0.45s ${ease} both` : undefined,
         }}
       >
-        <span className="text-primary/40 select-none mr-1">"</span>
+        <span className="mr-1 text-primary/40 select-none">"</span>
         {renderBarLines(line, filledAnswer ?? null)}
-        <span className="text-primary/40 select-none ml-1">"</span>
+        <span className="ml-1 text-primary/40 select-none">"</span>
       </blockquote>
       <div className="flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <p className="text-sm text-muted-foreground">
-          {mode === "cloze" ? t("play.questionCloze") : t("play.questionArtist")}
+          {mode === "cloze"
+            ? t("play.questionCloze")
+            : t("play.questionArtist")}
         </p>
         <BarCredit handle={submittedByHandle} />
       </div>
@@ -731,7 +801,10 @@ function RoundProgress({
   results: Array<boolean>
 }) {
   return (
-    <span className="flex min-w-0 items-center gap-1 sm:gap-1.5" aria-hidden="true">
+    <span
+      className="flex min-w-0 items-center gap-1 sm:gap-1.5"
+      aria-hidden="true"
+    >
       {Array.from({ length: total }).map((_, i) => {
         const answered = i < results.length
         // Only pulse the on-screen bar while it's still unanswered; once it's
@@ -747,8 +820,8 @@ function RoundProgress({
                   ? "bg-primary"
                   : "bg-muted-foreground/30"
                 : isCurrent
-                  ? "bg-primary/50 animate-pulse"
-                  : "bg-muted-foreground/20",
+                  ? "animate-pulse bg-primary/50"
+                  : "bg-muted-foreground/20"
             )}
           />
         )
@@ -763,7 +836,10 @@ function RoundProgress({
  * `filledAnswer` is provided, the final occurrence of that word gets the
  * gold-pill treatment so the previously-blanked word visibly stands out.
  */
-function renderBarLines(line: string, filledAnswer: string | null): React.ReactNode {
+function renderBarLines(
+  line: string,
+  filledAnswer: string | null
+): React.ReactNode {
   const parts = line.split("/")
   const lastNonEmptyIdx = (() => {
     for (let i = parts.length - 1; i >= 0; i--) {
@@ -798,7 +874,7 @@ function renderFilledAnswer(text: string, answer: string): React.ReactNode {
   return (
     <>
       {m[1]}
-      <span className="inline-block align-baseline px-2 py-0.5 mx-0.5 rounded-md bg-primary/15 text-primary border-b-2 border-primary/80">
+      <span className="mx-0.5 inline-block rounded-md border-b-2 border-primary/80 bg-primary/15 px-2 py-0.5 align-baseline text-primary">
         {m[2]}
       </span>
       {m[3]}
@@ -818,13 +894,13 @@ function renderClozeBlanks(text: string): React.ReactNode {
     /_{3,}/.test(p) ? (
       <span
         key={i}
-        className="inline-block align-baseline mx-1 px-3 py-0.5 rounded-md border-b-2 border-primary/80 bg-primary/10 text-primary/80"
+        className="mx-1 inline-block rounded-md border-b-2 border-primary/80 bg-primary/10 px-3 py-0.5 align-baseline text-primary/80"
       >
         {"____"}
       </span>
     ) : (
       <span key={i}>{p}</span>
-    ),
+    )
   )
 }
 
@@ -858,11 +934,13 @@ function FirstRunHint({
       role="note"
       className={cn(
         "mb-3 flex items-center gap-3 rounded-2xl px-4 py-2.5",
-        "border border-primary/30 bg-primary/5 text-sm text-foreground/90",
+        "border border-primary/30 bg-primary/5 text-sm text-foreground/90"
       )}
       style={{ animation: `pq-fade-up 0.4s ${ease} both` }}
     >
-      <span aria-hidden="true" className="text-primary">↳</span>
+      <span aria-hidden="true" className="text-primary">
+        ↳
+      </span>
       <span className="flex-1 font-medium">{t(key)}</span>
       <button
         type="button"
@@ -882,7 +960,7 @@ function Choices({
   selectedId,
   disabled,
 }: {
-  choices: ArtistChoice[]
+  choices: Array<ArtistChoice>
   onChoose: (c: ArtistChoice) => void
   selectedId: number | null
   disabled: boolean
@@ -902,20 +980,22 @@ function Choices({
             disabled={disabled}
             aria-pressed={isSelected}
             className={cn(
-              "group relative flex items-center gap-3 w-full min-h-14 px-4 py-3 rounded-full",
+              "group relative flex min-h-14 w-full items-center gap-3 rounded-full px-4 py-3",
               "border bg-card/60 text-left text-base font-semibold transition-all",
-              "hover:bg-card hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
-              "disabled:opacity-60 disabled:cursor-not-allowed",
-              isSelected ? "border-primary bg-primary/10" : "border-border/60",
+              "hover:border-primary/40 hover:bg-card focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none",
+              "disabled:cursor-not-allowed disabled:opacity-60",
+              isSelected ? "border-primary bg-primary/10" : "border-border/60"
             )}
-            style={{ animation: `pq-fade-up 0.5s ${ease} ${0.2 + i * 0.07}s both` }}
+            style={{
+              animation: `pq-fade-up 0.5s ${ease} ${0.2 + i * 0.07}s both`,
+            }}
           >
             <ArtistAvatar artist={c} size={36} />
             <span className="flex-1">{c.name}</span>
             <span
               className={cn(
                 "h-2 w-2 rounded-full transition-all",
-                isSelected ? "bg-primary scale-125" : "bg-muted-foreground/30",
+                isSelected ? "scale-125 bg-primary" : "bg-muted-foreground/30"
               )}
               aria-hidden="true"
             />
@@ -932,7 +1012,7 @@ function ClozeInput({
   maxTries,
 }: {
   onSubmit: (guess: string) => void
-  wrongTries: string[]
+  wrongTries: Array<string>
   maxTries: number
 }) {
   const { t } = useTranslation()
@@ -976,10 +1056,16 @@ function ClozeInput({
     >
       <div className="flex items-center justify-between px-1 text-[11px] font-bold tracking-[0.16em] uppercase">
         <span className="text-muted-foreground">
-          {t("play.tryNumber")} <span className="text-foreground">{used + 1}</span>
+          {t("play.tryNumber")}{" "}
+          <span className="text-foreground">{used + 1}</span>
           <span className="opacity-50"> / {maxTries}</span>
         </span>
-        <span aria-live="polite" className={cn(used > 0 ? "text-destructive/80" : "text-muted-foreground/50")}>
+        <span
+          aria-live="polite"
+          className={cn(
+            used > 0 ? "text-destructive/80" : "text-muted-foreground/50"
+          )}
+        >
           {used > 0 ? (
             <>
               {Array.from({ length: maxTries }).map((_, i) => (
@@ -988,7 +1074,7 @@ function ClozeInput({
                   aria-hidden="true"
                   className={cn(
                     "ml-1 inline-block h-1.5 w-3 rounded-sm",
-                    i < used ? "bg-destructive/70" : "bg-muted-foreground/25",
+                    i < used ? "bg-destructive/70" : "bg-muted-foreground/25"
                   )}
                 />
               ))}
@@ -1000,10 +1086,19 @@ function ClozeInput({
       </div>
 
       {lastWrong && (
-        <p className="-mb-1 px-1 text-xs text-muted-foreground" role="status" aria-live="polite">
+        <p
+          className="-mb-1 px-1 text-xs text-muted-foreground"
+          role="status"
+          aria-live="polite"
+        >
           {t("play.notQuite")}
-          <span className="ml-1 line-through text-foreground/70">{lastWrong}</span>
-          <span className="ml-1 opacity-60"> {t("play.stillLeft", { count: remaining })}</span>
+          <span className="ml-1 text-foreground/70 line-through">
+            {lastWrong}
+          </span>
+          <span className="ml-1 opacity-60">
+            {" "}
+            {t("play.stillLeft", { count: remaining })}
+          </span>
         </p>
       )}
 
@@ -1065,22 +1160,24 @@ function SongGuess({
     <div
       className={cn(
         "flex flex-col items-center gap-5 rounded-3xl p-6 text-center",
-        "border border-primary/40 bg-card/40 backdrop-blur-[2px]",
+        "border border-primary/40 bg-card/40 backdrop-blur-[2px]"
       )}
       style={{ animation: `pq-fade-up 0.55s ${ease} both` }}
     >
       <span
         role="status"
         aria-live="polite"
-        className="inline-flex items-center gap-2 text-xs font-bold tracking-[0.16em] uppercase text-primary"
+        className="inline-flex items-center gap-2 text-xs font-bold tracking-[0.16em] text-primary uppercase"
       >
         {t("play.songEyebrow")}
       </span>
 
       <div className="flex flex-col items-center gap-2">
         <ArtistAvatar artist={artist} size={56} />
-        <p className="text-lg font-extrabold leading-tight tracking-tight">{artist.name}</p>
-        <p className="text-sm text-muted-foreground max-w-xs text-balance">
+        <p className="text-lg leading-tight font-extrabold tracking-tight">
+          {artist.name}
+        </p>
+        <p className="max-w-xs text-sm text-balance text-muted-foreground">
           {t("play.songPrompt")}
         </p>
       </div>
@@ -1112,7 +1209,7 @@ function SongGuess({
             variant="ghost"
             onClick={() => submit("")}
             disabled={submitting}
-            className="flex-1 min-h-12 rounded-full text-sm font-bold text-muted-foreground hover:text-foreground"
+            className="min-h-12 flex-1 rounded-full text-sm font-bold text-muted-foreground hover:text-foreground"
           >
             {t("common.skip")}
           </Button>
@@ -1120,7 +1217,7 @@ function SongGuess({
             type="submit"
             size="lg"
             disabled={submitting || value.trim().length === 0}
-            className="flex-[2] cta-glow min-h-12 text-base font-bold"
+            className="cta-glow min-h-12 flex-[2] text-base font-bold"
           >
             {submitting ? "…" : t("common.submit")}
           </Button>
@@ -1157,7 +1254,7 @@ function Reveal({
       mode === "cloze"
         ? clozeVerdictCopy(t, clozeCorrect, songResult ? songCorrect : null)
         : verdictCopy(t, artistCorrect, songResult ? songCorrect : null),
-    [t, mode, artistCorrect, clozeCorrect, songCorrect, songResult],
+    [t, mode, artistCorrect, clozeCorrect, songCorrect, songResult]
   )
   // In cloze mode the artist is pre-known; the win/loss line is the cloze pick
   // (and optionally the bonus song step).
@@ -1169,7 +1266,7 @@ function Reveal({
         className={cn(
           "flex flex-col items-center gap-5 rounded-3xl p-6 text-center",
           "border bg-card/40 backdrop-blur-[2px]",
-          highlight ? "border-primary/40" : "border-border/50",
+          highlight ? "border-primary/40" : "border-border/50"
         )}
         style={{ animation: `pq-fade-up 0.55s ${ease} both` }}
       >
@@ -1178,14 +1275,18 @@ function Reveal({
           aria-live="polite"
           className={cn(
             "inline-flex items-center gap-2 text-xs font-bold tracking-[0.16em] uppercase",
-            highlight ? "text-primary" : "text-muted-foreground",
+            highlight ? "text-primary" : "text-muted-foreground"
           )}
         >
           <span className="opacity-50">/</span>
           {verdict.label}
         </span>
 
-        <AlbumArt artist={artistResult.correctArtist} song={song} highlight={highlight} />
+        <AlbumArt
+          artist={artistResult.correctArtist}
+          song={song}
+          highlight={highlight}
+        />
 
         <div className="flex flex-col items-center gap-1.5">
           {/*
@@ -1199,28 +1300,38 @@ function Reveal({
             <>
               <p
                 className={cn(
-                  "text-xl font-extrabold leading-tight tracking-tight",
-                  songCorrect ? "text-primary" : "text-foreground",
+                  "text-xl leading-tight font-extrabold tracking-tight",
+                  songCorrect ? "text-primary" : "text-foreground"
                 )}
               >
                 {song.title}
               </p>
               <p className="text-sm text-muted-foreground">
-                <span className="text-foreground/80">{artistResult.correctArtist.name}</span>
-                {song.album && <span className="opacity-50"> · {song.album}</span>}
-                {song.releaseYear && <span className="opacity-50"> · {song.releaseYear}</span>}
+                <span className="text-foreground/80">
+                  {artistResult.correctArtist.name}
+                </span>
+                {song.album && (
+                  <span className="opacity-50"> · {song.album}</span>
+                )}
+                {song.releaseYear && (
+                  <span className="opacity-50"> · {song.releaseYear}</span>
+                )}
               </p>
             </>
           ) : (
             <>
-              <p className="text-xl font-extrabold leading-tight tracking-tight">
+              <p className="text-xl leading-tight font-extrabold tracking-tight">
                 {artistResult.correctArtist.name}
               </p>
               {song && (
                 <p className="text-sm text-muted-foreground">
                   <span className="text-foreground/80">{song.title}</span>
-                  {song.album && <span className="opacity-50"> · {song.album}</span>}
-                  {song.releaseYear && <span className="opacity-50"> · {song.releaseYear}</span>}
+                  {song.album && (
+                    <span className="opacity-50"> · {song.album}</span>
+                  )}
+                  {song.releaseYear && (
+                    <span className="opacity-50"> · {song.releaseYear}</span>
+                  )}
                 </p>
               )}
             </>
@@ -1231,7 +1342,9 @@ function Reveal({
           <ClozeAnswerCallout outcome={clozeOutcome} />
         )}
 
-        <p className="text-sm text-muted-foreground/80 max-w-xs text-balance">{verdict.line}</p>
+        <p className="max-w-xs text-sm text-balance text-muted-foreground/80">
+          {verdict.line}
+        </p>
 
         <Button
           size="lg"
@@ -1239,14 +1352,24 @@ function Reveal({
           disabled={loading}
           className={cn("cta-glow mt-1 min-h-12 px-7 text-base font-bold")}
         >
-          {loading ? "…" : isLastRound ? t("play.viewScore") : t("play.nextBar")}
+          {loading
+            ? "…"
+            : isLastRound
+              ? t("play.viewScore")
+              : t("play.nextBar")}
         </Button>
       </div>
     </div>
   )
 }
 
-function ArtistAvatar({ artist, size }: { artist: ArtistChoice; size: number }) {
+function ArtistAvatar({
+  artist,
+  size,
+}: {
+  artist: ArtistChoice
+  size: number
+}) {
   const initials = artist.name
     .split(" ")
     .map((w) => w[0])
@@ -1255,14 +1378,20 @@ function ArtistAvatar({ artist, size }: { artist: ArtistChoice; size: number }) 
     .toUpperCase()
   return (
     <div
-      className="relative shrink-0 overflow-hidden rounded-full border border-border/60 bg-muted/60 flex items-center justify-center"
+      className="relative flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/60 bg-muted/60"
       style={{ width: size, height: size }}
       aria-hidden="true"
     >
       {artist.imageUrl ? (
-        <img src={artist.imageUrl} alt="" className="h-full w-full object-cover" />
+        <img
+          src={artist.imageUrl}
+          alt=""
+          className="h-full w-full object-cover"
+        />
       ) : (
-        <span className="text-[0.7em] font-bold tracking-tight text-foreground/70">{initials}</span>
+        <span className="text-[0.7em] font-bold tracking-tight text-foreground/70">
+          {initials}
+        </span>
       )}
     </div>
   )
@@ -1280,8 +1409,8 @@ function AlbumArt({
   return (
     <div
       className={cn(
-        "relative aspect-square w-32 sm:w-44 overflow-hidden rounded-2xl border",
-        highlight ? "border-primary/50" : "border-border/60",
+        "relative aspect-square w-32 overflow-hidden rounded-2xl border sm:w-44",
+        highlight ? "border-primary/50" : "border-border/60"
       )}
       style={{
         animation: `pq-pop-in 0.6s ${ease} 0.1s both`,
@@ -1298,10 +1427,10 @@ function AlbumArt({
       )}
       {song && !song.albumArtUrl && (
         <div className="absolute inset-0 flex flex-col items-start justify-end p-4">
-          <span className="text-[0.65rem] font-bold uppercase tracking-[0.18em] text-primary/80">
+          <span className="text-[0.65rem] font-bold tracking-[0.18em] text-primary/80 uppercase">
             {artist.name}
           </span>
-          <span className="text-base font-bold leading-tight text-foreground line-clamp-2">
+          <span className="line-clamp-2 text-base leading-tight font-bold text-foreground">
             {song.title}
           </span>
         </div>
@@ -1309,7 +1438,7 @@ function AlbumArt({
       {highlight && (
         <div
           aria-hidden="true"
-          className="absolute inset-0 pointer-events-none"
+          className="pointer-events-none absolute inset-0"
           style={{
             boxShadow:
               "inset 0 0 0 1px color-mix(in oklch, var(--primary), transparent 50%), 0 0 40px color-mix(in oklch, var(--primary), transparent 60%)",
@@ -1338,26 +1467,36 @@ function EmptyArtistState({
   return (
     <div className="relative flex min-h-svh flex-col">
       <AppHeader streak={0} artistCtx={artist} playMode={mode} />
-      <div className="pq-spotlight pointer-events-none absolute inset-0" aria-hidden="true" />
+      <div
+        className="pq-spotlight pointer-events-none absolute inset-0"
+        aria-hidden="true"
+      />
       <main className="relative mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-5 px-6 text-center">
-        <span className="text-xs font-bold tracking-[0.18em] uppercase text-primary/70">
+        <span className="text-xs font-bold tracking-[0.18em] text-primary/70 uppercase">
           {t("play.empty.eyebrow")}
         </span>
         <h1 className="text-2xl font-extrabold tracking-tight">{headline}</h1>
         <p className="max-w-xs text-sm text-muted-foreground">
-          {mode === "cloze" ? t("play.empty.tryClassic") : t("play.empty.moreComing")}
+          {mode === "cloze"
+            ? t("play.empty.tryClassic")
+            : t("play.empty.moreComing")}
         </p>
         <Link
           to="/play"
           search={mode === "cloze" ? { mode: "cloze" } : {}}
           className={cn(
             "cta-glow inline-flex min-h-12 items-center justify-center rounded-full px-7 text-base font-bold",
-            "bg-primary text-primary-foreground hover:bg-primary/90",
+            "bg-primary text-primary-foreground hover:bg-primary/90"
           )}
         >
-          {mode === "cloze" ? t("play.empty.allCloze") : t("play.empty.allArtists")}
+          {mode === "cloze"
+            ? t("play.empty.allCloze")
+            : t("play.empty.allArtists")}
         </Link>
-        <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">
+        <Link
+          to="/"
+          className="text-xs text-muted-foreground hover:text-foreground"
+        >
           {t("play.empty.backToPicker")}
         </Link>
       </main>
@@ -1373,23 +1512,24 @@ function ClozeAnswerCallout({ outcome }: { outcome: ClozeOutcome }) {
         "flex w-full max-w-sm flex-col gap-1 rounded-2xl border px-4 py-3 text-left text-sm",
         outcome.isCorrect
           ? "border-primary/40 bg-primary/5"
-          : "border-destructive/30 bg-destructive/5",
+          : "border-destructive/30 bg-destructive/5"
       )}
     >
-      <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+      <span className="text-[10px] font-bold tracking-[0.16em] text-muted-foreground uppercase">
         {outcome.isCorrect ? t("play.yourAnswer") : t("play.correctAnswer")}
       </span>
       <span
         className={cn(
           "text-base font-extrabold tracking-tight",
-          outcome.isCorrect ? "text-primary" : "text-foreground",
+          outcome.isCorrect ? "text-primary" : "text-foreground"
         )}
       >
         {outcome.isCorrect ? outcome.guess : outcome.correctAnswer}
       </span>
       {!outcome.isCorrect && outcome.guess && (
         <span className="text-xs text-muted-foreground">
-          {t("play.you")}: <span className="line-through opacity-70">{outcome.guess}</span>
+          {t("play.you")}:{" "}
+          <span className="line-through opacity-70">{outcome.guess}</span>
         </span>
       )}
     </div>
@@ -1399,16 +1539,25 @@ function ClozeAnswerCallout({ outcome }: { outcome: ClozeOutcome }) {
 function clozeVerdictCopy(
   t: TFunction,
   clozeCorrect: boolean,
-  songCorrect: boolean | null,
+  songCorrect: boolean | null
 ): { label: string; line: string } {
   if (clozeCorrect && songCorrect === true) {
-    return { label: t("play.verdict.labelBoth"), line: t("play.verdict.clozeBothCorrect") }
+    return {
+      label: t("play.verdict.labelBoth"),
+      line: t("play.verdict.clozeBothCorrect"),
+    }
   }
   if (clozeCorrect && songCorrect === false) {
-    return { label: t("play.verdict.labelHalf"), line: t("play.verdict.clozeCorrectSongWrong") }
+    return {
+      label: t("play.verdict.labelHalf"),
+      line: t("play.verdict.clozeCorrectSongWrong"),
+    }
   }
   if (clozeCorrect) {
-    return { label: t("play.verdict.labelBoth"), line: t("play.verdict.clozeCorrect") }
+    return {
+      label: t("play.verdict.labelBoth"),
+      line: t("play.verdict.clozeCorrect"),
+    }
   }
   return { label: t("play.verdict.labelWrong"), line: t("play.verdict.wrong") }
 }
@@ -1416,16 +1565,25 @@ function clozeVerdictCopy(
 function verdictCopy(
   t: TFunction,
   artistCorrect: boolean,
-  songCorrect: boolean | null,
+  songCorrect: boolean | null
 ): { label: string; line: string } {
   if (artistCorrect && songCorrect === true) {
-    return { label: t("play.verdict.labelBoth"), line: t("play.verdict.bothCorrect") }
+    return {
+      label: t("play.verdict.labelBoth"),
+      line: t("play.verdict.bothCorrect"),
+    }
   }
   if (artistCorrect && songCorrect === false) {
-    return { label: t("play.verdict.labelHalf"), line: t("play.verdict.artistCorrectSongWrong") }
+    return {
+      label: t("play.verdict.labelHalf"),
+      line: t("play.verdict.artistCorrectSongWrong"),
+    }
   }
   if (artistCorrect) {
-    return { label: t("play.verdict.labelBoth"), line: t("play.verdict.artistCorrect") }
+    return {
+      label: t("play.verdict.labelBoth"),
+      line: t("play.verdict.artistCorrect"),
+    }
   }
   return { label: t("play.verdict.labelWrong"), line: t("play.verdict.wrong") }
 }

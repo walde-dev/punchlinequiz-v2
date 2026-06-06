@@ -6,7 +6,8 @@ import { Input } from "@workspace/ui/components/input"
 import { Slider } from "@workspace/ui/components/slider"
 import { cn } from "@workspace/ui/lib/utils"
 
-import { createTag, fetchTags, type TagRow } from "../lib/admin-client"
+import { createTag, fetchTags } from "../lib/admin-client"
+import type { TagRow } from "../lib/admin-client"
 
 export type SelectedTag = { slug: string; label: string; weight: number }
 
@@ -24,12 +25,12 @@ export function TagEditor({
   onChange,
   hint,
 }: {
-  value: SelectedTag[]
-  onChange: (next: SelectedTag[]) => void
+  value: Array<SelectedTag>
+  onChange: (next: Array<SelectedTag>) => void
   hint?: string
 }) {
   const { t } = useTranslation()
-  const [all, setAll] = useState<TagRow[]>([])
+  const [all, setAll] = useState<Array<TagRow>>([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState<string | null>(null)
   const [newLabel, setNewLabel] = useState("")
@@ -58,7 +59,10 @@ export function TagEditor({
     if (selectedSlugs.has(tag.slug)) {
       onChange(value.filter((t) => t.slug !== tag.slug))
     } else {
-      onChange([...value, { slug: tag.slug, label: tag.label, weight: DEFAULT_WEIGHT }])
+      onChange([
+        ...value,
+        { slug: tag.slug, label: tag.label, weight: DEFAULT_WEIGHT },
+      ])
     }
   }
 
@@ -77,12 +81,16 @@ export function TagEditor({
       // optimistic: add to list + select
       setAll((prev) => {
         if (prev.some((t) => t.slug === tag.slug)) return prev
-        return [...prev, { id: tag.id, slug: tag.slug, label: tag.label, artistCount: 0 }].sort(
-          (a, b) => a.label.localeCompare(b.label),
-        )
+        return [
+          ...prev,
+          { id: tag.id, slug: tag.slug, label: tag.label, artistCount: 0 },
+        ].sort((a, b) => a.label.localeCompare(b.label))
       })
       if (!selectedSlugs.has(tag.slug)) {
-        onChange([...value, { slug: tag.slug, label: tag.label, weight: DEFAULT_WEIGHT }])
+        onChange([
+          ...value,
+          { slug: tag.slug, label: tag.label, weight: DEFAULT_WEIGHT },
+        ])
       }
     } catch (e) {
       setErr(String(e))
@@ -97,7 +105,11 @@ export function TagEditor({
 
       {/* picker */}
       <div className="flex flex-wrap gap-1.5">
-        {loading && <span className="text-xs text-muted-foreground">{t("admin.tags.editorLoading")}</span>}
+        {loading && (
+          <span className="text-xs text-muted-foreground">
+            {t("admin.tags.editorLoading")}
+          </span>
+        )}
         {!loading &&
           all.map((tag) => {
             const isOn = selectedSlugs.has(tag.slug)
@@ -107,10 +119,10 @@ export function TagEditor({
                 type="button"
                 onClick={() => toggle(tag)}
                 className={cn(
-                  "rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-colors",
+                  "rounded-full border px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase transition-colors",
                   isOn
                     ? "border-primary/70 bg-primary/15 text-primary"
-                    : "border-border/50 bg-background/40 text-muted-foreground hover:border-border/80 hover:text-foreground",
+                    : "border-border/50 bg-background/40 text-muted-foreground hover:border-border/80 hover:text-foreground"
                 )}
                 title={`${tag.slug}${tag.artistCount > 0 ? ` · ${tag.artistCount} artists` : ""}`}
               >
@@ -125,7 +137,7 @@ export function TagEditor({
         <div className="flex flex-col gap-2 rounded-xl border border-border/40 bg-background/30 p-3">
           {value.map((t) => (
             <div key={t.slug} className="flex items-center gap-3">
-              <span className="w-28 shrink-0 truncate text-[11px] font-semibold uppercase tracking-wide text-primary">
+              <span className="w-28 shrink-0 truncate text-[11px] font-semibold tracking-wide text-primary uppercase">
                 {t.label}
               </span>
               <Slider
@@ -138,7 +150,7 @@ export function TagEditor({
                 }
                 className="flex-1"
               />
-              <span className="w-10 text-right text-[11px] font-mono tabular-nums text-muted-foreground">
+              <span className="w-10 text-right font-mono text-[11px] text-muted-foreground tabular-nums">
                 {t.weight.toFixed(2)}
               </span>
             </div>

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { ImageResponse } from "@vercel/og"
 
-import { absoluteUrl, DEFAULT_OG_IMAGE } from "../../lib/seo"
+import { DEFAULT_OG_IMAGE, absoluteUrl } from "../../lib/seo"
 
 /**
  * Reusable dynamic OG image generator (PUN-105).
@@ -31,9 +31,11 @@ async function loadFigtree(): Promise<ArrayBuffer | null> {
     // invocations; a miss just falls back to the default font.
     const css = await fetch(
       "https://fonts.googleapis.com/css2?family=Figtree:wght@800&display=swap",
-      { headers: { "user-agent": "Mozilla/5.0" } },
+      { headers: { "user-agent": "Mozilla/5.0" } }
     ).then((r) => r.text())
-    const url = css.match(/src:\s*url\(([^)]+)\)\s*format\(['"]?(?:truetype|opentype)['"]?\)/)?.[1]
+    const url = css.match(
+      /src:\s*url\(([^)]+)\)\s*format\(['"]?(?:truetype|opentype)['"]?\)/
+    )?.[1]
     if (!url) return null
     return await fetch(url).then((r) => r.arrayBuffer())
   } catch {
@@ -58,74 +60,92 @@ export const Route = createFileRoute("/api/og")({
 
           const figtree = await loadFigtree()
           const fonts = figtree
-            ? [{ name: "Figtree", data: figtree, weight: 800 as const, style: "normal" as const }]
+            ? [
+                {
+                  name: "Figtree",
+                  data: figtree,
+                  weight: 800 as const,
+                  style: "normal" as const,
+                },
+              ]
             : undefined
 
           const png = await new ImageResponse(
-            (
-              <div
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  padding: 72,
-                  backgroundColor: "#121212",
-                  backgroundImage:
-                    "radial-gradient(900px 600px at 30% 18%, rgba(251,191,36,0.18), rgba(251,191,36,0) 60%), linear-gradient(135deg, #1a1a1a, #0d0d0d)",
-                  color: FG,
-                  fontFamily: fonts ? "Figtree" : "sans-serif",
-                }}
-              >
-                {/* Wordmark */}
-                <div style={{ display: "flex", fontSize: 40, fontWeight: 800 }}>
-                  <span style={{ color: FG }}>punchline</span>
-                  <span style={{ color: GOLD }}>/quiz</span>
-                </div>
+            <div
+              style={{
+                width: "100%",
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                padding: 72,
+                backgroundColor: "#121212",
+                backgroundImage:
+                  "radial-gradient(900px 600px at 30% 18%, rgba(251,191,36,0.18), rgba(251,191,36,0) 60%), linear-gradient(135deg, #1a1a1a, #0d0d0d)",
+                color: FG,
+                fontFamily: fonts ? "Figtree" : "sans-serif",
+              }}
+            >
+              {/* Wordmark */}
+              <div style={{ display: "flex", fontSize: 40, fontWeight: 800 }}>
+                <span style={{ color: FG }}>punchline</span>
+                <span style={{ color: GOLD }}>/quiz</span>
+              </div>
 
-                {/* Hero: optional artist photo + title/subtitle */}
-                <div style={{ display: "flex", alignItems: "center", gap: 40 }}>
-                  {image ? (
-                    <img
-                      src={image}
-                      width={180}
-                      height={180}
+              {/* Hero: optional artist photo + title/subtitle */}
+              <div style={{ display: "flex", alignItems: "center", gap: 40 }}>
+                {image ? (
+                  <img
+                    src={image}
+                    width={180}
+                    height={180}
+                    style={{
+                      width: 180,
+                      height: 180,
+                      borderRadius: 180,
+                      objectFit: "cover",
+                      border: `4px solid ${GOLD}`,
+                    }}
+                  />
+                ) : null}
+                <div
+                  style={{ display: "flex", flexDirection: "column", flex: 1 }}
+                >
+                  {subtitle ? (
+                    <div
                       style={{
-                        width: 180,
-                        height: 180,
-                        borderRadius: 180,
-                        objectFit: "cover",
-                        border: `4px solid ${GOLD}`,
+                        fontSize: 30,
+                        fontWeight: 800,
+                        letterSpacing: 2,
+                        textTransform: "uppercase",
+                        color: GOLD,
+                        marginBottom: 12,
                       }}
-                    />
+                    >
+                      {subtitle}
+                    </div>
                   ) : null}
-                  <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-                    {subtitle ? (
-                      <div
-                        style={{
-                          fontSize: 30,
-                          fontWeight: 800,
-                          letterSpacing: 2,
-                          textTransform: "uppercase",
-                          color: GOLD,
-                          marginBottom: 12,
-                        }}
-                      >
-                        {subtitle}
-                      </div>
-                    ) : null}
-                    <div style={{ fontSize: 84, fontWeight: 800, lineHeight: 1.05 }}>{title}</div>
+                  <div
+                    style={{ fontSize: 84, fontWeight: 800, lineHeight: 1.05 }}
+                  >
+                    {title}
                   </div>
                 </div>
-
-                {/* Footer */}
-                <div style={{ display: "flex", fontSize: 38, fontWeight: 800, color: GOLD }}>
-                  punchlinequiz.de
-                </div>
               </div>
-            ),
-            { width: WIDTH, height: HEIGHT, fonts },
+
+              {/* Footer */}
+              <div
+                style={{
+                  display: "flex",
+                  fontSize: 38,
+                  fontWeight: 800,
+                  color: GOLD,
+                }}
+              >
+                punchlinequiz.de
+              </div>
+            </div>,
+            { width: WIDTH, height: HEIGHT, fonts }
           ).arrayBuffer()
 
           // Materialize to a plain Response so the server handler returns a
@@ -134,7 +154,8 @@ export const Route = createFileRoute("/api/og")({
             headers: {
               "content-type": "image/png",
               // Cache hard per param set — content for a given quiz is stable.
-              "cache-control": "public, max-age=86400, s-maxage=604800, immutable",
+              "cache-control":
+                "public, max-age=86400, s-maxage=604800, immutable",
             },
           })
         } catch {

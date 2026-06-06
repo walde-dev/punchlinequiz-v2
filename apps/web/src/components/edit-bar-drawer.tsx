@@ -11,14 +11,9 @@ import {
 import { Input } from "@workspace/ui/components/input"
 import { Textarea } from "@workspace/ui/components/textarea"
 
-import {
-  patchBar,
-  patchSong,
-  deleteBar,
-  type ArtistRow,
-  type BarRow,
-} from "../lib/admin-client"
+import { deleteBar, patchBar, patchSong } from "../lib/admin-client"
 import { ArtistSelect } from "./artist-select"
+import type { ArtistRow, BarRow } from "../lib/admin-client"
 
 export function EditBarDrawer({
   bar,
@@ -27,7 +22,7 @@ export function EditBarDrawer({
   onSaved,
 }: {
   bar: BarRow
-  artists: ArtistRow[]
+  artists: Array<ArtistRow>
   onClose: () => void
   onSaved: () => void | Promise<void>
 }) {
@@ -35,7 +30,7 @@ export function EditBarDrawer({
   const [line, setLine] = useState(bar.line)
   const [clozePrompt, setClozePrompt] = useState(bar.clozePrompt ?? "")
   const [clozeAnswers, setClozeAnswers] = useState(
-    (bar.perfectSolution ?? []).join(", "),
+    (bar.perfectSolution ?? []).join(", ")
   )
   const [clozeEnabled, setClozeEnabled] = useState(bar.clozeEnabled ?? true)
   const [starter, setStarter] = useState(bar.starter ?? false)
@@ -46,14 +41,14 @@ export function EditBarDrawer({
   const [songTitle, setSongTitle] = useState(bar.songTitle)
   const [album, setAlbum] = useState(bar.songAlbum ?? "")
   const [releaseYear, setReleaseYear] = useState(
-    bar.releaseYear == null ? "" : String(bar.releaseYear),
+    bar.releaseYear == null ? "" : String(bar.releaseYear)
   )
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
   const correctArtist = useMemo(
     () => artists.find((a) => a.id === artistId) ?? null,
-    [artists, artistId],
+    [artists, artistId]
   )
   const correctArtistName = correctArtist?.name ?? bar.artistName
 
@@ -107,7 +102,8 @@ export function EditBarDrawer({
 
   const barPatch = buildBarPatch()
   const songPatch = buildSongPatch()
-  const dirty = Object.keys(barPatch).length > 0 || Object.keys(songPatch).length > 0
+  const dirty =
+    Object.keys(barPatch).length > 0 || Object.keys(songPatch).length > 0
   const conflict = d1 === artistId || d2 === artistId || d1 === d2
 
   async function onSave() {
@@ -145,7 +141,8 @@ export function EditBarDrawer({
 
   async function onHardDelete() {
     const preview = bar.line.slice(0, 80) + (bar.line.length > 80 ? "…" : "")
-    if (!confirm(t("admin.edit.hardDeleteConfirm", { id: bar.id, preview }))) return
+    if (!confirm(t("admin.edit.hardDeleteConfirm", { id: bar.id, preview })))
+      return
     setBusy(true)
     setErr(null)
     try {
@@ -163,11 +160,12 @@ export function EditBarDrawer({
       <DialogContent className="max-w-lg gap-0 overflow-hidden p-0 sm:max-w-lg">
         <div className="flex items-center justify-between border-b border-border/40 px-5 py-3">
           <div className="flex flex-col">
-            <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary/80">
+            <span className="text-[10px] font-bold tracking-[0.18em] text-primary/80 uppercase">
               / {t("admin.edit.title", { id: bar.id })}
             </span>
             <DialogTitle className="text-sm font-semibold">
-              {correctArtistName} <span className="opacity-50">·</span> {bar.songTitle}
+              {correctArtistName} <span className="opacity-50">·</span>{" "}
+              {bar.songTitle}
             </DialogTitle>
           </div>
         </div>
@@ -182,11 +180,11 @@ export function EditBarDrawer({
             />
             <a
               href={`https://genius.com/search?q=${encodeURIComponent(
-                line.replace(/\//g, " ").replace(/\s+/g, " ").trim(),
+                line.replace(/\//g, " ").replace(/\s+/g, " ").trim()
               )}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-1 inline-flex w-fit items-center gap-1 self-start rounded-full border border-border/60 bg-background/40 px-3 py-1 text-[11px] font-bold normal-case tracking-normal text-muted-foreground transition hover:border-primary/50 hover:text-foreground"
+              className="mt-1 inline-flex w-fit items-center gap-1 self-start rounded-full border border-border/60 bg-background/40 px-3 py-1 text-[11px] font-bold tracking-normal text-muted-foreground normal-case transition hover:border-primary/50 hover:text-foreground"
             >
               {t("admin.edit.geniusSearch")}
               <span aria-hidden="true">↗</span>
@@ -224,7 +222,11 @@ export function EditBarDrawer({
           </label>
 
           <Field label={t("admin.edit.correctArtist")}>
-            <ArtistSelect value={artistId} onChange={setArtistId} artists={artists} />
+            <ArtistSelect
+              value={artistId}
+              onChange={setArtistId}
+              artists={artists}
+            />
           </Field>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto]">
@@ -330,7 +332,13 @@ export function EditBarDrawer({
             </Button>
           </div>
           <div className="flex gap-2">
-            <Button type="button" variant="ghost" size="sm" onClick={onClose} disabled={busy}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              disabled={busy}
+            >
               {t("admin.common.cancel")}
             </Button>
             <Button
@@ -348,12 +356,17 @@ export function EditBarDrawer({
   )
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string
+  children: React.ReactNode
+}) {
   return (
-    <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+    <label className="flex flex-col gap-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
       {label}
       {children}
     </label>
   )
 }
-

@@ -18,7 +18,7 @@ export function ArtistGrid({
   artists,
   mode,
 }: {
-  artists: ArtistTile[]
+  artists: Array<ArtistTile>
   mode: "artist" | "cloze"
 }) {
   const total = artists.reduce((n, a) => n + a.punchlineCount, 0)
@@ -37,7 +37,7 @@ export function ArtistGrid({
 
 function searchFor(
   mode: "artist" | "cloze",
-  artistSlug?: string,
+  artistSlug?: string
 ): Record<string, string> {
   const s: Record<string, string> = {}
   if (mode === "cloze") s.mode = "cloze"
@@ -45,7 +45,13 @@ function searchFor(
   return s
 }
 
-function AlleCard({ total, mode }: { total: number; mode: "artist" | "cloze" }) {
+function AlleCard({
+  total,
+  mode,
+}: {
+  total: number
+  mode: "artist" | "cloze"
+}) {
   const { t } = useTranslation()
   return (
     <Link
@@ -54,18 +60,22 @@ function AlleCard({ total, mode }: { total: number; mode: "artist" | "cloze" }) 
       className={cn(
         "group relative flex aspect-square flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl",
         "border border-primary/40 bg-card/40 text-center transition-all",
-        "hover:border-primary hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+        "hover:border-primary hover:bg-card focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
       )}
       style={{
         background:
           "radial-gradient(ellipse 80% 70% at 30% 20%, color-mix(in oklch, var(--primary), transparent 70%) 0%, transparent 70%), linear-gradient(160deg, var(--card), var(--background))",
       }}
     >
-      <span className="text-[10px] font-bold tracking-[0.18em] uppercase text-primary/80">
+      <span className="text-[10px] font-bold tracking-[0.18em] text-primary/80 uppercase">
         {t("artistGrid.allEyebrow")}
       </span>
-      <span className="text-2xl font-extrabold tracking-tight">{t("artistGrid.all")}</span>
-      <span className="text-xs text-muted-foreground tabular-nums">{t("artistGrid.bars", { count: total })}</span>
+      <span className="text-2xl font-extrabold tracking-tight">
+        {t("artistGrid.all")}
+      </span>
+      <span className="text-xs text-muted-foreground tabular-nums">
+        {t("artistGrid.bars", { count: total })}
+      </span>
     </Link>
   )
 }
@@ -87,9 +97,11 @@ function ArtistCard({
       className={cn(
         "group relative flex aspect-square flex-col justify-end overflow-hidden rounded-2xl",
         "border border-border/50 bg-card/40 transition-all",
-        "hover:border-primary/60 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+        "hover:scale-[1.02] hover:border-primary/60 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
       )}
-      style={{ animation: `pq-fade-up 0.5s ${ease} ${0.18 + index * 0.04}s both` }}
+      style={{
+        animation: `pq-fade-up 0.5s ${ease} ${0.18 + index * 0.04}s both`,
+      }}
     >
       {artist.imageUrl ? (
         <img
@@ -102,14 +114,15 @@ function ArtistCard({
         <div className="absolute inset-0 bg-gradient-to-br from-card via-card to-background" />
       )}
       <div
-        className="absolute inset-0 pointer-events-none"
+        className="pointer-events-none absolute inset-0"
         style={{
-          background: "linear-gradient(180deg, transparent 35%, rgba(0,0,0,0.78) 100%)",
+          background:
+            "linear-gradient(180deg, transparent 35%, rgba(0,0,0,0.78) 100%)",
         }}
         aria-hidden="true"
       />
       <div className="relative z-10 flex flex-col gap-0.5 p-3">
-        <span className="text-base font-extrabold leading-tight tracking-tight text-white drop-shadow line-clamp-2">
+        <span className="line-clamp-2 text-base leading-tight font-extrabold tracking-tight text-white drop-shadow">
           {artist.name}
         </span>
         <span className="text-[11px] font-medium text-white/70 tabular-nums">

@@ -1,13 +1,22 @@
 import { createServerFn } from "@tanstack/react-start"
 import { getRequest } from "@tanstack/react-start/server"
 import { desc, eq, sql } from "drizzle-orm"
-import { artists, punchlines, songs, userPunchlineXp, users } from "@workspace/db"
+import {
+  artists,
+  punchlines,
+  songs,
+  userPunchlineXp,
+  users,
+} from "@workspace/db"
 
 import { getActor } from "./auth"
-import { getContributorProfile, type ContributorProfile } from "./contributor"
+import { getContributorProfile } from "./contributor"
 import { db } from "./db"
-import { doFollow, doUnfollow, getFollowCounts, getIsFollowing, type FollowResult } from "./follow"
-import { ensureUser, getProfileSnapshot, levelInfos, loadLevels, type LevelInfo, type ProfileSnapshot } from "./xp"
+import { doFollow, doUnfollow, getFollowCounts, getIsFollowing } from "./follow"
+import { ensureUser, getProfileSnapshot, levelInfos, loadLevels } from "./xp"
+import type { FollowResult } from "./follow"
+import type { ContributorProfile } from "./contributor"
+import type { LevelInfo, ProfileSnapshot } from "./xp"
 
 /**
  * Public profile (`/u/$handle`). Logged-out viewable. The client only ever
@@ -24,7 +33,12 @@ export type TopArtist = {
   solved: number
 }
 
-type ResolvedUser = { clerkId: string; handle: string; avatarKey: string | null; imageUrl: string | null }
+type ResolvedUser = {
+  clerkId: string
+  handle: string
+  avatarKey: string | null
+  imageUrl: string | null
+}
 
 /** Resolve a handle → user via the case-insensitive lower(handle) index. */
 async function resolveHandle(handle: string): Promise<ResolvedUser | null> {
@@ -41,11 +55,19 @@ async function resolveHandle(handle: string): Promise<ResolvedUser | null> {
     .where(sql`lower(${users.handle}) = lower(${h})`)
     .limit(1)
   if (!row || !row.handle) return null
-  return { clerkId: row.clerkId, handle: row.handle, avatarKey: row.avatarKey, imageUrl: row.imageUrl }
+  return {
+    clerkId: row.clerkId,
+    handle: row.handle,
+    avatarKey: row.avatarKey,
+    imageUrl: row.imageUrl,
+  }
 }
 
 /** Top artists for a user by bars-solved count. */
-async function getTopArtists(clerkId: string, limit = 3): Promise<TopArtist[]> {
+async function getTopArtists(
+  clerkId: string,
+  limit = 3
+): Promise<Array<TopArtist>> {
   const rows = await db
     .select({
       id: artists.id,
@@ -84,8 +106,8 @@ export type PublicProfileResult =
       following: number
       profile: ProfileSnapshot
       /** Full rank ladder (threshold-ascending) for the level-progression strip. */
-      allLevels: LevelInfo[]
-      topArtists: TopArtist[]
+      allLevels: Array<LevelInfo>
+      topArtists: Array<TopArtist>
       contributor: ContributorProfile
     }
 
@@ -99,12 +121,21 @@ export const getPublicProfileFn = createServerFn({ method: "GET" })
     const viewerId = await callerClerkId()
     const isOwner = viewerId === target.clerkId
 
-    const [profile, allLevelsRows, topArtists, counts, isFollowing, contributor] = await Promise.all([
+    const [
+      profile,
+      allLevelsRows,
+      topArtists,
+      counts,
+      isFollowing,
+      contributor,
+    ] = await Promise.all([
       getProfileSnapshot(target.clerkId),
       loadLevels(),
       getTopArtists(target.clerkId),
       getFollowCounts(target.clerkId),
-      viewerId && !isOwner ? getIsFollowing(viewerId, target.clerkId) : Promise.resolve(false),
+      viewerId && !isOwner
+        ? getIsFollowing(viewerId, target.clerkId)
+        : Promise.resolve(false),
       getContributorProfile(target.clerkId),
     ])
 
@@ -144,7 +175,10 @@ export const syncProfileImageFn = createServerFn({ method: "POST" })
       .where(eq(users.clerkId, viewerId))
       .limit(1)
     if (row?.imageUrl !== url) {
-      await db.update(users).set({ imageUrl: url }).where(eq(users.clerkId, viewerId))
+      await db
+        .update(users)
+        .set({ imageUrl: url })
+        .where(eq(users.clerkId, viewerId))
     }
     return { ok: true }
   })
@@ -162,7 +196,7 @@ export const getMyHandleFn = createServerFn({ method: "GET" }).handler(
       .where(eq(users.clerkId, viewerId))
       .limit(1)
     return { signedIn: true, handle: row?.handle ?? null }
-  },
+  }
 )
 
 /** Follow by handle (the client knows handles, not clerk ids). Auth-required. */

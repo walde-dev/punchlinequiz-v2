@@ -4,9 +4,9 @@ import { artists, punchlines, songs } from "@workspace/db"
 
 import { db } from "../../../lib/db"
 import {
+  HttpError,
   audit,
   handleError,
-  HttpError,
   json,
   optionalInt,
   optionalString,
@@ -84,60 +84,94 @@ export const Route = createFileRoute("/api/admin/bars/$id")({
           if (body.clozePrompt === null) {
             patch.clozePrompt = null
           } else {
-            const cloze = optionalString(body.clozePrompt, "clozePrompt", { max: 1000 })
+            const cloze = optionalString(body.clozePrompt, "clozePrompt", {
+              max: 1000,
+            })
             if (cloze !== undefined) patch.clozePrompt = cloze
           }
           if (body.active !== undefined) {
             if (typeof body.active !== "boolean")
-              throw new HttpError(400, "invalid_field", "active must be boolean.")
+              throw new HttpError(
+                400,
+                "invalid_field",
+                "active must be boolean."
+              )
             patch.active = body.active
           }
           if (body.reviewed !== undefined) {
             if (typeof body.reviewed !== "boolean")
-              throw new HttpError(400, "invalid_field", "reviewed must be boolean.")
+              throw new HttpError(
+                400,
+                "invalid_field",
+                "reviewed must be boolean."
+              )
             patch.reviewed = body.reviewed
           }
           if (body.clozeEnabled !== undefined) {
             if (typeof body.clozeEnabled !== "boolean")
-              throw new HttpError(400, "invalid_field", "clozeEnabled must be boolean.")
+              throw new HttpError(
+                400,
+                "invalid_field",
+                "clozeEnabled must be boolean."
+              )
             patch.clozeEnabled = body.clozeEnabled
           }
           if (body.starter !== undefined) {
             if (typeof body.starter !== "boolean")
-              throw new HttpError(400, "invalid_field", "starter must be boolean.")
+              throw new HttpError(
+                400,
+                "invalid_field",
+                "starter must be boolean."
+              )
             patch.starter = body.starter
           }
-          const perfect = optionalStringArray(body.perfectSolution, "perfectSolution")
+          const perfect = optionalStringArray(
+            body.perfectSolution,
+            "perfectSolution"
+          )
           if (perfect !== undefined) patch.perfectSolution = perfect
           if (Array.isArray(body.acceptableSolutions)) {
-            patch.acceptableSolutions = (body.acceptableSolutions as unknown[]).map(
-              (arr, i) => optionalStringArray(arr, `acceptableSolutions[${i}]`) ?? [],
+            patch.acceptableSolutions = (
+              body.acceptableSolutions as Array<unknown>
+            ).map(
+              (arr, i) =>
+                optionalStringArray(arr, `acceptableSolutions[${i}]`) ?? []
             )
           }
-          const d1 = optionalInt(body.distractor1Id, "distractor1Id", { min: 1 })
+          const d1 = optionalInt(body.distractor1Id, "distractor1Id", {
+            min: 1,
+          })
           if (d1 !== undefined) patch.distractor1Id = d1
-          const d2 = optionalInt(body.distractor2Id, "distractor2Id", { min: 1 })
+          const d2 = optionalInt(body.distractor2Id, "distractor2Id", {
+            min: 1,
+          })
           if (d2 !== undefined) patch.distractor2Id = d2
 
-          const nextD1 = (patch.distractor1Id as number | undefined) ?? bar.distractor1Id
-          const nextD2 = (patch.distractor2Id as number | undefined) ?? bar.distractor2Id
+          const nextD1 =
+            (patch.distractor1Id as number | undefined) ?? bar.distractor1Id
+          const nextD2 =
+            (patch.distractor2Id as number | undefined) ?? bar.distractor2Id
           if (nextD1 === bar.artistId || nextD2 === bar.artistId) {
             throw new HttpError(
               400,
               "distractor_conflict",
-              "Distractors must differ from the correct artist.",
+              "Distractors must differ from the correct artist."
             )
           }
           if (nextD1 === nextD2) {
             throw new HttpError(
               400,
               "distractor_conflict",
-              "Distractors must be two different artists.",
+              "Distractors must be two different artists."
             )
           }
 
           if (Object.keys(patch).length === 0)
-            throw new HttpError(400, "empty_patch", "Provide at least one field to update.")
+            throw new HttpError(
+              400,
+              "empty_patch",
+              "Provide at least one field to update."
+            )
 
           const [updated] = await db
             .update(punchlines)
@@ -164,7 +198,10 @@ export const Route = createFileRoute("/api/admin/bars/$id")({
             audit("delete_bar", { id, hard: true }, actor)
             return json({ deleted: true, hard: true })
           }
-          await db.update(punchlines).set({ active: false }).where(eq(punchlines.id, id))
+          await db
+            .update(punchlines)
+            .set({ active: false })
+            .where(eq(punchlines.id, id))
           audit("delete_bar", { id, hard: false }, actor)
           return json({ deleted: true, hard: false })
         } catch (err) {

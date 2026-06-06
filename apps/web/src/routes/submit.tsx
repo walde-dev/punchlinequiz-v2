@@ -1,6 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { Link, createFileRoute } from "@tanstack/react-router"
 import { SignInButton, useAuth } from "@clerk/tanstack-react-start"
-import { useState, type ReactNode } from "react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@workspace/ui/components/button"
@@ -12,8 +12,12 @@ import { AppHeader } from "../components/app-header"
 import { noindexSeo } from "../lib/seo"
 import { submitBarFn } from "../lib/submissions"
 import { logEvent } from "../lib/track"
+import type { ReactNode } from "react"
 
-export const Route = createFileRoute("/submit")({ component: SubmitPage, head: () => noindexSeo() })
+export const Route = createFileRoute("/submit")({
+  component: SubmitPage,
+  head: () => noindexSeo(),
+})
 
 const ease = "cubic-bezier(0.16, 1, 0.3, 1)"
 
@@ -22,7 +26,10 @@ function SubmitPage() {
   return (
     <div className="relative flex min-h-svh flex-col overflow-hidden">
       <AppHeader />
-      <div className="pq-spotlight pointer-events-none absolute inset-0" aria-hidden="true" />
+      <div
+        className="pq-spotlight pointer-events-none absolute inset-0"
+        aria-hidden="true"
+      />
       {isSignedIn ? <SubmitForm /> : <AnonPitch />}
     </div>
   )
@@ -32,13 +39,29 @@ function AnonPitch() {
   const { t } = useTranslation()
   return (
     <main className="relative mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-6 px-6 text-center">
-      <span className="text-xs font-bold uppercase tracking-[0.18em] text-primary/70">{t("submit.eyebrow")}</span>
-      <h1 className="text-3xl font-extrabold tracking-tight text-balance">{t("submit.anonTitle")}</h1>
-      <p className="max-w-xs text-sm text-muted-foreground text-balance">{t("submit.anonBody")}</p>
+      <span className="text-xs font-bold tracking-[0.18em] text-primary/70 uppercase">
+        {t("submit.eyebrow")}
+      </span>
+      <h1 className="text-3xl font-extrabold tracking-tight text-balance">
+        {t("submit.anonTitle")}
+      </h1>
+      <p className="max-w-xs text-sm text-balance text-muted-foreground">
+        {t("submit.anonBody")}
+      </p>
       <SignInButton mode="modal">
-        <Button size="lg" className="cta-glow min-h-12 px-8 text-base font-bold">{t("submit.cta")}</Button>
+        <Button
+          size="lg"
+          className="cta-glow min-h-12 px-8 text-base font-bold"
+        >
+          {t("submit.cta")}
+        </Button>
       </SignInButton>
-      <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">←</Link>
+      <Link
+        to="/"
+        className="text-xs text-muted-foreground hover:text-foreground"
+      >
+        ←
+      </Link>
     </main>
   )
 }
@@ -99,7 +122,11 @@ function SubmitForm() {
         logEvent("submission_rate_limited", { reason: "cooldown" })
         setError(t("submit.cooldown", { seconds: res.retryAfterSeconds }))
       } else if (res.reason === "pending_cap") {
-        logEvent("submission_rate_limited", { reason: "pending_cap", cap: res.cap, tier: res.tier })
+        logEvent("submission_rate_limited", {
+          reason: "pending_cap",
+          cap: res.cap,
+          tier: res.tier,
+        })
         setError(t("submit.pendingCap", { cap: res.cap }))
       } else {
         setError(t("submit.error"))
@@ -114,11 +141,22 @@ function SubmitForm() {
   if (done) {
     return (
       <main className="relative mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-6 px-6 text-center">
-        <h1 className="text-3xl font-extrabold tracking-tight">{t("submit.successTitle")}</h1>
-        <p className="max-w-xs text-sm text-muted-foreground text-balance">{t("submit.successBody")}</p>
+        <h1 className="text-3xl font-extrabold tracking-tight">
+          {t("submit.successTitle")}
+        </h1>
+        <p className="max-w-xs text-sm text-balance text-muted-foreground">
+          {t("submit.successBody")}
+        </p>
         <div className="flex flex-col items-center gap-2">
-          <Button onClick={reset} className="cta-glow min-h-11 px-6 font-bold">{t("submit.another")}</Button>
-          <Link to="/profile" className="text-xs text-muted-foreground hover:text-foreground">{t("submit.viewMine")}</Link>
+          <Button onClick={reset} className="cta-glow min-h-11 px-6 font-bold">
+            {t("submit.another")}
+          </Button>
+          <Link
+            to="/profile"
+            className="text-xs text-muted-foreground hover:text-foreground"
+          >
+            {t("submit.viewMine")}
+          </Link>
         </div>
       </main>
     )
@@ -126,10 +164,19 @@ function SubmitForm() {
 
   return (
     <main className="relative mx-auto flex w-full max-w-xl flex-1 flex-col gap-6 px-5 pt-20 pb-12 md:px-8">
-      <header className="flex flex-col items-center gap-2 text-center" style={{ animation: `pq-fade-up 0.5s ${ease} both` }}>
-        <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-primary/80">{t("submit.eyebrow")}</span>
-        <h1 className="text-3xl font-extrabold tracking-tight">{t("submit.title")}</h1>
-        <p className="max-w-sm text-sm text-muted-foreground text-balance">{t("submit.subtitle")}</p>
+      <header
+        className="flex flex-col items-center gap-2 text-center"
+        style={{ animation: `pq-fade-up 0.5s ${ease} both` }}
+      >
+        <span className="text-[10px] font-bold tracking-[0.22em] text-primary/80 uppercase">
+          {t("submit.eyebrow")}
+        </span>
+        <h1 className="text-3xl font-extrabold tracking-tight">
+          {t("submit.title")}
+        </h1>
+        <p className="max-w-sm text-sm text-balance text-muted-foreground">
+          {t("submit.subtitle")}
+        </p>
       </header>
 
       <form
@@ -141,7 +188,9 @@ function SubmitForm() {
         style={{ animation: `pq-fade-up 0.5s ${ease} 0.08s both` }}
       >
         <label className="flex flex-col gap-1.5">
-          <span className="text-[11px] font-bold uppercase tracking-wide text-primary/80">{t("submit.lineLabel")}</span>
+          <span className="text-[11px] font-bold tracking-wide text-primary/80 uppercase">
+            {t("submit.lineLabel")}
+          </span>
           <Textarea
             value={line}
             onChange={(e) => setLine(e.target.value)}
@@ -155,23 +204,53 @@ function SubmitForm() {
         <button
           type="button"
           onClick={() => setShowOptional((v) => !v)}
-          className="flex items-center gap-2 self-start text-xs font-bold uppercase tracking-wide text-muted-foreground hover:text-foreground"
+          className="flex items-center gap-2 self-start text-xs font-bold tracking-wide text-muted-foreground uppercase hover:text-foreground"
         >
-          <span className={cn("transition-transform", showOptional && "rotate-90")}>›</span>
+          <span
+            className={cn("transition-transform", showOptional && "rotate-90")}
+          >
+            ›
+          </span>
           {t("submit.optionalToggle")}
         </button>
 
         {showOptional && (
           <div className="flex flex-col gap-5 rounded-2xl border border-border/40 bg-card/30 p-4">
-            <OptGroup title={t("submit.groupMcTitle")} hint={t("submit.groupMcHint")}>
-              <OptField label={t("submit.artistHint")} value={artistHint} onChange={setArtistHint} />
-              <OptField label={t("submit.songHint")} value={songHint} onChange={setSongHint} />
+            <OptGroup
+              title={t("submit.groupMcTitle")}
+              hint={t("submit.groupMcHint")}
+            >
+              <OptField
+                label={t("submit.artistHint")}
+                value={artistHint}
+                onChange={setArtistHint}
+              />
+              <OptField
+                label={t("submit.songHint")}
+                value={songHint}
+                onChange={setSongHint}
+              />
             </OptGroup>
-            <OptGroup title={t("submit.groupClozeTitle")} hint={t("submit.groupClozeHint")}>
-              <OptField label={t("submit.answer")} value={answer} onChange={setAnswer} />
-              <OptField label={t("submit.clozePrompt")} value={clozePrompt} onChange={setClozePrompt} />
+            <OptGroup
+              title={t("submit.groupClozeTitle")}
+              hint={t("submit.groupClozeHint")}
+            >
+              <OptField
+                label={t("submit.answer")}
+                value={answer}
+                onChange={setAnswer}
+              />
+              <OptField
+                label={t("submit.clozePrompt")}
+                value={clozePrompt}
+                onChange={setClozePrompt}
+              />
             </OptGroup>
-            <OptField label={t("submit.note")} value={note} onChange={setNote} />
+            <OptField
+              label={t("submit.note")}
+              value={note}
+              onChange={setNote}
+            />
           </div>
         )}
 
@@ -190,21 +269,41 @@ function SubmitForm() {
   )
 }
 
-function OptGroup({ title, hint, children }: { title: string; hint: string; children: ReactNode }) {
+function OptGroup({
+  title,
+  hint,
+  children,
+}: {
+  title: string
+  hint: string
+  children: ReactNode
+}) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-0.5">
-        <span className="text-[11px] font-bold uppercase tracking-wide text-primary/80">{title}</span>
-        <span className="text-xs font-medium text-muted-foreground">{hint}</span>
+        <span className="text-[11px] font-bold tracking-wide text-primary/80 uppercase">
+          {title}
+        </span>
+        <span className="text-xs font-medium text-muted-foreground">
+          {hint}
+        </span>
       </div>
       {children}
     </div>
   )
 }
 
-function OptField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+function OptField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+}) {
   return (
-    <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+    <label className="flex flex-col gap-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
       {label}
       <Input value={value} onChange={(e) => onChange(e.target.value)} />
     </label>

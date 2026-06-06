@@ -86,7 +86,11 @@ async function deezerFetch(path: string): Promise<unknown> {
       clearTimeout(t)
       if (res.status === 429) {
         const wait = Math.min(500 * 2 ** (attempt - 1), 5000)
-        audit("artwork_rate_limited", { provider: "deezer", retry_after_ms: wait, attempt })
+        audit("artwork_rate_limited", {
+          provider: "deezer",
+          retry_after_ms: wait,
+          attempt,
+        })
         await new Promise((r) => setTimeout(r, wait))
         continue
       }
@@ -100,7 +104,11 @@ async function deezerFetch(path: string): Promise<unknown> {
         // code 4 = quota, code 700 = service busy — retryable
         if (err.code === 4 || err.code === 700) {
           const wait = Math.min(500 * 2 ** (attempt - 1), 5000)
-          audit("artwork_rate_limited", { provider: "deezer", retry_after_ms: wait, attempt })
+          audit("artwork_rate_limited", {
+            provider: "deezer",
+            retry_after_ms: wait,
+            attempt,
+          })
           await new Promise((r) => setTimeout(r, wait))
           continue
         }
@@ -120,16 +128,27 @@ async function deezerFetch(path: string): Promise<unknown> {
 
 // --- Public surface ---
 
-export async function searchArtist(name: string): Promise<DeezerArtistMatch | null> {
-  audit("artwork_resolve_attempted", { provider: "deezer", kind: "artist", query: name })
+export async function searchArtist(
+  name: string
+): Promise<DeezerArtistMatch | null> {
+  audit("artwork_resolve_attempted", {
+    provider: "deezer",
+    kind: "artist",
+    query: name,
+  })
   try {
     const body = (await deezerFetch(
-      `/search/artist?q=${encodeURIComponent(name)}&limit=5`,
+      `/search/artist?q=${encodeURIComponent(name)}&limit=5`
     )) as { data?: Array<Record<string, unknown>> }
     const hits = body.data ?? []
-    const hit = hits.find((h) => nameMatches(name, String(h.name ?? ""))) ?? hits[0]
+    const hit =
+      hits.find((h) => nameMatches(name, String(h.name ?? ""))) ?? hits[0]
     if (!hit) {
-      audit("artwork_resolve_miss", { provider: "deezer", kind: "artist", query: name })
+      audit("artwork_resolve_miss", {
+        provider: "deezer",
+        kind: "artist",
+        query: name,
+      })
       return null
     }
     const match: DeezerArtistMatch = {
@@ -157,19 +176,23 @@ export async function searchArtist(name: string): Promise<DeezerArtistMatch | nu
 
 export async function searchTrack(
   artistName: string,
-  title: string,
+  title: string
 ): Promise<DeezerTrackMatch | null> {
   const q = `artist:"${artistName}" track:"${title}"`
-  audit("artwork_resolve_attempted", { provider: "deezer", kind: "track", query: q })
+  audit("artwork_resolve_attempted", {
+    provider: "deezer",
+    kind: "track",
+    query: q,
+  })
   try {
     const body = (await deezerFetch(
-      `/search?q=${encodeURIComponent(q)}&limit=5`,
+      `/search?q=${encodeURIComponent(q)}&limit=5`
     )) as { data?: Array<Record<string, unknown>> }
     let hits = body.data ?? []
     if (hits.length === 0) {
       // Fallback to a loose search; Deezer's strict syntax misses some entries.
       const loose = (await deezerFetch(
-        `/search?q=${encodeURIComponent(`${artistName} ${title}`)}&limit=5`,
+        `/search?q=${encodeURIComponent(`${artistName} ${title}`)}&limit=5`
       )) as { data?: Array<Record<string, unknown>> }
       hits = loose.data ?? []
     }
@@ -182,7 +205,11 @@ export async function searchTrack(
         )
       }) ?? hits[0]
     if (!hit) {
-      audit("artwork_resolve_miss", { provider: "deezer", kind: "track", query: q })
+      audit("artwork_resolve_miss", {
+        provider: "deezer",
+        kind: "track",
+        query: q,
+      })
       return null
     }
     const album = (hit.album as Record<string, unknown> | undefined) ?? {}
@@ -227,12 +254,12 @@ export type DeezerTrackSearchHit = {
 /** Live search for the admin combobox — multiple ranked candidates. */
 export async function searchArtistsList(
   query: string,
-  limit = 8,
-): Promise<DeezerArtistMatch[]> {
+  limit = 8
+): Promise<Array<DeezerArtistMatch>> {
   if (!query.trim()) return []
   try {
     const body = (await deezerFetch(
-      `/search/artist?q=${encodeURIComponent(query)}&limit=${limit}`,
+      `/search/artist?q=${encodeURIComponent(query)}&limit=${limit}`
     )) as { data?: Array<Record<string, unknown>> }
     return (body.data ?? []).map((a) => ({
       id: String(a.id),
@@ -246,12 +273,12 @@ export async function searchArtistsList(
 
 export async function searchTracksList(
   query: string,
-  limit = 8,
-): Promise<DeezerTrackSearchHit[]> {
+  limit = 8
+): Promise<Array<DeezerTrackSearchHit>> {
   if (!query.trim()) return []
   try {
     const body = (await deezerFetch(
-      `/search?q=${encodeURIComponent(query)}&limit=${limit}`,
+      `/search?q=${encodeURIComponent(query)}&limit=${limit}`
     )) as { data?: Array<Record<string, unknown>> }
     return (body.data ?? []).map((h) => {
       const album = (h.album as Record<string, unknown> | undefined) ?? {}
@@ -260,7 +287,7 @@ export async function searchTracksList(
         typeof album.release_date === "string"
           ? album.release_date
           : typeof h.release_date === "string"
-            ? (h.release_date as string)
+            ? h.release_date
             : ""
       const year = releaseDate ? Number(releaseDate.slice(0, 4)) : null
       return {
@@ -279,9 +306,13 @@ export async function searchTracksList(
   }
 }
 
-export async function getArtistById(id: string): Promise<DeezerArtistMatch | null> {
+export async function getArtistById(
+  id: string
+): Promise<DeezerArtistMatch | null> {
   try {
-    const body = (await deezerFetch(`/artist/${encodeURIComponent(id)}`)) as Record<string, unknown>
+    const body = (await deezerFetch(
+      `/artist/${encodeURIComponent(id)}`
+    )) as Record<string, unknown>
     if (!body || !body.id) return null
     return {
       id: String(body.id),
@@ -300,10 +331,14 @@ export async function getArtistById(id: string): Promise<DeezerArtistMatch | nul
 }
 
 export async function getTrackById(
-  id: string,
-): Promise<(DeezerTrackMatch & { releaseYear: number | null; albumTitle: string }) | null> {
+  id: string
+): Promise<
+  (DeezerTrackMatch & { releaseYear: number | null; albumTitle: string }) | null
+> {
   try {
-    const body = (await deezerFetch(`/track/${encodeURIComponent(id)}`)) as Record<string, unknown>
+    const body = (await deezerFetch(
+      `/track/${encodeURIComponent(id)}`
+    )) as Record<string, unknown>
     if (!body || !body.id) return null
     const album = (body.album as Record<string, unknown> | undefined) ?? {}
     const artist = (body.artist as Record<string, unknown> | undefined) ?? {}

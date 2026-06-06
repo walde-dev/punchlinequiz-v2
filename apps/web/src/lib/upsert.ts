@@ -12,8 +12,8 @@ export type UpsertBarInput = {
   distractor2: string
   album?: string
   releaseYear?: number
-  perfectSolution?: string[]
-  acceptableSolutions?: string[][]
+  perfectSolution?: Array<string>
+  acceptableSolutions?: Array<Array<string>>
 }
 
 export type UpsertResult = {
@@ -39,14 +39,16 @@ type ArtistRow = typeof artists.$inferSelect
 
 /** Resolve an artist by name (case-insensitive) or slug; auto-create if missing. */
 export async function resolveOrCreateArtist(
-  name: string,
+  name: string
 ): Promise<{ row: ArtistRow; created: boolean }> {
   const slug = slugify(name)
   const existing = (
     await db
       .select()
       .from(artists)
-      .where(sql`lower(${artists.name}) = lower(${name}) or ${artists.slug} = ${slug}`)
+      .where(
+        sql`lower(${artists.name}) = lower(${name}) or ${artists.slug} = ${slug}`
+      )
       .limit(1)
   )[0]
   if (existing) return { row: existing, created: false }
@@ -54,11 +56,22 @@ export async function resolveOrCreateArtist(
   let candidate = slug || `artist-${Date.now()}`
   let attempt = 0
   while (
-    (await db.select().from(artists).where(eq(artists.slug, candidate)).limit(1)).length > 0
+    (
+      await db
+        .select()
+        .from(artists)
+        .where(eq(artists.slug, candidate))
+        .limit(1)
+    ).length > 0
   ) {
     attempt += 1
     candidate = `${slug}-${attempt}`
-    if (attempt > 50) throw new HttpError(500, "slug_collision", "Could not generate unique slug.")
+    if (attempt > 50)
+      throw new HttpError(
+        500,
+        "slug_collision",
+        "Could not generate unique slug."
+      )
   }
   const art = await searchArtist(name)
   const [created] = await db
@@ -87,11 +100,15 @@ export async function upsertBar(input: UpsertBarInput): Promise<UpsertResult> {
     throw new HttpError(
       400,
       "distractor_conflict",
-      "Distractors must differ from the correct artist.",
+      "Distractors must differ from the correct artist."
     )
   }
   if (d1.row.id === d2.row.id) {
-    throw new HttpError(400, "distractor_conflict", "Distractors must be two different artists.")
+    throw new HttpError(
+      400,
+      "distractor_conflict",
+      "Distractors must be two different artists."
+    )
   }
 
   let songRow = (
@@ -99,7 +116,10 @@ export async function upsertBar(input: UpsertBarInput): Promise<UpsertResult> {
       .select()
       .from(songs)
       .where(
-        and(eq(songs.artistId, artistRow.id), sql`lower(${songs.title}) = lower(${input.song})`),
+        and(
+          eq(songs.artistId, artistRow.id),
+          sql`lower(${songs.title}) = lower(${input.song})`
+        )
       )
       .limit(1)
   )[0]
@@ -132,16 +152,21 @@ export async function upsertBar(input: UpsertBarInput): Promise<UpsertResult> {
       .where(
         and(
           eq(punchlines.songId, songRow.id),
-          sql`lower(regexp_replace(trim(${punchlines.line}), '\\s+', ' ', 'g')) = ${normalized}`,
-        ),
+          sql`lower(regexp_replace(trim(${punchlines.line}), '\\s+', ' ', 'g')) = ${normalized}`
+        )
       )
       .limit(1)
   )[0]
 
   if (existing) {
-    throw new HttpError(409, "duplicate_line", "This bar already exists for this song.", {
-      existingId: existing.id,
-    })
+    throw new HttpError(
+      409,
+      "duplicate_line",
+      "This bar already exists for this song.",
+      {
+        existingId: existing.id,
+      }
+    )
   }
 
   const [bar] = await db

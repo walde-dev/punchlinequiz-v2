@@ -37,11 +37,12 @@ export function Confetti({ trigger }: { trigger: number }) {
 
     // Pull the brand gold from CSS tokens so the burst tracks --primary, not a hex literal.
     const styles = getComputedStyle(document.documentElement)
-    const primary = styles.getPropertyValue("--primary").trim() || "oklch(0.795 0.184 86.047)"
+    const primary =
+      styles.getPropertyValue("--primary").trim() || "oklch(0.795 0.184 86.047)"
     const fg = styles.getPropertyValue("--foreground").trim() || "#ffffff"
     const colors = [primary, primary, fg]
     const count = 90
-    const particles: Particle[] = []
+    const particles: Array<Particle> = []
     const cx = canvas.offsetWidth / 2
     const cy = canvas.offsetHeight / 2.2
 

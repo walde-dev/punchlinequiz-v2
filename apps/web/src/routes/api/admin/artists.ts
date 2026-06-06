@@ -4,9 +4,9 @@ import { artistTags, artists, tags } from "@workspace/db"
 
 import { db } from "../../../lib/db"
 import {
+  HttpError,
   audit,
   handleError,
-  HttpError,
   json,
   readJsonBody,
   requireString,
@@ -22,11 +22,15 @@ export const Route = createFileRoute("/api/admin/artists")({
           await requireAdmin(request)
           const url = new URL(request.url)
           const q = url.searchParams.get("q")?.trim()
-          const includeInactive = url.searchParams.get("includeInactive") === "true"
+          const includeInactive =
+            url.searchParams.get("includeInactive") === "true"
 
           const conds = []
           if (!includeInactive) conds.push(eq(artists.active, true))
-          if (q) conds.push(or(ilike(artists.name, `%${q}%`), ilike(artists.slug, `%${q}%`))!)
+          if (q)
+            conds.push(
+              or(ilike(artists.name, `%${q}%`), ilike(artists.slug, `%${q}%`))!
+            )
 
           const rows = await db
             .select({
@@ -48,7 +52,7 @@ export const Route = createFileRoute("/api/admin/artists")({
             .select({ artistId: artistTags.artistId, slug: tags.slug })
             .from(artistTags)
             .innerJoin(tags, eq(tags.id, artistTags.tagId))
-          const tagsByArtist = new Map<number, string[]>()
+          const tagsByArtist = new Map<number, Array<string>>()
           for (const t of tagRows) {
             const list = tagsByArtist.get(t.artistId) ?? []
             list.push(t.slug)
@@ -74,13 +78,20 @@ export const Route = createFileRoute("/api/admin/artists")({
           // Optional: attach tags on create. `tags` is an array of {slug, weight}.
           let tagCount = 0
           if (Array.isArray(body.tags) && body.tags.length > 0) {
-            const wantSlugs: string[] = []
+            const wantSlugs: Array<string> = []
             const weightBySlug = new Map<string, number>()
-            for (const t of body.tags as Array<{ slug?: string; weight?: number }>) {
+            for (const t of body.tags as Array<{
+              slug?: string
+              weight?: number
+            }>) {
               if (!t.slug) continue
               const w = typeof t.weight === "number" ? t.weight : 1
               if (!Number.isFinite(w) || w < 0 || w > 1) {
-                throw new HttpError(400, "invalid_field", "weight must be a number in [0, 1].")
+                throw new HttpError(
+                  400,
+                  "invalid_field",
+                  "weight must be a number in [0, 1]."
+                )
               }
               wantSlugs.push(t.slug)
               weightBySlug.set(t.slug, w)
@@ -93,7 +104,11 @@ export const Route = createFileRoute("/api/admin/artists")({
               const known = new Set(rows.map((r) => r.slug))
               const missing = wantSlugs.filter((s) => !known.has(s))
               if (missing.length > 0) {
-                throw new HttpError(400, "unknown_tag", `Unknown tag slugs: ${missing.join(", ")}`)
+                throw new HttpError(
+                  400,
+                  "unknown_tag",
+                  `Unknown tag slugs: ${missing.join(", ")}`
+                )
               }
               if (rows.length > 0) {
                 await db
@@ -103,7 +118,7 @@ export const Route = createFileRoute("/api/admin/artists")({
                       artistId: row.id,
                       tagId: r.id,
                       weight: weightBySlug.get(r.slug)!,
-                    })),
+                    }))
                   )
                   .onConflictDoNothing()
                 tagCount = rows.length
@@ -118,7 +133,7 @@ export const Route = createFileRoute("/api/admin/artists")({
               name: row.name,
               tags: tagCount,
             },
-            actor,
+            actor
           )
           return json(
             {
@@ -130,7 +145,7 @@ export const Route = createFileRoute("/api/admin/artists")({
               created,
               tagCount,
             },
-            created ? 201 : 200,
+            created ? 201 : 200
           )
         } catch (err) {
           return handleError(err)

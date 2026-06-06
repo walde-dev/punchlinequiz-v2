@@ -65,6 +65,32 @@ Keep the edge light: punch at the *lack of knowledge*, never at the user. A litt
 
 ---
 
+# Quality Gates — RUN BEFORE DECLARING WORK DONE
+
+CI (`.github/workflows/ci.yml`) runs four gates on every PR and push to `main`.
+Run them locally before you say a change is finished — they're cheap and catch
+what's easy to miss:
+
+```bash
+pnpm typecheck && pnpm lint && pnpm test && pnpm build
+```
+
+- **typecheck / lint / build** cover all three packages via turbo. Build needs no
+  secrets (`apps/web/src/lib/db.ts` is inert on import).
+- **test** = Vitest unit tests. Keep the game's correctness core
+  (answer-matching, scoring/XP) in **side-effect-free modules**
+  (`apps/web/src/lib/answer-matching.ts`, `scoring.ts`) and test them there — no
+  DB, no server-fn, no Vite plugin. Anything needing the DB/server belongs in the
+  Playwright smoke (`apps/web/e2e/`), not Vitest. When you add or change pure
+  game logic, add/extend a `*.test.ts` next to it.
+
+Lint policy (see `apps/web/eslint.config.js`): the no-hand-rolled-UI guardrail
+and `react-hooks/rules-of-hooks` are hard **errors**; `no-unnecessary-condition`
+is off (it would strip real null-guards); `exhaustive-deps` is a warning.
+Warnings don't fail CI — don't add new errors. Full reference: `docs/ci.md`.
+
+---
+
 # Logging Rules
 
 ## Always Aggressive Log

@@ -1,10 +1,11 @@
 import { createServerFn } from "@tanstack/react-start"
 import { getRequest } from "@tanstack/react-start/server"
 import { and, desc, eq, isNull, sql } from "drizzle-orm"
-import { challenges, referrals, users, type XpConfig } from "@workspace/db"
+import { challenges, referrals, users } from "@workspace/db"
 
 import { getActor } from "./auth"
 import { db } from "./db"
+import type { XpConfig } from "@workspace/db"
 
 async function callerClerkId(): Promise<string | null> {
   const result = await getActor(getRequest())
@@ -31,7 +32,9 @@ export type ReferralSource = "invite" | "challenge"
 export type ReferralToken = { source: ReferralSource; value: string }
 
 /** Resolve a token to the referrer's clerkId (handle for invite, slug→creator for challenge). */
-export async function resolveReferrer(token: ReferralToken): Promise<string | null> {
+export async function resolveReferrer(
+  token: ReferralToken
+): Promise<string | null> {
   const value = (token?.value ?? "").trim()
   if (!value) return null
   if (token.source === "invite") {
@@ -70,11 +73,17 @@ export async function recordPendingReferral(input: {
 
   const referrerClerkId = await resolveReferrer(token)
   if (!referrerClerkId) return { recorded: false, reason: "unresolved" }
-  if (referrerClerkId === refereeClerkId) return { recorded: false, reason: "self" }
+  if (referrerClerkId === refereeClerkId)
+    return { recorded: false, reason: "self" }
 
   const inserted = await db
     .insert(referrals)
-    .values({ referrerClerkId, refereeClerkId, source: token.source, status: "pending" })
+    .values({
+      referrerClerkId,
+      refereeClerkId,
+      source: token.source,
+      status: "pending",
+    })
     .onConflictDoNothing({ target: referrals.refereeClerkId })
     .returning({ id: referrals.id })
 
@@ -83,7 +92,13 @@ export async function recordPendingReferral(input: {
 }
 
 export type ConfirmResult =
-  | { confirmed: true; referrerClerkId: string; referrerXp: number; refereeXp: number; capped: boolean }
+  | {
+      confirmed: true
+      referrerClerkId: string
+      referrerXp: number
+      refereeXp: number
+      capped: boolean
+    }
   | { confirmed: false }
 
 /** Start of the current UTC day, for the per-referrer daily cap window. */
@@ -99,12 +114,17 @@ const utcDayStart = sql`date_trunc('day', now())`
  */
 export async function confirmReferralOnActivation(
   refereeClerkId: string,
-  cfg: XpConfig,
+  cfg: XpConfig
 ): Promise<ConfirmResult> {
   const [pending] = await db
     .select({ id: referrals.id, referrerClerkId: referrals.referrerClerkId })
     .from(referrals)
-    .where(and(eq(referrals.refereeClerkId, refereeClerkId), eq(referrals.status, "pending")))
+    .where(
+      and(
+        eq(referrals.refereeClerkId, refereeClerkId),
+        eq(referrals.status, "pending")
+      )
+    )
     .limit(1)
   if (!pending) return { confirmed: false }
 
@@ -117,8 +137,8 @@ export async function confirmReferralOnActivation(
         eq(referrals.referrerClerkId, pending.referrerClerkId),
         eq(referrals.status, "confirmed"),
         sql`${referrals.confirmedAt} >= ${utcDayStart}`,
-        sql`${referrals.referrerXp} > 0`,
-      ),
+        sql`${referrals.referrerXp} > 0`
+      )
     )
   const referrerXp = count >= cfg.referralDailyCap ? 0 : cfg.xpReferralReferrer
   const refereeXp = cfg.xpReferralReferee
@@ -126,7 +146,12 @@ export async function confirmReferralOnActivation(
   // Claim the row first (guarded transition) so concurrent grants can't double-pay.
   const claimed = await db
     .update(referrals)
-    .set({ status: "confirmed", confirmedAt: new Date(), referrerXp, refereeXp })
+    .set({
+      status: "confirmed",
+      confirmedAt: new Date(),
+      referrerXp,
+      refereeXp,
+    })
     .where(and(eq(referrals.id, pending.id), eq(referrals.status, "pending")))
     .returning({ id: referrals.id })
   if (claimed.length === 0) return { confirmed: false } // lost the race
@@ -180,7 +205,9 @@ export type ReferralStats = {
 }
 
 /** Referral counts for a referrer — drives the profile stat + invite card. */
-export async function getReferralStats(referrerClerkId: string): Promise<ReferralStats> {
+export async function getReferralStats(
+  referrerClerkId: string
+): Promise<ReferralStats> {
   const rows = await db
     .select({ status: referrals.status, count: sql<number>`count(*)::int` })
     .from(referrals)
@@ -195,20 +222,26 @@ export async function getReferralStats(referrerClerkId: string): Promise<Referra
   return { confirmed, pending }
 }
 
-export type ReferralEntry = { handle: string; xp: number; seen: boolean; confirmedAt: string }
+export type ReferralEntry = {
+  handle: string
+  xp: number
+  seen: boolean
+  confirmedAt: string
+}
 export type MyReferralsResult = {
   confirmed: number
   pending: number
-  items: ReferralEntry[]
+  items: Array<ReferralEntry>
   /** Newly-confirmed (unseen) referrals — drive the in-app payoff (PUN-75). */
-  newlyConfirmed: { handle: string; xp: number }[]
+  newlyConfirmed: Array<{ handle: string; xp: number }>
 }
 
 /** Owner-only: confirmed referrals (referee handle + reward) + unseen ones for the payoff. */
 export const getMyReferralsFn = createServerFn({ method: "GET" }).handler(
   async (): Promise<MyReferralsResult> => {
     const clerkId = await callerClerkId()
-    if (!clerkId) return { confirmed: 0, pending: 0, items: [], newlyConfirmed: [] }
+    if (!clerkId)
+      return { confirmed: 0, pending: 0, items: [], newlyConfirmed: [] }
 
     const stats = await getReferralStats(clerkId)
     const rows = await db
@@ -220,11 +253,16 @@ export const getMyReferralsFn = createServerFn({ method: "GET" }).handler(
       })
       .from(referrals)
       .innerJoin(users, eq(users.clerkId, referrals.refereeClerkId))
-      .where(and(eq(referrals.referrerClerkId, clerkId), eq(referrals.status, "confirmed")))
+      .where(
+        and(
+          eq(referrals.referrerClerkId, clerkId),
+          eq(referrals.status, "confirmed")
+        )
+      )
       .orderBy(desc(referrals.confirmedAt))
       .limit(50)
 
-    const items: ReferralEntry[] = rows.map((r) => ({
+    const items: Array<ReferralEntry> = rows.map((r) => ({
       handle: r.handle ?? "",
       xp: r.xp,
       seen: r.seenAt !== null,
@@ -234,8 +272,13 @@ export const getMyReferralsFn = createServerFn({ method: "GET" }).handler(
       .filter((r) => r.seenAt === null)
       .map((r) => ({ handle: r.handle ?? "", xp: r.xp }))
 
-    return { confirmed: stats.confirmed, pending: stats.pending, items, newlyConfirmed }
-  },
+    return {
+      confirmed: stats.confirmed,
+      pending: stats.pending,
+      items,
+      newlyConfirmed,
+    }
+  }
 )
 
 /** Mark all of the caller's confirmed-but-unseen referrals as seen (PUN-75). Idempotent. */
@@ -250,10 +293,10 @@ export const markReferralsSeenFn = createServerFn({ method: "POST" }).handler(
         and(
           eq(referrals.referrerClerkId, clerkId),
           eq(referrals.status, "confirmed"),
-          isNull(referrals.seenAt),
-        ),
+          isNull(referrals.seenAt)
+        )
       )
       .returning({ id: referrals.id })
     return { ok: true, marked: updated.length }
-  },
+  }
 )

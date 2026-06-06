@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "node:crypto"
-import { db } from "./db"
 import { gameEvents } from "@workspace/db"
+import { db } from "./db"
 import type { Actor } from "./auth"
 
 export type ApiError = {
@@ -20,9 +20,16 @@ export function errorJson(
   code: string,
   message: string,
   status: number,
-  details?: Record<string, unknown>,
+  details?: Record<string, unknown>
 ): Response {
-  return json({ error: code, message, ...(details ? { details } : {}) } satisfies ApiError, status)
+  return json(
+    {
+      error: code,
+      message,
+      ...(details ? { details } : {}),
+    } satisfies ApiError,
+    status
+  )
 }
 
 function constantTimeMatch(a: string, b: string): boolean {
@@ -52,10 +59,14 @@ export function hasValidAdminToken(request: Request): boolean {
 export function audit(
   name: string,
   props: Record<string, unknown>,
-  actor?: Actor,
+  actor?: Actor
 ): void {
   const sessionId =
-    actor?.kind === "clerk" ? actor.userId : actor?.kind === "token" ? "admin_token" : "admin"
+    actor?.kind === "clerk"
+      ? actor.userId
+      : actor?.kind === "token"
+        ? "admin_token"
+        : "admin"
   const enrichedProps = actor
     ? {
         ...props,
@@ -83,14 +94,15 @@ export class HttpError extends Error {
     public status: number,
     public code: string,
     message: string,
-    public details?: Record<string, unknown>,
+    public details?: Record<string, unknown>
   ) {
     super(message)
   }
 }
 
 export function handleError(err: unknown): Response {
-  if (err instanceof HttpError) return errorJson(err.code, err.message, err.status, err.details)
+  if (err instanceof HttpError)
+    return errorJson(err.code, err.message, err.status, err.details)
   if (err instanceof Response) return err
   console.error("[admin] unexpected error", err)
   return errorJson("internal_error", "Unexpected server error.", 500)
@@ -100,22 +112,28 @@ export function handleError(err: unknown): Response {
 export function requireString(
   v: unknown,
   field: string,
-  opts: { max?: number; min?: number } = {},
+  opts: { max?: number; min?: number } = {}
 ): string {
-  if (typeof v !== "string") throw new HttpError(400, "invalid_field", `${field} must be a string.`)
+  if (typeof v !== "string")
+    throw new HttpError(400, "invalid_field", `${field} must be a string.`)
   const s = v.trim()
   const min = opts.min ?? 1
   const max = opts.max ?? 1000
-  if (s.length < min) throw new HttpError(400, "invalid_field", `${field} is required.`)
+  if (s.length < min)
+    throw new HttpError(400, "invalid_field", `${field} is required.`)
   if (s.length > max)
-    throw new HttpError(400, "invalid_field", `${field} exceeds ${max} characters.`)
+    throw new HttpError(
+      400,
+      "invalid_field",
+      `${field} exceeds ${max} characters.`
+    )
   return s
 }
 
 export function optionalString(
   v: unknown,
   field: string,
-  opts: { max?: number } = {},
+  opts: { max?: number } = {}
 ): string | undefined {
   if (v === undefined || v === null) return undefined
   return requireString(v, field, { ...opts, min: 1 })
@@ -124,7 +142,7 @@ export function optionalString(
 export function optionalInt(
   v: unknown,
   field: string,
-  opts: { min?: number; max?: number } = {},
+  opts: { min?: number; max?: number } = {}
 ): number | undefined {
   if (v === undefined || v === null) return undefined
   if (typeof v !== "number" || !Number.isInteger(v))
@@ -136,9 +154,13 @@ export function optionalInt(
   return v
 }
 
-export function optionalStringArray(v: unknown, field: string): string[] | undefined {
+export function optionalStringArray(
+  v: unknown,
+  field: string
+): Array<string> | undefined {
   if (v === undefined || v === null) return undefined
-  if (!Array.isArray(v)) throw new HttpError(400, "invalid_field", `${field} must be an array.`)
+  if (!Array.isArray(v))
+    throw new HttpError(400, "invalid_field", `${field} must be an array.`)
   return v.map((item, i) => requireString(item, `${field}[${i}]`))
 }
 

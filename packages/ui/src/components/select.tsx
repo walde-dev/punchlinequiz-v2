@@ -3,8 +3,8 @@
 import * as React from "react"
 import { Select as SelectPrimitive } from "@base-ui/react/select"
 
+import { RiArrowDownSLine, RiArrowUpSLine, RiCheckLine } from "@remixicon/react"
 import { cn } from "@workspace/ui/lib/utils"
-import { RiArrowDownSLine, RiCheckLine, RiArrowUpSLine } from "@remixicon/react"
 
 const Select = SelectPrimitive.Root
 
@@ -41,7 +41,7 @@ function SelectTrigger({
       data-slot="select-trigger"
       data-size={size}
       className={cn(
-        "flex w-full items-center justify-between gap-1.5 rounded-xl border border-border/60 bg-background/60 px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors outline-none hover:bg-muted/20 focus-visible:border-primary/60 focus-visible:ring-2 focus-visible:ring-ring/50 data-[popup-open]:border-primary/60 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/30 data-placeholder:text-muted-foreground data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "flex w-full items-center justify-between gap-1.5 rounded-xl border border-border/60 bg-background/60 px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors outline-none hover:bg-muted/20 focus-visible:border-primary/60 focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/30 data-placeholder:text-muted-foreground data-[popup-open]:border-primary/60 data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}
@@ -83,7 +83,10 @@ function SelectContent({
         <SelectPrimitive.Popup
           data-slot="select-content"
           data-align-trigger={alignItemWithTrigger}
-          className={cn("relative isolate z-50 max-h-(--available-height) w-(--anchor-width) min-w-36 origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-2xl border border-border/60 bg-popover/95 text-popover-foreground shadow-2xl backdrop-blur-sm duration-100 data-[align-trigger=true]:animate-none data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95", className )}
+          className={cn(
+            "relative isolate z-50 max-h-(--available-height) w-(--anchor-width) min-w-36 origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-2xl border border-border/60 bg-popover/95 text-popover-foreground shadow-2xl backdrop-blur-sm duration-100 data-[align-trigger=true]:animate-none data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+            className
+          )}
           {...props}
         >
           <SelectScrollUpButton />
@@ -117,7 +120,7 @@ function SelectItem({
     <SelectPrimitive.Item
       data-slot="select-item"
       className={cn(
-        "relative flex w-full cursor-default items-center gap-2.5 rounded-lg py-2 pr-8 pl-3 text-sm font-medium outline-hidden select-none data-highlighted:bg-primary/15 data-highlighted:text-foreground focus:bg-primary/15 focus:text-foreground data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+        "relative flex w-full cursor-default items-center gap-2.5 rounded-lg py-2 pr-8 pl-3 text-sm font-medium outline-hidden select-none focus:bg-primary/15 focus:text-foreground data-highlighted:bg-primary/15 data-highlighted:text-foreground data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
         className
       )}
       {...props}
@@ -165,8 +168,7 @@ function SelectScrollUpButton({
       )}
       {...props}
     >
-      <RiArrowUpSLine
-      />
+      <RiArrowUpSLine />
     </SelectPrimitive.ScrollUpArrow>
   )
 }
@@ -184,8 +186,7 @@ function SelectScrollDownButton({
       )}
       {...props}
     >
-      <RiArrowDownSLine
-      />
+      <RiArrowDownSLine />
     </SelectPrimitive.ScrollDownArrow>
   )
 }

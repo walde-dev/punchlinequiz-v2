@@ -4,9 +4,9 @@ import { artistTags, artists, tags } from "@workspace/db"
 
 import { db } from "../../../lib/db"
 import {
+  HttpError,
   audit,
   handleError,
-  HttpError,
   json,
   readJsonBody,
 } from "../../../lib/admin"
@@ -20,7 +20,11 @@ export const Route = createFileRoute("/api/admin/artists/$id/tags")({
           await requireAdmin(request)
           const id = Number(params.id)
           if (!Number.isInteger(id) || id <= 0)
-            throw new HttpError(400, "invalid_id", "Id must be a positive integer.")
+            throw new HttpError(
+              400,
+              "invalid_id",
+              "Id must be a positive integer."
+            )
           const rows = await db
             .select({
               tagId: tags.id,
@@ -42,13 +46,20 @@ export const Route = createFileRoute("/api/admin/artists/$id/tags")({
           const actor = await requireAdmin(request)
           const id = Number(params.id)
           if (!Number.isInteger(id) || id <= 0)
-            throw new HttpError(400, "invalid_id", "Id must be a positive integer.")
-          const existing = (await db.select().from(artists).where(eq(artists.id, id)).limit(1))[0]
-          if (!existing) throw new HttpError(404, "not_found", "Artist not found.")
+            throw new HttpError(
+              400,
+              "invalid_id",
+              "Id must be a positive integer."
+            )
+          const existing = (
+            await db.select().from(artists).where(eq(artists.id, id)).limit(1)
+          )[0]
+          if (!existing)
+            throw new HttpError(404, "not_found", "Artist not found.")
 
-          const body = await readJsonBody<{ tags?: Array<{ slug?: string; tagId?: number; weight?: number }> }>(
-            request,
-          )
+          const body = await readJsonBody<{
+            tags?: Array<{ slug?: string; tagId?: number; weight?: number }>
+          }>(request)
           const incoming = Array.isArray(body.tags) ? body.tags : []
 
           // Normalize + validate
@@ -59,18 +70,25 @@ export const Route = createFileRoute("/api/admin/artists/$id/tags")({
           for (const t of incoming) {
             const w = typeof t.weight === "number" ? t.weight : 1
             if (!Number.isFinite(w) || w < 0 || w > 1) {
-              throw new HttpError(400, "invalid_field", "weight must be a number in [0, 1].")
+              throw new HttpError(
+                400,
+                "invalid_field",
+                "weight must be a number in [0, 1]."
+              )
             }
             if (t.slug) {
               wantSlugs.add(t.slug)
               weightBySlug.set(t.slug, w)
-            } else if (typeof t.tagId === "number" && Number.isInteger(t.tagId)) {
+            } else if (
+              typeof t.tagId === "number" &&
+              Number.isInteger(t.tagId)
+            ) {
               wantIds.add(t.tagId)
               weightById.set(t.tagId, w)
             }
           }
 
-          const resolved: { id: number; weight: number }[] = []
+          const resolved: Array<{ id: number; weight: number }> = []
           if (wantSlugs.size > 0) {
             const rows = await db
               .select({ id: tags.id, slug: tags.slug })
@@ -83,7 +101,11 @@ export const Route = createFileRoute("/api/admin/artists/$id/tags")({
             if (rows.length !== wantSlugs.size) {
               const known = new Set(rows.map((r) => r.slug))
               const missing = Array.from(wantSlugs).filter((s) => !known.has(s))
-              throw new HttpError(400, "unknown_tag", `Unknown tag slugs: ${missing.join(", ")}`)
+              throw new HttpError(
+                400,
+                "unknown_tag",
+                `Unknown tag slugs: ${missing.join(", ")}`
+              )
             }
           }
           if (wantIds.size > 0) {
@@ -93,7 +115,12 @@ export const Route = createFileRoute("/api/admin/artists/$id/tags")({
               .where(inArray(tags.id, Array.from(wantIds)))
             const found = new Set(rows.map((r) => r.id))
             for (const tid of wantIds) {
-              if (!found.has(tid)) throw new HttpError(400, "unknown_tag", `Unknown tag id: ${tid}`)
+              if (!found.has(tid))
+                throw new HttpError(
+                  400,
+                  "unknown_tag",
+                  `Unknown tag id: ${tid}`
+                )
               resolved.push({ id: tid, weight: weightById.get(tid)! })
             }
           }
@@ -103,7 +130,13 @@ export const Route = createFileRoute("/api/admin/artists/$id/tags")({
           if (resolved.length > 0) {
             await db
               .insert(artistTags)
-              .values(resolved.map((r) => ({ artistId: id, tagId: r.id, weight: r.weight })))
+              .values(
+                resolved.map((r) => ({
+                  artistId: id,
+                  tagId: r.id,
+                  weight: r.weight,
+                }))
+              )
           }
           audit("set_artist_tags", { id, count: resolved.length }, actor)
 

@@ -4,10 +4,10 @@ import { xpConfig } from "@workspace/db"
 
 import { db } from "../../../lib/db"
 import {
+  HttpError,
   audit,
   errorJson,
   handleError,
-  HttpError,
   json,
   readJsonBody,
 } from "../../../lib/admin"
@@ -33,11 +33,18 @@ const NUMERIC_FIELDS = [
 
 type ConfigField = (typeof NUMERIC_FIELDS)[number]
 
-function pickNumber(body: Record<string, unknown>, key: ConfigField): number | null {
+function pickNumber(
+  body: Record<string, unknown>,
+  key: ConfigField
+): number | null {
   const v = body[key]
   if (v === undefined || v === null) return null
   if (typeof v !== "number" || !Number.isFinite(v) || v < 0 || v > 1_000_000) {
-    throw new HttpError(400, "invalid_field", `${key} must be a non-negative integer ≤ 1,000,000.`)
+    throw new HttpError(
+      400,
+      "invalid_field",
+      `${key} must be a non-negative integer ≤ 1,000,000.`
+    )
   }
   return Math.floor(v)
 }
@@ -48,8 +55,13 @@ export const Route = createFileRoute("/api/admin/xp-config")({
       GET: async ({ request }) => {
         try {
           await requireAdmin(request)
-          const [row] = await db.select().from(xpConfig).where(eq(xpConfig.id, 1)).limit(1)
-          if (!row) throw new HttpError(500, "missing_config", "xp_config row missing.")
+          const [row] = await db
+            .select()
+            .from(xpConfig)
+            .where(eq(xpConfig.id, 1))
+            .limit(1)
+          if (!row)
+            throw new HttpError(500, "missing_config", "xp_config row missing.")
           return json(row)
         } catch (err) {
           return handleError(err)
@@ -65,7 +77,11 @@ export const Route = createFileRoute("/api/admin/xp-config")({
             if (v !== null) update[f] = v
           }
           if (Object.keys(update).length === 0) {
-            throw new HttpError(400, "no_fields", "Provide at least one field to update.")
+            throw new HttpError(
+              400,
+              "no_fields",
+              "Provide at least one field to update."
+            )
           }
           const [updated] = await db
             .update(xpConfig)

@@ -1,12 +1,19 @@
 import { createServerFn } from "@tanstack/react-start"
 import { getRequest } from "@tanstack/react-start/server"
 import { eq, inArray, lte } from "drizzle-orm"
-import { artists, dailyChallenges, punchlines, songs, users } from "@workspace/db"
+import {
+  artists,
+  dailyChallenges,
+  punchlines,
+  songs,
+  users,
+} from "@workspace/db"
 
 import { db } from "./db"
 import { getActor } from "./auth"
 import { normalizeTitle } from "./game"
-import { grantDailyArtist, grantDailySong, type XpGrantResult } from "./xp"
+import { grantDailyArtist, grantDailySong } from "./xp"
+import type { XpGrantResult } from "./xp"
 
 async function getClerkIdOrNull(): Promise<string | null> {
   try {
@@ -33,7 +40,7 @@ export type DailyChallenge = {
   punchlineId: number
   line: string
   /** Correct artist + two distractors, shuffled. */
-  choices: DailyArtistChoice[]
+  choices: Array<DailyArtistChoice>
   album: string | null
   albumArtUrl: string | null
   releaseYear: number | null
@@ -80,7 +87,7 @@ function isValidIsoDate(s: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(s)
 }
 
-function shuffle<T>(arr: T[]): T[] {
+function shuffle<T>(arr: Array<T>): Array<T> {
   const a = [...arr]
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
@@ -134,7 +141,11 @@ export const getDailyChallenge = createServerFn({ method: "GET" })
 
     const ids = [row.correctArtistId, row.distractor1Id, row.distractor2Id]
     const artistRows = await db
-      .select({ id: artists.id, name: artists.name, imageUrl: artists.imageUrl })
+      .select({
+        id: artists.id,
+        name: artists.name,
+        imageUrl: artists.imageUrl,
+      })
       .from(artists)
       .where(inArray(artists.id, ids))
     const byId = new Map(artistRows.map((a) => [a.id, a]))
@@ -161,7 +172,9 @@ export const getDailyChallenge = createServerFn({ method: "GET" })
  * artistId picked from the 3 choices returned by getDailyChallenge.
  */
 export const submitDailyArtistGuess = createServerFn({ method: "POST" })
-  .inputValidator((d: { punchlineId: number; artistId: number; date: string }) => d)
+  .inputValidator(
+    (d: { punchlineId: number; artistId: number; date: string }) => d
+  )
   .handler(async ({ data }): Promise<DailyArtistGuessResult> => {
     const rows = await db
       .select({
@@ -193,7 +206,7 @@ export const submitDailyArtistGuess = createServerFn({ method: "POST" })
     }
   })
 
-function titleCandidates(title: string): string[] {
+function titleCandidates(title: string): Array<string> {
   const variants = new Set<string>()
   variants.add(title)
   variants.add(title.replace(/[([{][^)\]}]*[)\]}]/g, ""))
@@ -208,7 +221,9 @@ function titleCandidates(title: string): string[] {
  * client can render the final wordle grid + reveal.
  */
 export const submitDailySongGuess = createServerFn({ method: "POST" })
-  .inputValidator((d: { punchlineId: number; guess: string; date: string }) => d)
+  .inputValidator(
+    (d: { punchlineId: number; guess: string; date: string }) => d
+  )
   .handler(async ({ data }): Promise<DailySongGuessResult> => {
     const rows = await db
       .select({
@@ -224,7 +239,8 @@ export const submitDailySongGuess = createServerFn({ method: "POST" })
     if (rows.length === 0) throw new Error("Punchline not found")
     const r = rows[0]
     const g = normalizeTitle((data.guess ?? "").trim())
-    const isCorrect = g.length > 0 && titleCandidates(r.title).some((c) => c === g)
+    const isCorrect =
+      g.length > 0 && titleCandidates(r.title).some((c) => c === g)
     let xp: XpGrantResult | null = null
     const clerkId = await getClerkIdOrNull()
     if (clerkId && isValidIsoDate(data.date)) {

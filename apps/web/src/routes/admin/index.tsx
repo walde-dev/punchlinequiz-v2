@@ -26,13 +26,12 @@ import { Textarea } from "@workspace/ui/components/textarea"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { isAdminFn } from "../../lib/session"
-import type { ArtistRow, ArtistTagRow, BarRow } from "../../lib/admin-client"
 import {
-  fetchAllBars,
-  fetchArtists,
-  fetchArtistTags,
   createArtist,
   createBar,
+  fetchAllBars,
+  fetchArtistTags,
+  fetchArtists,
   getDeezerTrack,
   patchBar,
   searchDeezerArtists,
@@ -40,9 +39,12 @@ import {
   setArtistTags,
 } from "../../lib/admin-client"
 import { AdminShell } from "../../components/admin-shell"
-import { Combobox, type ComboboxItem } from "../../components/combobox"
+import { Combobox } from "../../components/combobox"
 import { EditBarDrawer } from "../../components/edit-bar-drawer"
-import { TagEditor, type SelectedTag } from "../../components/tag-editor"
+import { TagEditor } from "../../components/tag-editor"
+import type { SelectedTag } from "../../components/tag-editor"
+import type { ComboboxItem } from "../../components/combobox"
+import type { ArtistRow, ArtistTagRow, BarRow } from "../../lib/admin-client"
 
 export const Route = createFileRoute("/admin/")({
   component: AdminDashboard,
@@ -61,12 +63,20 @@ type StatusFilter = "all" | "reviewed" | "unreviewed"
  * and back so re-entering the dashboard is instant; the "reload" button
  * forces a fresh server fetch.
  */
-let dashboardCache: { bars: BarRow[]; artists: ArtistRow[]; at: number } | null = null
+let dashboardCache: {
+  bars: Array<BarRow>
+  artists: Array<ArtistRow>
+  at: number
+} | null = null
 
 function AdminDashboard() {
   const { t } = useTranslation()
-  const [allBars, setAllBars] = useState<BarRow[]>(dashboardCache?.bars ?? [])
-  const [artists, setArtists] = useState<ArtistRow[]>(dashboardCache?.artists ?? [])
+  const [allBars, setAllBars] = useState<Array<BarRow>>(
+    dashboardCache?.bars ?? []
+  )
+  const [artists, setArtists] = useState<Array<ArtistRow>>(
+    dashboardCache?.artists ?? []
+  )
   const [loading, setLoading] = useState(!dashboardCache)
   const [refreshing, setRefreshing] = useState(false)
   const [search, setSearch] = useState("")
@@ -109,7 +119,7 @@ function AdminDashboard() {
       { value: "reviewed", label: t("admin.dashboard.filterReviewedYes") },
       { value: "unreviewed", label: t("admin.dashboard.filterReviewedNo") },
     ],
-    [t],
+    [t]
   )
 
   const resetFilters = () => {
@@ -138,21 +148,25 @@ function AdminDashboard() {
       if (statusFilter === "unreviewed" && b.reviewed) return false
       if (artistFilterId != null && b.artistId !== artistFilterId) return false
       if (q) {
-        const hay = `${b.line} ${b.artistName} ${b.songTitle} ${b.songAlbum ?? ""}`.toLowerCase()
+        const hay =
+          `${b.line} ${b.artistName} ${b.songTitle} ${b.songAlbum ?? ""}`.toLowerCase()
         if (!hay.includes(q)) return false
       }
       return true
     })
   }, [allBars, search, includeInactive, statusFilter, artistFilterId])
 
-  const editingBar = editingId != null ? allBars.find((b) => b.id === editingId) ?? null : null
+  const editingBar =
+    editingId != null ? (allBars.find((b) => b.id === editingId) ?? null) : null
 
   return (
     <AdminShell>
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-extrabold tracking-tight">{t("admin.dashboard.barsTitle")}</h1>
+            <h1 className="text-2xl font-extrabold tracking-tight">
+              {t("admin.dashboard.barsTitle")}
+            </h1>
             <p className="text-sm text-muted-foreground">
               {loading
                 ? t("admin.common.loading")
@@ -172,7 +186,9 @@ function AdminDashboard() {
               className="font-semibold"
             >
               <RiRefreshLine className={cn(refreshing && "animate-spin")} />
-              {refreshing ? t("admin.common.loading") : t("admin.dashboard.reload")}
+              {refreshing
+                ? t("admin.common.loading")
+                : t("admin.dashboard.reload")}
             </Button>
             <Button
               type="button"
@@ -183,7 +199,9 @@ function AdminDashboard() {
               }}
               className="text-xs font-semibold"
             >
-              {showCreateArtist ? t("admin.common.cancel") : t("admin.dashboard.newArtist")}
+              {showCreateArtist
+                ? t("admin.common.cancel")
+                : t("admin.dashboard.newArtist")}
             </Button>
             <Button
               type="button"
@@ -193,7 +211,9 @@ function AdminDashboard() {
               }}
               className="font-bold"
             >
-              {showCreate ? t("admin.common.cancel") : t("admin.dashboard.newBar")}
+              {showCreate
+                ? t("admin.common.cancel")
+                : t("admin.dashboard.newBar")}
             </Button>
           </div>
         </div>
@@ -224,7 +244,7 @@ function AdminDashboard() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t("admin.dashboard.searchPlaceholder")}
-            className="flex-[2] min-w-[200px]"
+            className="min-w-[200px] flex-[2]"
           />
           <div className="min-w-[200px] flex-1">
             <FilterArtistCombobox
@@ -260,7 +280,9 @@ function AdminDashboard() {
           <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
             <Checkbox
               checked={includeInactive}
-              onCheckedChange={(checked) => setIncludeInactive(checked === true)}
+              onCheckedChange={(checked) =>
+                setIncludeInactive(checked === true)
+              }
             />
             {t("admin.dashboard.showInactive")}
           </label>
@@ -296,24 +318,38 @@ function AdminDashboard() {
               {filtered.map((b) => (
                 <TableRow key={b.id} className={cn(!b.active && "opacity-50")}>
                   <TableCell className="max-w-[420px] whitespace-normal">
-                    <span className="font-semibold leading-snug text-foreground">{b.line}</span>
-                    <span className="ml-1.5 text-[10px] text-muted-foreground/40">#{b.id}</span>
+                    <span className="leading-snug font-semibold text-foreground">
+                      {b.line}
+                    </span>
+                    <span className="ml-1.5 text-[10px] text-muted-foreground/40">
+                      #{b.id}
+                    </span>
                   </TableCell>
-                  <TableCell className="font-semibold text-primary">{b.artistName}</TableCell>
-                  <TableCell className="text-muted-foreground">{b.songTitle}</TableCell>
-                  <TableCell className="tabular-nums text-muted-foreground">
+                  <TableCell className="font-semibold text-primary">
+                    {b.artistName}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {b.songTitle}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground tabular-nums">
                     {b.releaseYear ?? "—"}
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
-                      <Badge variant="muted">{artistName(b.distractor1Id)}</Badge>
-                      <Badge variant="muted">{artistName(b.distractor2Id)}</Badge>
+                      <Badge variant="muted">
+                        {artistName(b.distractor1Id)}
+                      </Badge>
+                      <Badge variant="muted">
+                        {artistName(b.distractor2Id)}
+                      </Badge>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {!b.active && (
-                        <Badge variant="outline">{t("admin.dashboard.badgeInactive")}</Badge>
+                        <Badge variant="outline">
+                          {t("admin.dashboard.badgeInactive")}
+                        </Badge>
                       )}
                       <Badge variant={b.reviewed ? "default" : "muted"}>
                         {b.reviewed
@@ -321,7 +357,9 @@ function AdminDashboard() {
                           : t("admin.dashboard.badgeOpen")}
                       </Badge>
                       {b.starter && (
-                        <Badge variant="outline">{t("admin.dashboard.badgeStarter")}</Badge>
+                        <Badge variant="outline">
+                          {t("admin.dashboard.badgeStarter")}
+                        </Badge>
                       )}
                     </div>
                   </TableCell>
@@ -340,7 +378,10 @@ function AdminDashboard() {
               ))}
               {!loading && filtered.length === 0 && (
                 <TableRow className="hover:bg-transparent">
-                  <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                  <TableCell
+                    colSpan={7}
+                    className="py-8 text-center text-muted-foreground"
+                  >
                     {t("admin.dashboard.noBars")}
                   </TableCell>
                 </TableRow>
@@ -477,7 +518,7 @@ function CreateBarForm({ onCreated }: { onCreated: () => Promise<void> }) {
         </label>
         {coverUrl && (
           <div className="flex flex-col items-end gap-1">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <span className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
               {t("admin.create.cover")}
             </span>
             <img
@@ -502,7 +543,7 @@ function CreateArtistForm({ onCreated }: { onCreated: () => Promise<void> }) {
   const { t } = useTranslation()
   const [name, setName] = useState("")
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [selectedTags, setSelectedTags] = useState<SelectedTag[]>([])
+  const [selectedTags, setSelectedTags] = useState<Array<SelectedTag>>([])
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
@@ -516,15 +557,25 @@ function CreateArtistForm({ onCreated }: { onCreated: () => Promise<void> }) {
     try {
       const result = await createArtist(
         name.trim(),
-        selectedTags.map((t) => ({ slug: t.slug, weight: t.weight })),
+        selectedTags.map((t) => ({ slug: t.slug, weight: t.weight }))
       )
       const tagCount = result.tagCount ?? selectedTags.length
       const tagPart =
-        selectedTags.length > 0 ? t("admin.create.tagPart", { count: tagCount }) : ""
+        selectedTags.length > 0
+          ? t("admin.create.tagPart", { count: tagCount })
+          : ""
       setInfo(
         result.created
-          ? t("admin.create.createdArtist", { name: result.name, id: result.id, tagPart })
-          : t("admin.create.existsArtist", { name: result.name, id: result.id, tagPart }),
+          ? t("admin.create.createdArtist", {
+              name: result.name,
+              id: result.id,
+              tagPart,
+            })
+          : t("admin.create.existsArtist", {
+              name: result.name,
+              id: result.id,
+              tagPart,
+            })
       )
       setName("")
       setPreviewUrl(null)
@@ -557,9 +608,13 @@ function CreateArtistForm({ onCreated }: { onCreated: () => Promise<void> }) {
             setName(item.label)
             setPreviewUrl(item.imageUrl ?? null)
           }}
-          search={async (q): Promise<ComboboxItem[]> => {
+          search={async (q): Promise<Array<ComboboxItem>> => {
             const hits = await searchDeezerArtists(q)
-            return hits.map((a) => ({ key: a.id, label: a.name, imageUrl: a.imageUrl }))
+            return hits.map((a) => ({
+              key: a.id,
+              label: a.name,
+              imageUrl: a.imageUrl,
+            }))
           }}
           placeholder={t("admin.create.deezerSearchPlaceholder")}
           required
@@ -598,7 +653,11 @@ function CreateArtistForm({ onCreated }: { onCreated: () => Promise<void> }) {
             )}
           </div>
         </div>
-        <Button type="submit" disabled={busy || !name.trim()} className="font-bold">
+        <Button
+          type="submit"
+          disabled={busy || !name.trim()}
+          className="font-bold"
+        >
           {busy ? "…" : t("admin.create.createArtist")}
         </Button>
       </div>
@@ -606,10 +665,12 @@ function CreateArtistForm({ onCreated }: { onCreated: () => Promise<void> }) {
   )
 }
 
-function ArtistTagsPanel({ artists }: { artists: ArtistRow[] }) {
+function ArtistTagsPanel({ artists }: { artists: Array<ArtistRow> }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
-  const [tagsByArtist, setTagsByArtist] = useState<Record<number, ArtistTagRow[]>>({})
+  const [tagsByArtist, setTagsByArtist] = useState<
+    Record<number, Array<ArtistTagRow>>
+  >({})
   const [loading, setLoading] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [filter, setFilter] = useState("")
@@ -622,9 +683,9 @@ function ArtistTagsPanel({ artists }: { artists: ArtistRow[] }) {
         artists.map(async (a) => {
           const r = await fetchArtistTags(a.id)
           return [a.id, r.items] as const
-        }),
+        })
       )
-      const map: Record<number, ArtistTagRow[]> = {}
+      const map: Record<number, Array<ArtistTagRow>> = {}
       for (const [id, items] of entries) map[id] = items
       setTagsByArtist(map)
     } finally {
@@ -639,10 +700,12 @@ function ArtistTagsPanel({ artists }: { artists: ArtistRow[] }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, artists.length])
 
-  const editingArtist = editingId != null ? artists.find((a) => a.id === editingId) ?? null : null
+  const editingArtist =
+    editingId != null ? (artists.find((a) => a.id === editingId) ?? null) : null
 
   const visible = artists.filter((a) => {
-    if (filter && !a.name.toLowerCase().includes(filter.toLowerCase())) return false
+    if (filter && !a.name.toLowerCase().includes(filter.toLowerCase()))
+      return false
     if (showUntaggedOnly && (tagsByArtist[a.id]?.length ?? 0) > 0) return false
     return true
   })
@@ -651,7 +714,9 @@ function ArtistTagsPanel({ artists }: { artists: ArtistRow[] }) {
     <section className="flex flex-col gap-3 rounded-2xl border border-border/40 bg-card/40 p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-col">
-          <h2 className="text-sm font-bold uppercase tracking-wide text-foreground">{t("admin.tags.panelTitle")}</h2>
+          <h2 className="text-sm font-bold tracking-wide text-foreground uppercase">
+            {t("admin.tags.panelTitle")}
+          </h2>
           <p className="text-[11px] text-muted-foreground">
             {t("admin.tags.panelHint")}
           </p>
@@ -675,7 +740,7 @@ function ArtistTagsPanel({ artists }: { artists: ArtistRow[] }) {
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               placeholder={t("admin.tags.filterPlaceholder")}
-              className="flex-1 min-w-[180px]"
+              className="min-w-[180px] flex-1"
             />
             <label className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
               <Checkbox
@@ -684,7 +749,13 @@ function ArtistTagsPanel({ artists }: { artists: ArtistRow[] }) {
               />
               {t("admin.tags.untaggedOnly")}
             </label>
-            <Button type="button" size="sm" variant="ghost" onClick={loadAll} disabled={loading}>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={loadAll}
+              disabled={loading}
+            >
               {loading ? "…" : t("admin.common.refresh")}
             </Button>
           </div>
@@ -693,19 +764,24 @@ function ArtistTagsPanel({ artists }: { artists: ArtistRow[] }) {
             {visible.map((a) => {
               const tagList = tagsByArtist[a.id] ?? []
               return (
-                <li key={a.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                <li
+                  key={a.id}
+                  className="flex items-center justify-between gap-3 px-3 py-2"
+                >
                   <div className="flex min-w-0 flex-col gap-1">
-                    <span className="text-sm font-semibold text-foreground">{a.name}</span>
+                    <span className="text-sm font-semibold text-foreground">
+                      {a.name}
+                    </span>
                     <div className="flex flex-wrap gap-1">
                       {tagList.length === 0 ? (
-                        <span className="text-[10px] uppercase tracking-wide text-muted-foreground/60">
+                        <span className="text-[10px] tracking-wide text-muted-foreground/60 uppercase">
                           {t("admin.tags.none")}
                         </span>
                       ) : (
                         tagList.map((t) => (
                           <span
                             key={t.slug}
-                            className="rounded-full border border-border/40 bg-background/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
+                            className="rounded-full border border-border/40 bg-background/60 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase"
                           >
                             {t.label}
                             <span className="ml-1 font-mono text-[9px] text-primary/80">
@@ -759,12 +835,12 @@ function ArtistTagsDrawer({
   onSaved,
 }: {
   artist: ArtistRow
-  initial: ArtistTagRow[] | null
+  initial: Array<ArtistTagRow> | null
   onClose: () => void
-  onSaved: (items: ArtistTagRow[]) => void
+  onSaved: (items: Array<ArtistTagRow>) => void
 }) {
   const { t } = useTranslation()
-  const [selected, setSelected] = useState<SelectedTag[]>([])
+  const [selected, setSelected] = useState<Array<SelectedTag>>([])
   const [loaded, setLoaded] = useState(false)
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState<string | null>(null)
@@ -774,7 +850,9 @@ function ArtistTagsDrawer({
     async function go() {
       const items = initial ?? (await fetchArtistTags(artist.id)).items
       if (cancelled) return
-      setSelected(items.map((t) => ({ slug: t.slug, label: t.label, weight: t.weight })))
+      setSelected(
+        items.map((t) => ({ slug: t.slug, label: t.label, weight: t.weight }))
+      )
       setLoaded(true)
     }
     go()
@@ -789,7 +867,7 @@ function ArtistTagsDrawer({
     try {
       const r = await setArtistTags(
         artist.id,
-        selected.map((t) => ({ slug: t.slug, weight: t.weight })),
+        selected.map((t) => ({ slug: t.slug, weight: t.weight }))
       )
       onSaved(r.items)
     } catch (e) {
@@ -810,10 +888,12 @@ function ArtistTagsDrawer({
       >
         <header className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <p className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
               {t("admin.tags.drawerTagsFor")}
             </p>
-            <h3 className="text-lg font-extrabold tracking-tight">{artist.name}</h3>
+            <h3 className="text-lg font-extrabold tracking-tight">
+              {artist.name}
+            </h3>
           </div>
           <Button type="button" variant="ghost" size="sm" onClick={onClose}>
             {t("admin.common.close")}
@@ -821,7 +901,9 @@ function ArtistTagsDrawer({
         </header>
 
         {!loaded ? (
-          <p className="text-sm text-muted-foreground">{t("admin.tags.editorLoading")}</p>
+          <p className="text-sm text-muted-foreground">
+            {t("admin.tags.editorLoading")}
+          </p>
         ) : (
           <TagEditor
             value={selected}
@@ -833,10 +915,20 @@ function ArtistTagsDrawer({
         {err && <p className="text-xs text-destructive">{err}</p>}
 
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onClose}
+            disabled={saving}
+          >
             {t("admin.common.cancel")}
           </Button>
-          <Button type="button" onClick={onSave} disabled={saving || !loaded} className="font-bold">
+          <Button
+            type="button"
+            onClick={onSave}
+            disabled={saving || !loaded}
+            className="font-bold"
+          >
             {saving ? "…" : t("admin.common.save")}
           </Button>
         </div>
@@ -855,7 +947,7 @@ function FilterArtistCombobox({
   onChange,
   onPick,
 }: {
-  artists: ArtistRow[]
+  artists: Array<ArtistRow>
   value: string
   onChange: (v: string) => void
   onPick: (a: ArtistRow) => void
@@ -871,12 +963,16 @@ function FilterArtistCombobox({
         else onChange(item.label)
       }}
       minChars={1}
-      search={async (q): Promise<ComboboxItem[]> => {
+      search={async (q): Promise<Array<ComboboxItem>> => {
         const needle = q.trim().toLowerCase()
         return artists
           .filter((a) => a.name.toLowerCase().includes(needle))
           .slice(0, 50)
-          .map((a) => ({ key: String(a.id), label: a.name, imageUrl: a.imageUrl }))
+          .map((a) => ({
+            key: String(a.id),
+            label: a.name,
+            imageUrl: a.imageUrl,
+          }))
       }}
       placeholder={t("admin.dashboard.filterArtistPlaceholder")}
     />
@@ -896,9 +992,13 @@ function ArtistCombobox({
       value={value}
       onChange={onChange}
       onPick={(item) => onChange(item.label)}
-      search={async (q): Promise<ComboboxItem[]> => {
+      search={async (q): Promise<Array<ComboboxItem>> => {
         const hits = await searchDeezerArtists(q)
-        return hits.map((a) => ({ key: a.id, label: a.name, imageUrl: a.imageUrl }))
+        return hits.map((a) => ({
+          key: a.id,
+          label: a.name,
+          imageUrl: a.imageUrl,
+        }))
       }}
       placeholder={t("admin.create.deezerSearchPlaceholder")}
       required
@@ -928,22 +1028,24 @@ function TrackCombobox({
       value={value}
       onChange={onChange}
       onPick={(item) => {
-        const meta = (item as ComboboxItem & {
-          meta?: {
-            title: string
-            artistName: string
-            albumTitle: string
-            albumArtUrl: string | null
-            releaseYear: number | null
+        const meta = (
+          item as ComboboxItem & {
+            meta?: {
+              title: string
+              artistName: string
+              albumTitle: string
+              albumArtUrl: string | null
+              releaseYear: number | null
+            }
           }
-        }).meta
+        ).meta
         if (meta) {
           onPickTrack({ trackId: item.key, ...meta })
         } else {
           onChange(item.label)
         }
       }}
-      search={async (q): Promise<ComboboxItem[]> => {
+      search={async (q): Promise<Array<ComboboxItem>> => {
         const hits = await searchDeezerTracks(q)
         return hits.map((t) => ({
           key: t.trackId,

@@ -1,8 +1,8 @@
 import { Link, useRouterState } from "@tanstack/react-router"
-import type { ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 
 import { cn } from "@workspace/ui/lib/utils"
+import type { ReactNode } from "react"
 
 type NavItem = {
   to:
@@ -18,7 +18,7 @@ type NavItem = {
   glyph: string
 }
 
-const NAV: NavItem[] = [
+const NAV: Array<NavItem> = [
   { to: "/admin", labelKey: "admin.nav.bars", glyph: "♪" },
   { to: "/admin/review", labelKey: "admin.nav.review", glyph: "✓" },
   { to: "/admin/submissions", labelKey: "admin.nav.submissions", glyph: "✎" },
@@ -39,7 +39,10 @@ export function AdminShell({
 }) {
   return (
     <div className="relative min-h-svh md:flex">
-      <div className="pq-spotlight pointer-events-none absolute inset-0" aria-hidden="true" />
+      <div
+        className="pq-spotlight pointer-events-none absolute inset-0"
+        aria-hidden="true"
+      />
       <Sidebar />
       <div className="relative flex min-w-0 flex-1 flex-col">
         {topRight && (
@@ -63,18 +66,15 @@ function Sidebar() {
     <aside
       className={cn(
         "relative z-40 flex shrink-0 flex-col gap-1 border-b border-white/5 bg-[#181818] px-3 py-4",
-        "md:sticky md:top-0 md:h-svh md:w-60 md:border-b-0 md:border-r md:px-4 md:py-6",
+        "md:sticky md:top-0 md:h-svh md:w-60 md:border-r md:border-b-0 md:px-4 md:py-6"
       )}
     >
-      <Link
-        to="/admin"
-        className="mb-2 flex items-center gap-2 px-2 md:mb-6"
-      >
-        <span className="select-none text-base font-extrabold tracking-tight md:text-lg">
+      <Link to="/admin" className="mb-2 flex items-center gap-2 px-2 md:mb-6">
+        <span className="text-base font-extrabold tracking-tight select-none md:text-lg">
           <span className="text-foreground">punchline</span>
           <span className="text-primary">/quiz</span>
         </span>
-        <span className="rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-primary">
+        <span className="rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-bold tracking-[0.16em] text-primary uppercase">
           {t("admin.badge")}
         </span>
       </Link>
@@ -90,13 +90,15 @@ function Sidebar() {
                 "group flex flex-1 items-center gap-2.5 rounded-full px-3 py-2 text-sm font-semibold tracking-tight transition-colors md:flex-none md:py-2.5",
                 active
                   ? "bg-primary/15 text-primary"
-                  : "text-muted-foreground hover:bg-white/5 hover:text-foreground",
+                  : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
               )}
             >
               <span
                 className={cn(
                   "inline-flex h-5 w-5 items-center justify-center text-xs",
-                  active ? "text-primary" : "text-muted-foreground/70 group-hover:text-foreground",
+                  active
+                    ? "text-primary"
+                    : "text-muted-foreground/70 group-hover:text-foreground"
                 )}
                 aria-hidden="true"
               >

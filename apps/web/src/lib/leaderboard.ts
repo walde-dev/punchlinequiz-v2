@@ -1,20 +1,32 @@
 import { createServerFn } from "@tanstack/react-start"
 import { getRequest } from "@tanstack/react-start/server"
-import {  and, desc, eq, gt, isNotNull, sql } from "drizzle-orm"
-import { follows, punchlineSubmissions, punchlines, songs, userPunchlineXp, users } from "@workspace/db"
+import { and, desc, eq, gt, isNotNull, sql } from "drizzle-orm"
+import {
+  follows,
+  punchlineSubmissions,
+  punchlines,
+  songs,
+  userPunchlineXp,
+  users,
+} from "@workspace/db"
 
 import { getActor } from "./auth"
 import { db } from "./db"
-import {  levelFor, loadLevels } from "./xp"
-import type {SQL} from "drizzle-orm";
-import type {LevelInfo} from "./xp";
+import { levelFor, loadLevels } from "./xp"
+import type { SQL } from "drizzle-orm"
+import type { LevelInfo } from "./xp"
 
 /**
  * Boards: xp (weekly calendar-week | all-time totalXp), completion (global
  * bars-solved, all-time), friends (weekly XP among the followed set + self),
  * artist (bars-solved for one artist). friends/artist were added in PUN-13.
  */
-export type LeaderboardBoard = "xp" | "completion" | "friends" | "artist" | "contributor"
+export type LeaderboardBoard =
+  | "xp"
+  | "completion"
+  | "friends"
+  | "artist"
+  | "contributor"
 export type LeaderboardWindow = "weekly" | "alltime"
 
 export type LeaderboardEntry = {
@@ -42,15 +54,19 @@ const TOP_N = 100
 /** Monday 00:00 UTC of the current week — consistent with the app's UTC day math. */
 function currentWeekStartUtc(): Date {
   const now = new Date()
-  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+  const d = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  )
   const daysSinceMonday = (d.getUTCDay() + 6) % 7
   d.setUTCDate(d.getUTCDate() - daysSinceMonday)
   return d
 }
 
 async function rawRows<T>(query: SQL): Promise<Array<T>> {
-  const res = (await db.execute(query)) as unknown as { rows?: Array<T> } | Array<T>
-  return (Array.isArray(res) ? res : (res.rows ?? []))
+  const res = (await db.execute(query)) as unknown as
+    | { rows?: Array<T> }
+    | Array<T>
+  return Array.isArray(res) ? res : (res.rows ?? [])
 }
 
 type Row = {
@@ -61,7 +77,11 @@ type Row = {
   metric: number
 }
 
-function toEntry(row: Row, rank: number, levels: Awaited<ReturnType<typeof loadLevels>>): LeaderboardEntry {
+function toEntry(
+  row: Row,
+  rank: number,
+  levels: Awaited<ReturnType<typeof loadLevels>>
+): LeaderboardEntry {
   return {
     rank,
     handle: row.handle,
@@ -73,7 +93,7 @@ function toEntry(row: Row, rank: number, levels: Awaited<ReturnType<typeof loadL
 }
 
 /** Clerk ids the user follows, plus themselves (the friends-board scope). */
-async function followedSet(callerId: string): Promise<string[]> {
+async function followedSet(callerId: string): Promise<Array<string>> {
   const rows = await db
     .select({ id: follows.followeeClerkId })
     .from(follows)
@@ -85,7 +105,7 @@ async function followedSet(callerId: string): Promise<string[]> {
 function meFromTop(
   callerId: string | null,
   topRows: Array<Row>,
-  levels: Awaited<ReturnType<typeof loadLevels>>,
+  levels: Awaited<ReturnType<typeof loadLevels>>
 ): (LeaderboardEntry & { inTop: boolean }) | null {
   if (!callerId) return null
   const idx = topRows.findIndex((r) => r.clerk_id === callerId)
@@ -123,7 +143,7 @@ export async function getLeaderboard(input: {
     const start = currentWeekStartUtc()
     const inList = sql.join(
       ids.map((id) => sql`${id}`),
-      sql`, `,
+      sql`, `
     )
     // LEFT JOIN so everyone you follow shows even at 0 XP this week.
     topRows = await rawRows<Row>(sql`
@@ -237,7 +257,11 @@ export async function getLeaderboard(input: {
 
 export const getLeaderboardFn = createServerFn({ method: "POST" })
   .inputValidator(
-    (d: { board: LeaderboardBoard; window: LeaderboardWindow; artistId?: number }) => d,
+    (d: {
+      board: LeaderboardBoard
+      window: LeaderboardWindow
+      artistId?: number
+    }) => d
   )
   .handler(async ({ data }): Promise<LeaderboardResult> => {
     const req = getRequest()
@@ -263,7 +287,11 @@ async function computeMe(args: {
 
   // Only onboarded (handle-set) users rank.
   const meRows = await db
-    .select({ handle: users.handle, imageUrl: users.imageUrl, totalXp: users.totalXp })
+    .select({
+      handle: users.handle,
+      imageUrl: users.imageUrl,
+      totalXp: users.totalXp,
+    })
     .from(users)
     .where(eq(users.clerkId, callerId))
     .limit(1)
@@ -309,10 +337,24 @@ async function computeMe(args: {
     if (rows.length === 0) {
       // Onboarded but zero solves: rank below everyone who has solved a line.
       const [{ ranked }] = await db
-        .select({ ranked: sql<number>`count(distinct ${userPunchlineXp.clerkId})::int` })
+        .select({
+          ranked: sql<number>`count(distinct ${userPunchlineXp.clerkId})::int`,
+        })
         .from(userPunchlineXp)
-        .innerJoin(punchlines, and(eq(punchlines.id, userPunchlineXp.punchlineId), eq(punchlines.active, true)))
-        .innerJoin(users, and(eq(users.clerkId, userPunchlineXp.clerkId), isNotNull(users.handle)))
+        .innerJoin(
+          punchlines,
+          and(
+            eq(punchlines.id, userPunchlineXp.punchlineId),
+            eq(punchlines.active, true)
+          )
+        )
+        .innerJoin(
+          users,
+          and(
+            eq(users.clerkId, userPunchlineXp.clerkId),
+            isNotNull(users.handle)
+          )
+        )
       metric = 0
       rank = ranked + 1
     } else {

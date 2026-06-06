@@ -25,7 +25,7 @@ export function ArtistSelect({
 }: {
   value: number
   onChange: (id: number) => void
-  artists: ArtistRow[]
+  artists: Array<ArtistRow>
   excludeId?: number
   sortByOverlapWith?: ArtistRow | null
   placeholder?: string
@@ -34,7 +34,7 @@ export function ArtistSelect({
   const { t } = useTranslation()
   const sorted = useMemo(
     () => sortArtists(artists, sortByOverlapWith ?? null, excludeId, value),
-    [artists, sortByOverlapWith, excludeId, value],
+    [artists, sortByOverlapWith, excludeId, value]
   )
   const refTags = new Set(sortByOverlapWith?.tags ?? [])
 
@@ -50,12 +50,14 @@ export function ArtistSelect({
       <Select.Trigger
         className={cn(
           "flex w-full items-center justify-between rounded-xl border border-border/60 bg-background/60 px-3 py-2 text-sm font-medium",
-          "focus:outline-none focus:ring-2 focus:ring-ring/60",
+          "focus:ring-2 focus:ring-ring/60 focus:outline-none",
           "data-[popup-open]:border-primary/60",
-          className,
+          className
         )}
       >
-        <Select.Value placeholder={placeholder ?? t("artistSelect.placeholder")} />
+        <Select.Value
+          placeholder={placeholder ?? t("artistSelect.placeholder")}
+        />
         <Select.Icon className="ml-2 text-muted-foreground">
           <ChevronIcon />
         </Select.Icon>
@@ -70,7 +72,7 @@ export function ArtistSelect({
             className={cn(
               "max-h-[min(60vh,420px)] min-w-[var(--anchor-width)] overflow-y-auto rounded-2xl border border-border/60",
               "bg-popover/95 shadow-2xl backdrop-blur-sm",
-              "p-1 text-sm",
+              "p-1 text-sm"
             )}
           >
             {sorted.map((a) => {
@@ -83,7 +85,7 @@ export function ArtistSelect({
                     "group flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium select-none",
                     "data-[highlighted]:bg-primary/15 data-[highlighted]:text-foreground",
                     "data-[selected]:font-bold",
-                    !a.active && "opacity-60",
+                    !a.active && "opacity-60"
                   )}
                 >
                   <Select.ItemIndicator className="w-3 text-primary">
@@ -92,13 +94,13 @@ export function ArtistSelect({
                   <span className="flex w-3 group-data-[selected]:hidden" />
                   <Select.ItemText>{a.name}</Select.ItemText>
                   {!a.active && (
-                    <span className="ml-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+                    <span className="ml-1 text-[10px] tracking-wide text-muted-foreground uppercase">
                       {t("artistSelect.inactive")}
                     </span>
                   )}
                   {overlap > 0 && (
                     <span
-                      className="ml-auto text-[10px] font-bold tabular-nums text-primary/70"
+                      className="ml-auto text-[10px] font-bold text-primary/70 tabular-nums"
                       title={t("artistSelect.sharedTags", { count: overlap })}
                     >
                       ×{overlap}
@@ -115,15 +117,15 @@ export function ArtistSelect({
 }
 
 function sortArtists(
-  artists: ArtistRow[],
+  artists: Array<ArtistRow>,
   reference: ArtistRow | null,
   excludeId: number | undefined,
-  selectedId: number,
-): ArtistRow[] {
+  selectedId: number
+): Array<ArtistRow> {
   // Always keep the currently selected artist in the list (even if excluded
   // by id) so the trigger has a value to render.
   const filtered = artists.filter(
-    (a) => a.id !== excludeId || a.id === selectedId,
+    (a) => a.id !== excludeId || a.id === selectedId
   )
   if (!reference || !reference.tags || reference.tags.length === 0) {
     return [...filtered].sort((a, b) => a.name.localeCompare(b.name, "de"))
@@ -137,7 +139,7 @@ function sortArtists(
   })
 }
 
-function scoreOverlap(tags: string[], ref: Set<string>): number {
+function scoreOverlap(tags: Array<string>, ref: Set<string>): number {
   let n = 0
   for (const t of tags) if (ref.has(t)) n++
   return n

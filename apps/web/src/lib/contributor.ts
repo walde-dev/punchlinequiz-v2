@@ -56,14 +56,21 @@ export type ContributorStats = {
  * "min 5 resolved" rule is satisfied structurally — a 1/1 = 100% user is still
  * Neuling because accepted (1) < 5.
  */
-export function computeTier(accepted: number, resolved: number): ContributorTier {
+export function computeTier(
+  accepted: number,
+  resolved: number
+): ContributorTier {
   const rate = resolved > 0 ? accepted / resolved : 0
   if (accepted >= 25 && rate >= 0.8) return "verifiziert"
   if (accepted >= 5 && rate >= 0.6) return "vertraut"
   return "neuling"
 }
 
-function tierFromCounts(accepted: number, rejected: number, pending: number): ContributorStats {
+function tierFromCounts(
+  accepted: number,
+  rejected: number,
+  pending: number
+): ContributorStats {
   const resolved = accepted + rejected
   return {
     submitted: accepted + rejected + pending,
@@ -77,9 +84,14 @@ function tierFromCounts(accepted: number, rejected: number, pending: number): Co
 }
 
 /** Load a contributor's submission counts + derived tier. */
-export async function getContributorStats(clerkId: string): Promise<ContributorStats> {
+export async function getContributorStats(
+  clerkId: string
+): Promise<ContributorStats> {
   const rows = await db
-    .select({ status: punchlineSubmissions.status, count: sql<number>`count(*)::int` })
+    .select({
+      status: punchlineSubmissions.status,
+      count: sql<number>`count(*)::int`,
+    })
     .from(punchlineSubmissions)
     .where(eq(punchlineSubmissions.submitterClerkId, clerkId))
     .groupBy(punchlineSubmissions.status)
@@ -97,7 +109,10 @@ export async function getContributorStats(clerkId: string): Promise<ContributorS
 
 /** The pending-slot cap that currently applies to this user (rate-gated). */
 export function effectivePendingCap(stats: ContributorStats): number {
-  if (stats.resolved >= LOW_RATE_MIN_RESOLVED && stats.acceptanceRate < LOW_RATE_THRESHOLD) {
+  if (
+    stats.resolved >= LOW_RATE_MIN_RESOLVED &&
+    stats.acceptanceRate < LOW_RATE_THRESHOLD
+  ) {
     return LOW_RATE_CAP
   }
   return PENDING_CAP[stats.tier]
@@ -124,7 +139,11 @@ export async function checkSubmitGate(clerkId: string): Promise<SubmitGate> {
   if (latest) {
     const elapsed = (Date.now() - latest.createdAt.getTime()) / 1000
     if (elapsed < SUBMIT_COOLDOWN_SECONDS) {
-      return { ok: false, reason: "cooldown", retryAfterSeconds: Math.ceil(SUBMIT_COOLDOWN_SECONDS - elapsed) }
+      return {
+        ok: false,
+        reason: "cooldown",
+        retryAfterSeconds: Math.ceil(SUBMIT_COOLDOWN_SECONDS - elapsed),
+      }
     }
   }
 
@@ -137,7 +156,13 @@ export async function checkSubmitGate(clerkId: string): Promise<SubmitGate> {
 }
 
 export type ContributorGrantResult =
-  | { awarded: true; xp: number; prevTier: ContributorTier; newTier: ContributorTier; tierUp: boolean }
+  | {
+      awarded: true
+      xp: number
+      prevTier: ContributorTier
+      newTier: ContributorTier
+      tierUp: boolean
+    }
   | { awarded: false; skipped: "duplicate" }
 
 /**
@@ -184,7 +209,9 @@ export async function grantContributorXp(input: {
  */
 export async function getSubmissionStreak(clerkId: string): Promise<number> {
   const rows = await db
-    .select({ wk: sql<string>`to_char(date_trunc('week', ${punchlineSubmissions.createdAt}), 'YYYY-MM-DD')` })
+    .select({
+      wk: sql<string>`to_char(date_trunc('week', ${punchlineSubmissions.createdAt}), 'YYYY-MM-DD')`,
+    })
     .from(punchlineSubmissions)
     .where(eq(punchlineSubmissions.submitterClerkId, clerkId))
     .groupBy(sql`date_trunc('week', ${punchlineSubmissions.createdAt})`)
@@ -193,7 +220,9 @@ export async function getSubmissionStreak(clerkId: string): Promise<number> {
 
   // Monday 00:00 UTC of the current week.
   const now = new Date()
-  const cur = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+  const cur = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  )
   cur.setUTCDate(cur.getUTCDate() - ((cur.getUTCDay() + 6) % 7))
   const key = (d: Date) => d.toISOString().slice(0, 10)
 
@@ -220,10 +249,11 @@ export async function getSubmissionStreak(clerkId: string): Promise<number> {
  * actionable number to show ("noch 3 bis Vertraut").
  */
 export function nextTierProgress(
-  stats: ContributorStats,
+  stats: ContributorStats
 ): { nextTier: ContributorTier; acceptedNeeded: number } | null {
   if (stats.tier === "verifiziert") return null
-  const target = stats.tier === "neuling" ? TIER_THRESHOLDS[1] : TIER_THRESHOLDS[2]
+  const target =
+    stats.tier === "neuling" ? TIER_THRESHOLDS[1] : TIER_THRESHOLDS[2]
   return {
     nextTier: target.key,
     acceptedNeeded: Math.max(1, target.minAccepted - stats.accepted),
@@ -236,13 +266,20 @@ export type ContributorProfile = ContributorStats & {
 }
 
 /** Profile bundle: counts + tier + weekly submission streak (PUN-68). */
-export async function getContributorProfile(clerkId: string): Promise<ContributorProfile> {
-  const [stats, streak] = await Promise.all([getContributorStats(clerkId), getSubmissionStreak(clerkId)])
+export async function getContributorProfile(
+  clerkId: string
+): Promise<ContributorProfile> {
+  const [stats, streak] = await Promise.all([
+    getContributorStats(clerkId),
+    getSubmissionStreak(clerkId),
+  ])
   return { ...stats, streak, nextTier: nextTierProgress(stats) }
 }
 
 /** Batch tier lookup for a set of clerk ids (leaderboard / queue ordering). */
-export async function getTiersFor(clerkIds: string[]): Promise<Map<string, ContributorTier>> {
+export async function getTiersFor(
+  clerkIds: Array<string>
+): Promise<Map<string, ContributorTier>> {
   const out = new Map<string, ContributorTier>()
   if (clerkIds.length === 0) return out
   const rows = await db
@@ -255,8 +292,8 @@ export async function getTiersFor(clerkIds: string[]): Promise<Map<string, Contr
     .where(
       sql`${punchlineSubmissions.submitterClerkId} in (${sql.join(
         clerkIds.map((id) => sql`${id}`),
-        sql`, `,
-      )})`,
+        sql`, `
+      )})`
     )
     .groupBy(punchlineSubmissions.submitterClerkId)
   for (const r of rows) {

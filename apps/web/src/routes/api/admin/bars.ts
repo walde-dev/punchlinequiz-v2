@@ -28,14 +28,25 @@ export const Route = createFileRoute("/api/admin/bars")({
             artist: requireString(body.artist, "artist", { max: 200 }),
             song: requireString(body.song, "song", { max: 300 }),
             line: requireString(body.line, "line", { max: 1000 }),
-            distractor1: requireString(body.distractor1, "distractor1", { max: 200 }),
-            distractor2: requireString(body.distractor2, "distractor2", { max: 200 }),
+            distractor1: requireString(body.distractor1, "distractor1", {
+              max: 200,
+            }),
+            distractor2: requireString(body.distractor2, "distractor2", {
+              max: 200,
+            }),
             album: optionalString(body.album, "album", { max: 300 }),
-            releaseYear: optionalInt(body.releaseYear, "releaseYear", { min: 1980, max: 2100 }),
-            perfectSolution: optionalStringArray(body.perfectSolution, "perfectSolution"),
+            releaseYear: optionalInt(body.releaseYear, "releaseYear", {
+              min: 1980,
+              max: 2100,
+            }),
+            perfectSolution: optionalStringArray(
+              body.perfectSolution,
+              "perfectSolution"
+            ),
             acceptableSolutions: Array.isArray(body.acceptableSolutions)
-              ? (body.acceptableSolutions as unknown[]).map(
-                  (arr, i) => optionalStringArray(arr, `acceptableSolutions[${i}]`) ?? [],
+              ? (body.acceptableSolutions as Array<unknown>).map(
+                  (arr, i) =>
+                    optionalStringArray(arr, `acceptableSolutions[${i}]`) ?? []
                 )
               : undefined,
           }
@@ -50,7 +61,7 @@ export const Route = createFileRoute("/api/admin/bars")({
               distractor2Id: result.distractor2Id,
               created: result.created,
             },
-            actor,
+            actor
           )
           return json(result, 201)
         } catch (err) {
@@ -67,10 +78,14 @@ export const Route = createFileRoute("/api/admin/bars")({
           const searchQ = url.searchParams.get("search")
           const limit = Math.min(
             Number(url.searchParams.get("limit") ?? "50") || 50,
-            200,
+            200
           )
-          const offset = Math.max(Number(url.searchParams.get("offset") ?? "0") || 0, 0)
-          const includeInactive = url.searchParams.get("includeInactive") === "true"
+          const offset = Math.max(
+            Number(url.searchParams.get("offset") ?? "0") || 0,
+            0
+          )
+          const includeInactive =
+            url.searchParams.get("includeInactive") === "true"
           const reviewedParam = url.searchParams.get("reviewed")
           const excludeIdsParam = url.searchParams.get("excludeIds")
           const random = url.searchParams.get("random") === "true"
@@ -84,15 +99,22 @@ export const Route = createFileRoute("/api/admin/bars")({
           }
           if (songQ) conds.push(ilike(songs.title, `%${songQ}%`))
           if (searchQ) conds.push(ilike(punchlines.line, `%${searchQ}%`))
-          if (reviewedParam === "true") conds.push(eq(punchlines.reviewed, true))
-          if (reviewedParam === "false") conds.push(eq(punchlines.reviewed, false))
+          if (reviewedParam === "true")
+            conds.push(eq(punchlines.reviewed, true))
+          if (reviewedParam === "false")
+            conds.push(eq(punchlines.reviewed, false))
           if (excludeIdsParam) {
             const ids = excludeIdsParam
               .split(",")
               .map((s) => Number(s.trim()))
               .filter((n) => Number.isInteger(n) && n > 0)
             if (ids.length > 0) {
-              conds.push(sql`${punchlines.id} not in (${sql.join(ids.map((id) => sql`${id}`), sql`, `)})`)
+              conds.push(
+                sql`${punchlines.id} not in (${sql.join(
+                  ids.map((id) => sql`${id}`),
+                  sql`, `
+                )})`
+              )
             }
           }
 

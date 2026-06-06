@@ -1,0 +1,128 @@
+name: CI
+
+# Runs on every PR and on pushes to main. Today landings go straight to main,
+# so on main this is a fast post-push signal; the same checks gate any PR. Flip
+# on branch protection (see docs/ci.md) to make green CI required before merge.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A newer commit on the same branch/PR cancels the older in-flight run.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Turbo remote cache (optional). Set repo secret TURBO_TOKEN + repo variable
+  # TURBO_TEAM to share the build/test cache across runs and agents. Absent =>
+  # local cache only, everything still works.
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+
+jobs:
+  # Deterministic, secret-free gates. The web build is inert on import (the DB
+  # handle is lazy), so it compiles without any secrets.
+  quality:
+    name: typecheck · lint · test · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+  # End-to-end smoke: boots the real app against a seeded throwaway Postgres and
+  # checks the play page serves an interactive round. Needs Clerk *test* keys
+  # (the app throws at boot without them); soft-skips until those secrets exist
+  # so CI isn't red before they're wired. See docs/ci.md.
+  e2e:
+    name: e2e smoke (play)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: pquiz_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/pquiz_test
+      VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
+      CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
+      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+    steps:
+      - name: Gate on Clerk test secrets
+        id: guard
+        run: |
+          if [ -z "${CLERK_SECRET_KEY}" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping e2e smoke — add repo secrets CLERK_SECRET_KEY and VITE_CLERK_PUBLISHABLE_KEY (Clerk *test* keys) to enable it. See docs/ci.md."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.guard.outputs.skip != 'true'
+
+      - uses: pnpm/action-setup@v4
+        if: steps.guard.outputs.skip != 'true'
+
+      - uses: actions/setup-node@v4
+        if: steps.guard.outputs.skip != 'true'
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install
+        if: steps.guard.outputs.skip != 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Push schema + seed playable bars
+        if: steps.guard.outputs.skip != 'true'
+        run: |
+          pnpm --filter @workspace/db db:push
+          pnpm --filter @workspace/db db:seed
+
+      - name: Install Playwright browser
+        if: steps.guard.outputs.skip != 'true'
+        run: pnpm --filter web exec playwright install --with-deps chromium
+
+      - name: Run smoke
+        if: steps.guard.outputs.skip != 'true'
+        run: pnpm e2e
+
+      - uses: actions/upload-artifact@v4
+        if: steps.guard.outputs.skip != 'true' && failure()
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7

@@ -4,10 +4,10 @@ import { artists, dailyChallenges, punchlines, songs } from "@workspace/db"
 
 import { db } from "../../../lib/db"
 import {
+  HttpError,
   audit,
   errorJson,
   handleError,
-  HttpError,
   json,
   readJsonBody,
   requireString,
@@ -23,7 +23,9 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
  */
 async function listDailies(includePast: boolean) {
   // sv-SE locale produces YYYY-MM-DD.
-  const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" })
+  const today = new Date().toLocaleDateString("sv-SE", {
+    timeZone: "Europe/Berlin",
+  })
   const rows = await db
     .select({
       id: dailyChallenges.id,
@@ -67,12 +69,23 @@ export const Route = createFileRoute("/api/admin/daily")({
           const body = await readJsonBody<Record<string, unknown>>(request)
           const date = requireString(body.date, "date", { max: 10, min: 10 })
           if (!ISO_DATE.test(date)) {
-            throw new HttpError(400, "invalid_field", "date must be YYYY-MM-DD.")
+            throw new HttpError(
+              400,
+              "invalid_field",
+              "date must be YYYY-MM-DD."
+            )
           }
-          if (typeof body.punchlineId !== "number" || !Number.isInteger(body.punchlineId)) {
-            throw new HttpError(400, "invalid_field", "punchlineId must be an integer.")
+          if (
+            typeof body.punchlineId !== "number" ||
+            !Number.isInteger(body.punchlineId)
+          ) {
+            throw new HttpError(
+              400,
+              "invalid_field",
+              "punchlineId must be an integer."
+            )
           }
-          const punchlineId = body.punchlineId as number
+          const punchlineId = body.punchlineId
 
           const existsBar = await db
             .select({ id: punchlines.id })
@@ -89,7 +102,11 @@ export const Route = createFileRoute("/api/admin/daily")({
             .where(eq(dailyChallenges.date, date))
             .limit(1)
           if (dupDate.length > 0) {
-            throw new HttpError(409, "date_taken", "Another bar is already scheduled for that date.")
+            throw new HttpError(
+              409,
+              "date_taken",
+              "Another bar is already scheduled for that date."
+            )
           }
 
           const dupBar = await db
@@ -101,7 +118,7 @@ export const Route = createFileRoute("/api/admin/daily")({
             throw new HttpError(
               409,
               "bar_already_scheduled",
-              `Bar already scheduled for ${dupBar[0].date}.`,
+              `Bar already scheduled for ${dupBar[0].date}.`
             )
           }
 

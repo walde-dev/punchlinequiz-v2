@@ -4,8 +4,8 @@ import { and, desc, eq, isNull, sql } from "drizzle-orm"
 import {
   artists,
   contributorGrants,
-  punchlines,
   punchlineSubmissions,
+  punchlines,
   songs,
 } from "@workspace/db"
 
@@ -117,7 +117,7 @@ export type MySubmission = {
 }
 
 export const getMySubmissionsFn = createServerFn({ method: "GET" }).handler(
-  async (): Promise<MySubmission[]> => {
+  async (): Promise<Array<MySubmission>> => {
     const clerkId = await callerClerkId()
     if (!clerkId) return []
     const rows = await db

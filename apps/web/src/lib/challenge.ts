@@ -1,6 +1,6 @@
+import { randomBytes } from "node:crypto"
 import { createServerFn } from "@tanstack/react-start"
 import { getRequest } from "@tanstack/react-start/server"
-import { randomBytes } from "node:crypto"
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm"
 import {
   artists,
@@ -14,7 +14,8 @@ import {
 import { getActor } from "./auth"
 import { db } from "./db"
 import { hiddenDailyIds } from "./daily-pool"
-import { ensureUser, levelFor, loadLevels, type LevelInfo } from "./xp"
+import { ensureUser, levelFor, loadLevels } from "./xp"
+import type { LevelInfo } from "./xp"
 
 /**
  * Challenges = a dedicated 5-bar artist-guess run, frozen into a shareable
@@ -27,11 +28,15 @@ import { ensureUser, levelFor, loadLevels, type LevelInfo } from "./xp"
 export const CHALLENGE_SIZE = 5
 const MAX_BAR_MS = 120_000
 
-export type ChallengeChoice = { id: number; name: string; imageUrl: string | null }
+export type ChallengeChoice = {
+  id: number
+  name: string
+  imageUrl: string | null
+}
 export type ChallengeRound = {
   punchlineId: number
   line: string
-  choices: ChallengeChoice[]
+  choices: Array<ChallengeChoice>
   /** Contributor handle if this bar came from a submission (PUN-67); null = admin-authored. */
   submittedByHandle: string | null
 }
@@ -46,7 +51,11 @@ export type ChallengeBoardEntry = {
   isCreator: boolean
 }
 
-export type ChallengeAttemptInput = { punchlineId: number; artistId: number; ms: number }
+export type ChallengeAttemptInput = {
+  punchlineId: number
+  artistId: number
+  ms: number
+}
 
 export type ChallengeRecapBar = {
   punchlineId: number
@@ -64,7 +73,7 @@ async function callerClerkId(): Promise<string | null> {
   return result?.actor.kind === "clerk" ? result.actor.userId : null
 }
 
-function shuffle<T>(arr: T[]): T[] {
+function shuffle<T>(arr: Array<T>): Array<T> {
   const a = [...arr]
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
@@ -96,30 +105,45 @@ export const createChallengeFn = createServerFn({ method: "POST" }).handler(
     const rows = await db
       .select({ id: punchlines.id })
       .from(punchlines)
-      .where(and(eq(punchlines.active, true), sql`${punchlines.id} NOT IN ${hiddenDailyIds()}`))
+      .where(
+        and(
+          eq(punchlines.active, true),
+          sql`${punchlines.id} NOT IN ${hiddenDailyIds()}`
+        )
+      )
       .orderBy(sql`random()`)
       .limit(CHALLENGE_SIZE)
-    if (rows.length < CHALLENGE_SIZE) throw new Error("Not enough bars to build a challenge")
+    if (rows.length < CHALLENGE_SIZE)
+      throw new Error("Not enough bars to build a challenge")
     const barIds = rows.map((r) => r.id)
 
     // Insert with a fresh slug; retry on the (very unlikely) unique collision.
     for (let attempt = 0; attempt < 5; attempt++) {
       const slug = makeSlug()
       try {
-        await db.insert(challenges).values({ slug, creatorClerkId: creatorId, barIds })
+        await db
+          .insert(challenges)
+          .values({ slug, creatorClerkId: creatorId, barIds })
         return { slug }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
-        if (msg.includes("slug") || msg.includes("23505") || msg.includes("duplicate")) continue
+        if (
+          msg.includes("slug") ||
+          msg.includes("23505") ||
+          msg.includes("duplicate")
+        )
+          continue
         throw err
       }
     }
     throw new Error("Could not generate a unique challenge slug")
-  },
+  }
 )
 
 /** Build the playable rounds (line + shuffled 3 choices) for a frozen bar set. */
-async function buildRounds(barIds: number[]): Promise<ChallengeRound[]> {
+async function buildRounds(
+  barIds: Array<number>
+): Promise<Array<ChallengeRound>> {
   if (barIds.length === 0) return []
   const bars = await db
     .select({
@@ -149,7 +173,7 @@ async function buildRounds(barIds: number[]): Promise<ChallengeRound[]> {
   const artistById = new Map(artistRows.map((a) => [a.id, a]))
 
   // Preserve the frozen order from barIds.
-  const rounds: ChallengeRound[] = []
+  const rounds: Array<ChallengeRound> = []
   for (const id of barIds) {
     const b = byId.get(id)
     if (!b) continue
@@ -157,7 +181,7 @@ async function buildRounds(barIds: number[]): Promise<ChallengeRound[]> {
     const choices = shuffle(
       ids
         .map((aid) => artistById.get(aid))
-        .filter((a): a is ChallengeChoice => Boolean(a)),
+        .filter((a): a is ChallengeChoice => Boolean(a))
     )
     rounds.push({
       punchlineId: b.punchlineId,
@@ -172,8 +196,8 @@ async function buildRounds(barIds: number[]): Promise<ChallengeRound[]> {
 async function loadBoard(
   challengeId: number,
   creatorClerkId: string,
-  levels: Awaited<ReturnType<typeof loadLevels>>,
-): Promise<ChallengeBoardEntry[]> {
+  levels: Awaited<ReturnType<typeof loadLevels>>
+): Promise<Array<ChallengeBoardEntry>> {
   const rows = await db
     .select({
       clerkId: challengeAttempts.clerkId,
@@ -186,7 +210,10 @@ async function loadBoard(
     .from(challengeAttempts)
     .innerJoin(users, eq(users.clerkId, challengeAttempts.clerkId))
     .where(eq(challengeAttempts.challengeId, challengeId))
-    .orderBy(desc(challengeAttempts.correctCount), asc(challengeAttempts.solveMs))
+    .orderBy(
+      desc(challengeAttempts.correctCount),
+      asc(challengeAttempts.solveMs)
+    )
 
   return rows
     .filter((r) => r.handle)
@@ -209,9 +236,9 @@ export type ChallengeView =
       creatorHandle: string | null
       viewerHandle: string | null
       size: number
-      rounds: ChallengeRound[]
+      rounds: Array<ChallengeRound>
       viewerAttempt: { correctCount: number; solveMs: number } | null
-      board: ChallengeBoardEntry[]
+      board: Array<ChallengeBoardEntry>
     }
 
 /** Load a challenge by slug: playable rounds + current board + viewer's locked attempt. */
@@ -248,13 +275,16 @@ export const getChallengeFn = createServerFn({ method: "GET" })
         .limit(1)
       viewerHandle = u?.handle ?? null
       const [row] = await db
-        .select({ correctCount: challengeAttempts.correctCount, solveMs: challengeAttempts.solveMs })
+        .select({
+          correctCount: challengeAttempts.correctCount,
+          solveMs: challengeAttempts.solveMs,
+        })
         .from(challengeAttempts)
         .where(
           and(
             eq(challengeAttempts.challengeId, challenge.id),
-            eq(challengeAttempts.clerkId, viewerId),
-          ),
+            eq(challengeAttempts.clerkId, viewerId)
+          )
         )
         .limit(1)
       viewerAttempt = row ?? null
@@ -276,13 +306,17 @@ export type SubmitChallengeResult =
   | { found: false }
   | {
       found: true
-      result: { correctCount: number; solveMs: number; recap: ChallengeRecapBar[] }
+      result: {
+        correctCount: number
+        solveMs: number
+        recap: Array<ChallengeRecapBar>
+      }
       persisted: boolean
       /** The actually-stored row (may be a pre-existing locked attempt). */
       locked: { correctCount: number; solveMs: number } | null
       alreadyLocked: boolean
       viewerHandle: string | null
-      board: ChallengeBoardEntry[]
+      board: Array<ChallengeBoardEntry>
     }
 
 /**
@@ -291,7 +325,9 @@ export type SubmitChallengeResult =
  * but not persisted (the client holds them and re-submits after sign-up).
  */
 export const submitChallengeAttemptFn = createServerFn({ method: "POST" })
-  .inputValidator((d: { slug: string; answers: ChallengeAttemptInput[] }) => d)
+  .inputValidator(
+    (d: { slug: string; answers: Array<ChallengeAttemptInput> }) => d
+  )
   .handler(async ({ data }): Promise<SubmitChallengeResult> => {
     const [challenge] = await db
       .select()
@@ -321,7 +357,7 @@ export const submitChallengeAttemptFn = createServerFn({ method: "POST" })
 
     let correctCount = 0
     let solveMs = 0
-    const recap: ChallengeRecapBar[] = []
+    const recap: Array<ChallengeRecapBar> = []
     for (const id of challenge.barIds) {
       const bar = barById.get(id)
       if (!bar) continue
@@ -329,7 +365,10 @@ export const submitChallengeAttemptFn = createServerFn({ method: "POST" })
       const chosenArtistId = ans?.artistId ?? null
       const correct = chosenArtistId === bar.artistId
       if (correct) correctCount++
-      solveMs += Math.min(MAX_BAR_MS, Math.max(0, Math.round(ans?.ms ?? MAX_BAR_MS)))
+      solveMs += Math.min(
+        MAX_BAR_MS,
+        Math.max(0, Math.round(ans?.ms ?? MAX_BAR_MS))
+      )
       recap.push({
         punchlineId: id,
         line: bar.line,
@@ -346,7 +385,11 @@ export const submitChallengeAttemptFn = createServerFn({ method: "POST" })
 
     if (!viewerId) {
       // Anonymous: scored but not persisted; client shows the sign-up wall.
-      const board = await loadBoard(challenge.id, challenge.creatorClerkId, levels)
+      const board = await loadBoard(
+        challenge.id,
+        challenge.creatorClerkId,
+        levels
+      )
       return {
         found: true,
         result,
@@ -362,21 +405,30 @@ export const submitChallengeAttemptFn = createServerFn({ method: "POST" })
     // First-attempt-lock: keep the earliest attempt; replays never overwrite.
     await db
       .insert(challengeAttempts)
-      .values({ challengeId: challenge.id, clerkId: viewerId, correctCount, solveMs })
+      .values({
+        challengeId: challenge.id,
+        clerkId: viewerId,
+        correctCount,
+        solveMs,
+      })
       .onConflictDoNothing()
 
     const [stored] = await db
-      .select({ correctCount: challengeAttempts.correctCount, solveMs: challengeAttempts.solveMs })
+      .select({
+        correctCount: challengeAttempts.correctCount,
+        solveMs: challengeAttempts.solveMs,
+      })
       .from(challengeAttempts)
       .where(
         and(
           eq(challengeAttempts.challengeId, challenge.id),
-          eq(challengeAttempts.clerkId, viewerId),
-        ),
+          eq(challengeAttempts.clerkId, viewerId)
+        )
       )
       .limit(1)
     const locked = stored ?? { correctCount, solveMs }
-    const alreadyLocked = locked.correctCount !== correctCount || locked.solveMs !== solveMs
+    const alreadyLocked =
+      locked.correctCount !== correctCount || locked.solveMs !== solveMs
 
     const [vh] = await db
       .select({ handle: users.handle })
@@ -384,7 +436,11 @@ export const submitChallengeAttemptFn = createServerFn({ method: "POST" })
       .where(eq(users.clerkId, viewerId))
       .limit(1)
 
-    const board = await loadBoard(challenge.id, challenge.creatorClerkId, levels)
+    const board = await loadBoard(
+      challenge.id,
+      challenge.creatorClerkId,
+      levels
+    )
     return {
       found: true,
       result,
