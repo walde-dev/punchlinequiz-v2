@@ -73,8 +73,9 @@ Analytics-as-code in `scripts/posthog/dashboards.ts`; apply with `pnpm analytics
 4. Conclude only on adequate sample + duration — never peek-and-ship.
 
 ## 6. Session replay (PUN-45)
-- Enabled in `posthog.ts` with `maskAllInputs: true` + `maskTextSelector: "*"`
-  → no typed text/PII is ever recorded.
+- Enabled in `posthog.ts` with `maskAllInputs: true` only. Form inputs (the one
+  real PII vector — typed email/name) are masked; rendered text stays visible so
+  replays are readable for debugging.
 - **Capture strategy:** 100% early (low launch traffic = best debugging value).
   Set a **minimum duration** filter in PostHog project settings to skip bounces.
 - **Free tier ≈ 5,000 recordings/mo.** When approaching the cap, lower the

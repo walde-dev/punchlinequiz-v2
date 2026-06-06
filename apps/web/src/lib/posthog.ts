@@ -22,7 +22,7 @@
  *    one anonymous id with Axiom + Sentry + the gameEvents DB.
  *  - person_profiles "always": we deliberately capture identified profiles incl.
  *    PII (email/name/handle) — see project decision; no consent gate.
- *  - session replay ON with maskAllInputs — see PUN-45. Sampling / min-duration
+ *  - session replay ON, masking form inputs only — see PUN-45. Sampling / min-duration
  *    live in the PostHog project settings (see docs/posthog.md), not here.
  */
 import type { PostHog } from "posthog-js"
@@ -82,12 +82,13 @@ export function loadPostHog(): Promise<PostHog | null> {
           distinctID: bootstrapDistinctId(),
           featureFlags: boot.featureFlags,
         },
-        // Session replay (PUN-45): enabled; mask every input + all text so no
-        // typed PII is ever recorded. Sampling/min-duration are project-side.
+        // Session replay (PUN-45): enabled. Mask form inputs (the only real PII
+        // vector — typed email/name) but leave rendered text visible so replays
+        // are actually readable for debugging. Sampling/min-duration are
+        // project-side.
         disable_session_recording: false,
         session_recording: {
           maskAllInputs: true,
-          maskTextSelector: "*",
         },
         // Disable in dev so local clicking doesn't pollute prod analytics.
         loaded: (ph) => {
