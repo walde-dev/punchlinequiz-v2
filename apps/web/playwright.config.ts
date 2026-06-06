@@ -14,6 +14,17 @@ import { defineConfig, devices } from "@playwright/test"
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000"
 const usingDeployedUrl = !!process.env.PLAYWRIGHT_BASE_URL
 
+// Vercel preview deploys are SSO-protected. CI passes the project's automation
+// bypass secret so Playwright reaches the app instead of the login wall.
+// `set-bypass-cookie` makes the bypass stick for client-side navigations too.
+const bypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET
+const bypassHeaders = bypass
+  ? {
+      "x-vercel-protection-bypass": bypass,
+      "x-vercel-set-bypass-cookie": "true",
+    }
+  : undefined
+
 export default defineConfig({
   testDir: "./e2e",
   timeout: 30_000,
@@ -25,6 +36,7 @@ export default defineConfig({
   use: {
     baseURL,
     trace: "on-first-retry",
+    extraHTTPHeaders: bypassHeaders,
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   // Only boot a local server when not targeting a deployed URL.

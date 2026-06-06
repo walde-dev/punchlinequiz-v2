@@ -50,6 +50,13 @@ Playwright at the deploy's `target_url`. No DB or Clerk secrets are needed in
 CI — the deployed app brings its own. (This requires Vercel's Git integration,
 which is already on — preview deploys show up as the `Vercel` check on PRs.)
 
+**Preview protection:** preview deploys are SSO-protected, so the smoke would
+otherwise hit Vercel's login wall. The repo secret
+`VERCEL_AUTOMATION_BYPASS_SECRET` (Vercel project → Settings → Deployment
+Protection → *Protection Bypass for Automation*) is sent as the
+`x-vercel-protection-bypass` header so Playwright reaches the app. It's already
+configured; regenerate it in Vercel and update the secret if it's ever rotated.
+
 Run it locally — needs no extra setup, your `.env` already has a Neon
 `DATABASE_URL` + Clerk keys, and Playwright boots `pnpm dev` for you:
 

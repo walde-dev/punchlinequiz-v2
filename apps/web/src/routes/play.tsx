@@ -976,6 +976,7 @@ function Choices({
           <button
             key={c.id}
             type="button"
+            data-testid="artist-choice"
             onClick={() => onChoose(c)}
             disabled={disabled}
             aria-pressed={isSelected}

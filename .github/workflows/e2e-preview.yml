@@ -41,6 +41,8 @@ jobs:
         run: pnpm e2e
         env:
           PLAYWRIGHT_BASE_URL: ${{ github.event.deployment_status.target_url }}
+          # Lets Playwright through Vercel's SSO protection on preview deploys.
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
 
       - uses: actions/upload-artifact@v4
         if: failure()
