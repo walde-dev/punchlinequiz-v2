@@ -4,6 +4,7 @@ import { Suspense, useEffect } from "react"
 import { I18nextProvider, useTranslation } from "react-i18next"
 
 import appCss from "@workspace/ui/globals.css?url"
+import { figtreeLatinWoff2 } from "@workspace/ui/lib/fonts"
 import i18n from "../i18n"
 import { OnboardingGate } from "../components/onboarding-gate"
 import { AnalyticsIdentity } from "../components/analytics-identity"
@@ -45,6 +46,10 @@ export const Route = createRootRoute({
       { name: "twitter:image", content: ogImageUrl({ title: SITE_NAME, subtitle: OG_DEFAULT_SUBTITLE }) },
     ],
     links: [
+      // Preload the latin Figtree woff2 so the hero text paints in-brand sooner
+      // (PUN-112). crossOrigin is required even same-origin — fonts fetch in CORS
+      // mode, so the preload must match or it's a wasted double-fetch.
+      { rel: "preload", as: "font", type: "font/woff2", href: figtreeLatinWoff2, crossOrigin: "anonymous" },
       { rel: "stylesheet", href: appCss },
       { rel: "icon", href: "/favicon.ico", sizes: "any" },
       { rel: "icon", type: "image/png", href: "/icon-32.png", sizes: "32x32" },
