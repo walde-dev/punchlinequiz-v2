@@ -36,7 +36,7 @@
     "levelUp": {
       "eyebrow": "Level Up",
       "levelLabel": "Level",
-      "subtitle": "Du bist jetzt einer der echten — {{rank}}.",
+      "subtitle": "Du bist jetzt {{rank}}.",
       "cta": "Weitermachen"
     },
     "anonCta": {
@@ -58,7 +58,7 @@
     "sparklineAria": "XP-Aktivität der letzten 30 Tage",
     "statsTitle": "Statistiken",
     "recentTitle": "Zuletzt geknackt",
-    "playMore": "Weiter grinden",
+    "playMore": "Weiterspielen",
     "stats": {
       "currentStreak": "Aktuelle Streak",
       "longestStreak": "Längste Streak",
@@ -81,7 +81,7 @@
     "anon": {
       "eyebrow": "/ profil",
       "headline": "Anmelden, um XP zu sammeln.",
-      "subtext": "Ohne Account zählt nix. Anmelden und vom Neuling zum OG werden.",
+      "subtext": "Ohne Account zählt nichts. Melde dich an und sammel XP.",
       "subtextWithNext": "Mit jedem richtigen Treffer XP sammeln — vom Neuling bis zum {{rank}}.",
       "cta": "Anmelden"
     },
@@ -105,13 +105,13 @@
     "subtitle": "Zwei Spielmodi. Welcher liegt dir?",
     "signInBanner": {
       "eyebrow": "/ XP & Ränge",
-      "headline": "Vom Neuling zum OG.",
+      "headline": "Spiel dich nach oben.",
       "sub": "XP sammeln, Streaks halten, im Ranking klettern.",
       "cta": "Anmelden"
     },
     "betaBadge": "Public Beta",
     "betaNotice": "Das Spiel ist noch in Entwicklung. Feedback ist willkommen.",
-    "madeWith": "Made for the culture.",
+    "madeWith": "Deutschrap, Bar für Bar.",
     "footerArtists": "Alle Artists",
     "footerDaily": "Daily",
     "dailyEyebrow": "/ daily #{{number}}",
@@ -137,11 +137,11 @@
     "eyebrow": "/ einladung",
     "title": "@{{handle}} hat dich eingeladen",
     "fallbackTitle": "Kennst du die Bars?",
-    "subtitle": "Errate den Artist hinter der Punchline. Beweis, dass du die Kultur kennst.",
+    "subtitle": "Errate den Artist hinter der Punchline. Zeig, was du draufhast.",
     "ctaPlay": "Loslegen",
     "ctaDaily": "Daily spielen",
     "cardTitle": "Lade Freunde ein",
-    "cardSubtitle": "Teile deinen Link. Wenn ein Homie loslegt, kassiert ihr beide XP.",
+    "cardSubtitle": "Teile deinen Link. Wenn ein Freund loslegt, bekommt ihr beide XP.",
     "count": "{{count}} geworben",
     "copy": "Kopieren",
     "share": "Link teilen",
@@ -297,7 +297,7 @@
   "community": {
     "eyebrow": "/ community",
     "joinTitle": "Komm in den Discord",
-    "joinSubtitle": "Bars vorschlagen, über den GOAT streiten, deine Crew herausfordern.",
+    "joinSubtitle": "Bars vorschlagen, mitdiskutieren, Freunde herausfordern.",
     "joinCta": "Beitreten",
     "footerLink": "Discord"
   },

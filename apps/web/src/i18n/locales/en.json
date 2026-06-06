@@ -17,7 +17,7 @@
     "saveCard": "Save card",
     "shareCard": "Share card",
     "notFound": "Page not found.",
-    "errorTitle": "Glitch in the booth.",
+    "errorTitle": "Hiccup.",
     "errorBody": "Something dropped. Reload — we're on it.",
     "switchToEnglish": "Switch to English",
     "switchToGerman": "Switch to German"
@@ -36,7 +36,7 @@
     "levelUp": {
       "eyebrow": "Level Up",
       "levelLabel": "Level",
-      "subtitle": "You're one of the real ones now — {{rank}}.",
+      "subtitle": "You're now {{rank}}.",
       "cta": "Keep going"
     },
     "anonCta": {
@@ -57,12 +57,12 @@
     "sparklineTitle": "Last 30 days",
     "sparklineAria": "XP activity over the last 30 days",
     "statsTitle": "Stats",
-    "recentTitle": "Recently conquered",
-    "playMore": "Keep grinding",
+    "recentTitle": "Recently solved",
+    "playMore": "Keep playing",
     "stats": {
       "currentStreak": "Current streak",
       "longestStreak": "Longest streak",
-      "linesConquered": "Bars conquered",
+      "linesConquered": "Bars solved",
       "daysCompleted": "Daily days"
     },
     "contributor": {
@@ -81,7 +81,7 @@
     "anon": {
       "eyebrow": "/ profile",
       "headline": "Sign in to earn XP.",
-      "subtext": "No account, no XP. Sign in and climb from Rookie to OG.",
+      "subtext": "No account, no XP. Sign in and climb the ranks.",
       "subtextWithNext": "Earn XP on every correct guess — from Rookie all the way to {{rank}}.",
       "cta": "Sign in"
     },
@@ -105,13 +105,13 @@
     "subtitle": "Two game modes. Pick your style.",
     "signInBanner": {
       "eyebrow": "/ XP & ranks",
-      "headline": "From Rookie to OG.",
+      "headline": "Play your way up.",
       "sub": "Earn XP, keep streaks, climb the ranks.",
       "cta": "Sign in"
     },
     "betaBadge": "Public Beta",
     "betaNotice": "The game is still in development. Feedback welcome.",
-    "madeWith": "Made for the culture.",
+    "madeWith": "German rap, bar by bar.",
     "footerArtists": "All artists",
     "footerDaily": "Daily",
     "dailyEyebrow": "/ daily #{{number}}",
@@ -137,11 +137,11 @@
     "eyebrow": "/ invite",
     "title": "@{{handle}} invited you",
     "fallbackTitle": "Know your bars?",
-    "subtitle": "Guess the artist behind the punchline. Prove you know the culture.",
+    "subtitle": "Guess the artist behind the punchline. Show what you've got.",
     "ctaPlay": "Start playing",
     "ctaDaily": "Play the daily",
     "cardTitle": "Invite friends",
-    "cardSubtitle": "Share your link. When a homie starts playing, you both bag XP.",
+    "cardSubtitle": "Share your link. When a friend starts playing, you both get XP.",
     "count": "{{count}} invited",
     "copy": "Copy",
     "share": "Share link",
@@ -297,7 +297,7 @@
   "community": {
     "eyebrow": "/ community",
     "joinTitle": "Join the Discord",
-    "joinSubtitle": "Suggest bars, argue the GOAT, challenge your crew.",
+    "joinSubtitle": "Suggest bars, talk rap, challenge your friends.",
     "joinCta": "Join",
     "footerLink": "Discord"
   },
@@ -670,7 +670,7 @@
     "wallBody": "Sign up to lock your score onto the board.",
     "wallCta": "Sign up & claim",
     "boardTitle": "Beat my score",
-    "creatorThrewDown": "@{{handle}} threw down",
+    "creatorThrewDown": "@{{handle}} challenged you",
     "beatThem": "Can you beat @{{handle}}?",
     "beFirst": "Be the first to crack these 5.",
     "playAgain": "Play again",

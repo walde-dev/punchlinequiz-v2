@@ -40,9 +40,13 @@ See `docs/ui-components.md` for the full convention reference.
 German hip hop fans, age 16–30. Using the app on their phone during downtime — commuting, between classes, late at night. They know the culture deeply and want to prove it. The job: **flex rap knowledge, beat friends, feel like the real one in the room.** They arrived via a Reddit post or WhatsApp share card.
 
 ### Brand Personality
-**Competitive, Cultural, Slick.** Tone is a skilled trash talker who respects the culture — like a friend who roasts you but buys the next round. Not mean, not friendly. The energy is: *"You should know this. Let's see."*
+**Casual, confident, low-key competitive.** Talk like a normal person who knows rap — not a brand performing "hip-hop culture." Short, dry, a little cocky is fine. The energy is: *"You should know this. Let's see."* — said plainly, not shouted.
 
-Correct: "Ehre. Du kennst das." / Wrong (3 fails): "Nicht mal nah dran. Hier ist die Lösung."
+Correct copy is casual-neutral: `Sitzt.` / `Knapp daneben.` / `Heute nicht. Morgen wieder.` / `Stark.`
+
+**Do NOT do "tryhard culture" voice.** No forced slang or signaling. Specifically avoid: "the culture" / "für die Kultur", "OG", "homie", "crew", "GOAT", "real ones" / "die echten", "grind/grinden", "threw down", "conquered", booth/studio metaphors ("glitch in the booth"). These read as cringe. When in doubt, say the plain version.
+
+Keep the edge light: punch at the *lack of knowledge*, never at the user. A little personality is good; a costume is not.
 
 ### Aesthetic Direction
 - **Background:** Deep charcoal blacks, #121212–#1f1f1f. Never white or light. Dark only.
