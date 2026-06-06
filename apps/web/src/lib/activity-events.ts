@@ -254,6 +254,36 @@ const TEMPLATES: Record<string, Describe> = {
   admin_levels_replace: () => "hat die Level-Schwellen aktualisiert",
 }
 
+// ─── Anonymous identity ─────────────────────────────────────────────────────────
+
+/**
+ * Anonymous sessions have opaque UUIDs ("Anon a1b2c3"), which are impossible to
+ * track by eye in the feed. We map each session id to a stable, readable name
+ * so the same anon reads as the same person across rows. Purely cosmetic — the
+ * real session id is still available on hover.
+ */
+const ANON_NAMES = [
+  "Kyle", "Mia", "Leon", "Emma", "Noah", "Lina", "Finn", "Lara", "Jonas", "Nele",
+  "Luca", "Maya", "Ben", "Ida", "Paul", "Romy", "Tim", "Greta", "Max", "Ava",
+  "Elias", "Frida", "Theo", "Lotta", "Nico", "Hanna", "Jan", "Marie", "Til", "Ella",
+  "Moritz", "Anna", "David", "Lea", "Felix", "Zoe", "Samu", "Klara", "Erik", "Mila",
+  "Lars", "Pia", "Jakob", "Nora", "Aaron", "Lilly", "Bruno", "Carla", "Henry", "Juna",
+  "Milo", "Stella", "Oscar", "Thea", "Vince", "Alma", "Joel", "Fee", "Kai", "Liv",
+  "Ravi", "Yuki", "Omar", "Sara", "Diego", "Aylin", "Mats", "Enno", "Piet", "Mara",
+  "Levi", "Suri", "Dario", "Nila", "Curt", "Bela", "Ole", "Ronja", "Sven", "Yara",
+  "Toni", "Lou", "Jule", "Phil", "Aron", "Cleo", "Knut", "Indra", "Bo", "Sky",
+  "Remy", "Vito", "Nia", "Kofi", "Amir", "Tess", "Gus", "Ines", "Falk", "Wim",
+] as const
+
+export function anonName(sessionId: string): string {
+  let h = 2166136261
+  for (let i = 0; i < sessionId.length; i++) {
+    h ^= sessionId.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return ANON_NAMES[(h >>> 0) % ANON_NAMES.length]
+}
+
 /** Title-cases an unknown event name: `early_win` → `Early win`. */
 function humanize(name: string): string {
   const cleaned = name.replace(/^admin_/, "").replace(/_/g, " ").trim()

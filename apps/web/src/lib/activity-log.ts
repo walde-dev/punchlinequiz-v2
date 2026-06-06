@@ -11,6 +11,7 @@ import {
   DISTRIBUTION_NAMES,
   PLAY_NAMES,
   SUBMISSION_NAMES,
+  anonName,
 } from "./activity-events"
 import type { SQL } from "drizzle-orm"
 import type { CategoryKey } from "./activity-events"
@@ -27,7 +28,7 @@ import type { CategoryKey } from "./activity-events"
 
 export type ActivityActor =
   | { kind: "clerk"; userId: string; handle: string | null; imageUrl: string | null; email: string | null }
-  | { kind: "anon"; sessionShort: string }
+  | { kind: "anon"; sessionShort: string; name: string }
   | { kind: "token" }
   | { kind: "system" }
 
@@ -226,7 +227,7 @@ export const getActivityLog = createServerFn({ method: "GET" })
       } else if (r.sessionId === "admin") {
         actor = { kind: "system" }
       } else {
-        actor = { kind: "anon", sessionShort: r.sessionId.slice(0, 6) }
+        actor = { kind: "anon", sessionShort: r.sessionId.slice(0, 6), name: anonName(r.sessionId) }
       }
       return {
         id: r.id,

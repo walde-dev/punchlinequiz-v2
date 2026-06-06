@@ -54,17 +54,29 @@ const PRESETS: Array<{ key: PresetKey; label: string }> = [
 
 // ─── Time + actor formatting ──────────────────────────────────────────────────
 
+/** Exact wall-clock time — the row's primary timestamp. In a dense event log,
+ *  absolute time differentiates a burst that relative time would collapse. */
+function clockTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString("de-DE", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  })
+}
+
+/** Relative phrase, kept for the hover tooltip. */
 function relTime(iso: string): string {
   const diff = Math.max(0, Date.now() - new Date(iso).getTime())
-  const min = 60_000
+  const sec = 1000
+  const min = 60 * sec
   const hr = 60 * min
   const day = 24 * hr
-  if (diff < min) return "gerade eben"
+  if (diff < 10 * sec) return "gerade eben"
+  if (diff < min) return `vor ${Math.floor(diff / sec)} Sek`
   if (diff < hr) return `vor ${Math.floor(diff / min)} Min`
   if (diff < day) return `vor ${Math.floor(diff / hr)} Std`
   const days = Math.floor(diff / day)
-  if (days < 7) return `vor ${days} ${days === 1 ? "Tag" : "Tagen"}`
-  return new Date(iso).toLocaleDateString("de-DE", { day: "numeric", month: "short" })
+  return `vor ${days} ${days === 1 ? "Tag" : "Tagen"}`
 }
 
 function dayLabel(iso: string): string {
@@ -86,7 +98,7 @@ function actorName(actor: ActivityActor): string {
     case "clerk":
       return actor.handle ? `@${actor.handle}` : actor.email ?? `User ${actor.userId.slice(5, 11)}`
     case "anon":
-      return `Anon ${actor.sessionShort}`
+      return `Anon ${actor.name}`
     case "token":
       return "CLI"
     case "system":
@@ -364,10 +376,19 @@ function ActivityRow({ item }: { item: ActivityItem }) {
           className="flex w-full items-start gap-1.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/50 rounded-md"
         >
           <span className="text-sm leading-6 text-muted-foreground">
-            <span className="font-semibold text-foreground">{name}</span> {predicate}
+            <span
+              className="font-semibold text-foreground"
+              title={item.actor.kind === "anon" ? `Session ${item.actor.sessionShort}…` : undefined}
+            >
+              {name}
+            </span>{" "}
+            {predicate}
             <span className="text-muted-foreground/50"> · </span>
-            <span className="text-muted-foreground/70" title={new Date(item.createdAt).toLocaleString("de-DE")}>
-              {relTime(item.createdAt)}
+            <span
+              className="tabular-nums text-muted-foreground/70"
+              title={`${new Date(item.createdAt).toLocaleString("de-DE")} · ${relTime(item.createdAt)}`}
+            >
+              {clockTime(item.createdAt)}
             </span>
             <span className="ml-2 font-mono text-[10px] text-muted-foreground/35">{item.name}</span>
           </span>
