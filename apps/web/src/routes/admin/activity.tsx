@@ -148,6 +148,7 @@ function ActivityPage() {
   const [nextCursor, setNextCursor] = useState<number | null>(initial.nextCursor)
   const [category, setCategory] = useState<CategoryKey | null>(null)
   const [preset, setPreset] = useState<PresetKey>("all")
+  const [registeredOnly, setRegisteredOnly] = useState(false)
   const [search, setSearch] = useState("")
   const [q, setQ] = useState("") // debounced
   const [loading, setLoading] = useState(false)
@@ -165,9 +166,17 @@ function ActivityPage() {
   const fetchPage = useCallback(
     (cursor: number | null): Promise<ActivityPage> =>
       getActivityLog({
-        data: { category, q: q || null, from: range.from, to: range.to, cursor, limit: 50 },
+        data: {
+          category,
+          q: q || null,
+          from: range.from,
+          to: range.to,
+          registeredOnly,
+          cursor,
+          limit: 50,
+        },
       }),
-    [category, q, range.from, range.to],
+    [category, q, range.from, range.to, registeredOnly],
   )
 
   // Reload from the top whenever a filter changes (skip the very first render —
@@ -263,14 +272,22 @@ function ActivityPage() {
             ))}
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <Input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Session, E-Mail oder Event suchen…"
-              aria-label="Aktivität durchsuchen"
-              className="w-full max-w-xs"
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Session, @Handle, E-Mail oder Event…"
+                aria-label="Aktivität durchsuchen"
+                className="w-full max-w-xs"
+              />
+              <FilterPill active={registeredOnly} onClick={() => setRegisteredOnly((v) => !v)}>
+                <span className="mr-1 opacity-70" aria-hidden="true">
+                  ✦
+                </span>
+                Nur angemeldete
+              </FilterPill>
+            </div>
             <div className="flex items-center gap-1 rounded-full border border-border/50 bg-card/40 p-1">
               {PRESETS.map((p) => (
                 <button

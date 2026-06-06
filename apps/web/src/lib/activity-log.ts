@@ -52,10 +52,12 @@ export type ActivityPage = {
 
 export type ActivityFilters = {
   category?: CategoryKey | null
-  /** Free-text match against session id, actor email, or event name. */
+  /** Free-text match against session id, actor email, handle, or event name. */
   q?: string | null
   from?: string | null // YYYY-MM-DD (inclusive)
   to?: string | null // YYYY-MM-DD (inclusive)
+  /** When true, drop anonymous (and system/CLI) rows — only signed-in users. */
+  registeredOnly?: boolean
   cursor?: number | null
   limit?: number
 }
@@ -148,9 +150,21 @@ function validate(d: ActivityFilters): Required<ActivityFilters> {
     q: typeof d.q === "string" && d.q.trim() !== "" ? d.q.trim().slice(0, 80) : null,
     from: typeof d.from === "string" && d.from ? d.from : null,
     to: typeof d.to === "string" && d.to ? d.to : null,
+    registeredOnly: d.registeredOnly === true,
     cursor: Number.isInteger(d.cursor) ? (d.cursor as number) : null,
     limit,
   }
+}
+
+/** An event is attributable to a signed-in Clerk user when its session id is a
+ *  Clerk id, or props carry an explicit `actor_user_id` (anon play later
+ *  stitched onto an account). Everything else — anon sessions, the admin token,
+ *  the system actor — counts as "not a registered user". */
+function registeredCondition(): SQL {
+  return or(
+    like(gameEvents.sessionId, "user_%"),
+    sql`(${gameEvents.props} ->> 'actor_user_id') is not null`,
+  ) as SQL
 }
 
 // ─── Server function ──────────────────────────────────────────────────────────
@@ -164,8 +178,23 @@ export const getActivityLog = createServerFn({ method: "GET" })
     const to = data.to ? new Date(`${data.to}T23:59:59.999Z`) : null
     const like_ = data.q ? `%${data.q}%` : null
 
+    // Events store only the Clerk id, never the handle — so a free-text search
+    // like "urus" can't hit the events table directly. Resolve matching handles
+    // to their Clerk ids first, then match those ids in the feed query below.
+    let handleUserIds: Array<string> = []
+    if (like_) {
+      const bare = data.q!.replace(/^@/, "")
+      const matched = await db
+        .select({ clerkId: users.clerkId })
+        .from(users)
+        .where(sql`${users.handle} ilike ${`%${bare}%`}`)
+        .limit(100)
+      handleUserIds = matched.map((u) => u.clerkId)
+    }
+
     const where = and(
       data.category ? categoryCondition(data.category) : undefined,
+      data.registeredOnly ? registeredCondition() : undefined,
       from ? gte(gameEvents.createdAt, from) : undefined,
       to ? lte(gameEvents.createdAt, to) : undefined,
       data.cursor !== null ? lt(gameEvents.id, data.cursor) : undefined,
@@ -174,6 +203,12 @@ export const getActivityLog = createServerFn({ method: "GET" })
             sql`${gameEvents.sessionId} ilike ${like_}`,
             sql`${gameEvents.name} ilike ${like_}`,
             sql`(${gameEvents.props} ->> 'actor_email') ilike ${like_}`,
+            handleUserIds.length > 0
+              ? or(
+                  inArray(gameEvents.sessionId, handleUserIds),
+                  inArray(sql`(${gameEvents.props} ->> 'actor_user_id')`, handleUserIds),
+                )
+              : undefined,
           )
         : undefined,
     )
