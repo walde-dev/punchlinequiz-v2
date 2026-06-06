@@ -13,6 +13,7 @@ import { getBootstrapFlagsFn } from "../lib/flags"
 import { captureFirstTouch, firstSessionStartThisTab } from "../lib/acquisition"
 import { captureReferralFromUrl } from "../lib/referral-client"
 import { logEvent } from "../lib/track"
+import { isStaleRouteLoad, recoverFromStaleDeploy } from "../lib/preload-recovery"
 import { DEFAULT_DESCRIPTION, OG_DEFAULT_SUBTITLE, SITE_NAME, ogImageUrl } from "../lib/seo"
 import type { BootstrapFlags } from "../lib/flags"
 
@@ -73,9 +74,14 @@ function ErrorPage({ error }: { error: Error }) {
   useEffect(() => {
     // Client-only Sentry capture; SSR-guarded so the server bundle stays free
     // of @sentry (see sentry.client.ts for why).
-    if (!import.meta.env.SSR) {
-      void import("@sentry/tanstackstart-react").then((Sentry) => Sentry.captureException(error))
-    }
+    if (import.meta.env.SSR) return
+    // A tab open across a deploy fails to load the new route's chunk and lands
+    // here (Sentry PUNCHLINEQUIZ-7). Reload once to pull the fresh build — and
+    // skip the Sentry report, since that's expected deploy churn, not a bug.
+    // The cooldown inside recoverFromStaleDeploy stops a genuinely-broken build
+    // from looping: it returns false, and we fall through to report + fallback.
+    if (isStaleRouteLoad(error) && recoverFromStaleDeploy("route_error_boundary")) return
+    void import("@sentry/tanstackstart-react").then((Sentry) => Sentry.captureException(error))
   }, [error])
   return (
     <main className="container mx-auto p-4 pt-16">
