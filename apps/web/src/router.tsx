@@ -5,8 +5,13 @@ import "./lib/sentry.client"
 // Side-effect: kick off client-side PostHog init (no-op unless
 // VITE_PUBLIC_POSTHOG_KEY is set; SSR-guarded so it stays out of the server bundle).
 import { loadPostHog } from "./lib/posthog"
+// Recover from stale lazy-chunk imports after a deploy (reload once).
+import { installPreloadErrorRecovery } from "./lib/preload-recovery"
 
-if (!import.meta.env.SSR) void loadPostHog()
+if (!import.meta.env.SSR) {
+  void loadPostHog()
+  installPreloadErrorRecovery()
+}
 
 export function getRouter() {
   const router = createTanStackRouter({
