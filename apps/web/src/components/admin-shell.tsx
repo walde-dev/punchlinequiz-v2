@@ -4,27 +4,44 @@ import { useTranslation } from "react-i18next"
 import { cn } from "@workspace/ui/lib/utils"
 import type { ReactNode } from "react"
 
-type NavItem = {
-  to:
-    | "/admin"
-    | "/admin/review"
-    | "/admin/submissions"
-    | "/admin/daily"
-    | "/admin/xp"
-    | "/admin/levels"
-    | "/admin/analytics"
-    | "/admin/activity"
-    | "/admin/onboarding"
+type AdminPath =
+  | "/admin"
+  | "/admin/review"
+  | "/admin/submissions"
+  | "/admin/daily"
+  | "/admin/xp"
+  | "/admin/levels"
+  | "/admin/analytics"
+  | "/admin/analytics/lines"
+  | "/admin/activity"
+  | "/admin/onboarding"
+
+type Leaf = { to: AdminPath; labelKey: string; glyph: string }
+type Group = {
   labelKey: string
   glyph: string
+  /** Prefix that marks the group (and its parent row) active. */
+  match: string
+  children: Array<{ to: AdminPath; labelKey: string }>
 }
+type NavEntry = Leaf | Group
 
-const NAV: Array<NavItem> = [
+const isGroup = (e: NavEntry): e is Group => "children" in e
+
+const NAV: Array<NavEntry> = [
   { to: "/admin", labelKey: "admin.nav.bars", glyph: "♪" },
   { to: "/admin/review", labelKey: "admin.nav.review", glyph: "✓" },
   { to: "/admin/submissions", labelKey: "admin.nav.submissions", glyph: "✎" },
   { to: "/admin/daily", labelKey: "admin.nav.daily", glyph: "★" },
-  { to: "/admin/analytics", labelKey: "admin.nav.analytics", glyph: "▮" },
+  {
+    labelKey: "admin.nav.analytics",
+    glyph: "▮",
+    match: "/admin/analytics",
+    children: [
+      { to: "/admin/analytics", labelKey: "admin.nav.conversion" },
+      { to: "/admin/analytics/lines", labelKey: "admin.nav.lines" },
+    ],
+  },
   { to: "/admin/activity", labelKey: "admin.nav.activity", glyph: "↻" },
   { to: "/admin/onboarding", labelKey: "admin.nav.onboarding", glyph: "✸" },
   { to: "/admin/xp", labelKey: "admin.nav.xp", glyph: "✦" },
@@ -60,6 +77,54 @@ export function AdminShell({
   )
 }
 
+function NavLink({
+  to,
+  label,
+  glyph,
+  active,
+  indented,
+}: {
+  to: AdminPath
+  label: string
+  glyph?: string
+  active: boolean
+  indented?: boolean
+}) {
+  return (
+    <Link
+      to={to}
+      className={cn(
+        "group flex flex-1 items-center gap-2.5 rounded-full px-3 py-2 text-sm font-semibold tracking-tight transition-colors md:flex-none md:py-2.5",
+        indented && "md:ml-3 md:pl-3",
+        active
+          ? "bg-primary/15 text-primary"
+          : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+      )}
+    >
+      {glyph !== undefined ? (
+        <span
+          className={cn(
+            "inline-flex h-5 w-5 items-center justify-center text-xs",
+            active ? "text-primary" : "text-muted-foreground/70 group-hover:text-foreground"
+          )}
+          aria-hidden="true"
+        >
+          {glyph}
+        </span>
+      ) : (
+        <span
+          className={cn(
+            "hidden h-1.5 w-1.5 shrink-0 rounded-full md:inline-block",
+            active ? "bg-primary" : "bg-muted-foreground/40"
+          )}
+          aria-hidden="true"
+        />
+      )}
+      <span>{label}</span>
+    </Link>
+  )
+}
+
 function Sidebar() {
   const { t } = useTranslation()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
@@ -82,32 +147,43 @@ function Sidebar() {
       </Link>
 
       <nav className="flex flex-row gap-1 md:flex-col">
-        {NAV.map((item) => {
-          const active = pathname === item.to
+        {NAV.map((entry) => {
+          if (!isGroup(entry)) {
+            return (
+              <NavLink
+                key={entry.to}
+                to={entry.to}
+                label={t(entry.labelKey)}
+                glyph={entry.glyph}
+                active={pathname === entry.to}
+              />
+            )
+          }
+          const sectionActive = pathname.startsWith(entry.match)
           return (
-            <Link
-              key={item.to}
-              to={item.to}
-              className={cn(
-                "group flex flex-1 items-center gap-2.5 rounded-full px-3 py-2 text-sm font-semibold tracking-tight transition-colors md:flex-none md:py-2.5",
-                active
-                  ? "bg-primary/15 text-primary"
-                  : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
-              )}
-            >
+            <div key={entry.labelKey} className="flex flex-row gap-1 md:flex-col">
+              {/* Group label — desktop only; on mobile the children read as inline pills. */}
               <span
                 className={cn(
-                  "inline-flex h-5 w-5 items-center justify-center text-xs",
-                  active
-                    ? "text-primary"
-                    : "text-muted-foreground/70 group-hover:text-foreground"
+                  "hidden items-center gap-2.5 px-3 pt-2 pb-0.5 text-[11px] font-bold tracking-tight uppercase md:flex",
+                  sectionActive ? "text-primary/80" : "text-muted-foreground/60"
                 )}
-                aria-hidden="true"
               >
-                {item.glyph}
+                <span className="inline-flex h-5 w-5 items-center justify-center text-xs" aria-hidden="true">
+                  {entry.glyph}
+                </span>
+                {t(entry.labelKey)}
               </span>
-              <span>{t(item.labelKey)}</span>
-            </Link>
+              {entry.children.map((c) => (
+                <NavLink
+                  key={c.to}
+                  to={c.to}
+                  label={t(c.labelKey)}
+                  active={pathname === c.to}
+                  indented
+                />
+              ))}
+            </div>
           )
         })}
       </nav>
