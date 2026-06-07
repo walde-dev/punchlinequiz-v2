@@ -409,9 +409,15 @@ export type NewLevel = typeof levels.$inferInsert
 export const challenges = pgTable("challenges", {
   id: serial("id").primaryKey(),
   slug: varchar("slug", { length: 16 }).notNull().unique(),
-  creatorClerkId: varchar("creator_clerk_id", { length: 64 })
-    .notNull()
-    .references(() => users.clerkId, { onDelete: "cascade" }),
+  /** Creator's account, when signed in. NULL for an anonymous creator (PUN-123):
+   *  anyone can mint & send a challenge friction-free; `creatorSessionId` keys
+   *  them until they sign up and we stitch the challenge onto their account. */
+  creatorClerkId: varchar("creator_clerk_id", { length: 64 }).references(
+    () => users.clerkId,
+    { onDelete: "cascade" }
+  ),
+  /** Anonymous creator's session id (pq_sid). Set when creatorClerkId is null. */
+  creatorSessionId: varchar("creator_session_id", { length: 64 }),
   /** Ordered snapshot of the 5 punchline ids — the frozen set. */
   barIds: json("bar_ids").$type<number[]>().notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -431,15 +437,30 @@ export const challengeAttempts = pgTable(
     challengeId: integer("challenge_id")
       .notNull()
       .references(() => challenges.id, { onDelete: "cascade" }),
-    clerkId: varchar("clerk_id", { length: 64 })
-      .notNull()
-      .references(() => users.clerkId, { onDelete: "cascade" }),
+    /** Player's account, when signed in. NULL for an anonymous attempt (PUN-123),
+     *  which is keyed by `sessionId` + `displayName` instead. */
+    clerkId: varchar("clerk_id", { length: 64 }).references(
+      () => users.clerkId,
+      { onDelete: "cascade" }
+    ),
+    /** Anonymous player's session id (pq_sid). Set when clerkId is null. */
+    sessionId: varchar("session_id", { length: 64 }),
+    /** Board display name for an anonymous player ("Marco"). NULL for accounts
+     *  (their @handle is shown instead). */
+    displayName: varchar("display_name", { length: 40 }),
     correctCount: integer("correct_count").notNull(),
     solveMs: integer("solve_ms").notNull(),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (t) => ({
-    uq: uniqueIndex("challenge_attempt_uq").on(t.challengeId, t.clerkId),
+    // First-attempt-lock, split by actor kind so anon and account rows coexist:
+    // one row per (challenge, account) and one per (challenge, anon session).
+    clerkUq: uniqueIndex("challenge_attempt_clerk_uq")
+      .on(t.challengeId, t.clerkId)
+      .where(sql`${t.clerkId} is not null`),
+    sessionUq: uniqueIndex("challenge_attempt_session_uq")
+      .on(t.challengeId, t.sessionId)
+      .where(sql`${t.sessionId} is not null`),
     byChallenge: index("challenge_attempt_by_challenge").on(t.challengeId),
   }),
 )

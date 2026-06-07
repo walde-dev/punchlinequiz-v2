@@ -1,13 +1,17 @@
 import { Show, SignInButton } from "@clerk/tanstack-react-start"
-import { Link, createFileRoute } from "@tanstack/react-router"
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router"
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { cn } from "@workspace/ui/lib/utils"
 
 import { AppHeader } from "../components/app-header"
 import { DiscordFooterLink } from "../components/discord-cta"
+import { createChallengeFn, getMyChallengesFn } from "../lib/challenge"
 import { getDailyChallenge } from "../lib/daily"
 import { jsonLd, organizationJsonLd, seo, websiteJsonLd } from "../lib/seo"
+import { logEvent } from "../lib/track"
+import type { MyChallenge } from "../lib/challenge"
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -70,6 +74,7 @@ function HomePage() {
           </div>
 
           <ModeStack dailyNumber={dailyNumber} />
+          <ChallengeHomeSection />
           <SignInLine />
           <MoreLinks />
         </div>
@@ -161,6 +166,120 @@ function ModeStack({ dailyNumber }: { dailyNumber: number | null }) {
         description={t("home.modes.clozeDesc")}
         index={2}
       />
+    </div>
+  )
+}
+
+/**
+ * Challenge a friend (PUN-123): the create entry + the return-leg capture hook.
+ * "You've been beaten" cards pull a creator back to defend (and sign up); the
+ * create button mints a challenge friction-free (anon too) and routes to the
+ * gauntlet. Boards are resolved by the anon session cookie or account.
+ */
+function ChallengeHomeSection() {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const [creating, setCreating] = useState(false)
+  const [mine, setMine] = useState<Array<MyChallenge>>([])
+
+  useEffect(() => {
+    let active = true
+    getMyChallengesFn()
+      .then((r) => active && setMine(r.items))
+      .catch(() => {})
+    return () => {
+      active = false
+    }
+  }, [])
+
+  async function create() {
+    if (creating) return
+    setCreating(true)
+    try {
+      const { slug } = await createChallengeFn()
+      logEvent("challenge_created", { slug, from: "home_menu" })
+      navigate({ to: "/c/$slug", params: { slug } })
+    } catch {
+      setCreating(false)
+    }
+  }
+
+  const beaten = mine.filter((m) => m.beaten)
+
+  return (
+    <div className="flex flex-col gap-3">
+      {/* Return-leg hook: someone dethroned you → come defend (and sign up). */}
+      {beaten.map((m, i) => (
+        <Link
+          key={m.slug}
+          to="/c/$slug"
+          params={{ slug: m.slug }}
+          onClick={() => logEvent("challenge_dethroned_clicked", { slug: m.slug })}
+          className={cn(
+            "group flex items-center gap-4 rounded-2xl px-4 py-4",
+            "border border-primary/50 bg-primary/10",
+            "transition-colors hover:bg-primary/15 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+          )}
+          style={{ animation: `pq-fade-up 0.5s ${ease} ${0.1 + i * 0.06}s both` }}
+        >
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-primary/50 bg-primary/15 text-lg">
+            👑
+          </span>
+          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span className="text-sm leading-tight font-extrabold tracking-tight text-primary">
+              {t("challenge.home.beatenTitle")}
+            </span>
+            <span className="truncate text-sm text-muted-foreground">
+              {m.topChallenger
+                ? t("challenge.home.beatenBy", {
+                    name: m.topChallenger,
+                    score: m.creatorScore ?? 0,
+                  })
+                : t("challenge.home.beatenGeneric")}
+            </span>
+          </span>
+          <span
+            aria-hidden="true"
+            className="text-xl text-primary/70 transition-transform duration-200 group-hover:translate-x-0.5"
+          >
+            →
+          </span>
+        </Link>
+      ))}
+
+      {/* Create entry — styled like a mode row, but it's an action (mint + route). */}
+      <button
+        type="button"
+        onClick={create}
+        disabled={creating}
+        className={cn(
+          "group flex items-center gap-4 rounded-2xl px-4 py-4 text-left",
+          "border border-border/60 bg-card/50 disabled:opacity-60",
+          "transition-[border-color,background-color] duration-200",
+          "hover:border-primary/60 hover:bg-card focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+        )}
+        style={{ animation: `pq-fade-up 0.55s ${ease} 0.33s both` }}
+      >
+        <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full border border-primary/40 bg-primary/5">
+          <ModeImage src="/mic.png" />
+        </span>
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="text-lg leading-tight font-extrabold tracking-tight">
+            {t("challenge.home.createTitle")}
+          </span>
+          <span className="text-sm text-muted-foreground">
+            {creating
+              ? t("challenge.creating")
+              : t("challenge.home.createDesc")}
+          </span>
+        </span>
+        <span
+          aria-hidden="true"
+          className="text-xl text-primary/70 transition-transform duration-200 group-hover:translate-x-0.5"
+        >
+          →
+        </span>
+      </button>
     </div>
   )
 }

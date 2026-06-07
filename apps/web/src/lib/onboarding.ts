@@ -5,6 +5,7 @@ import { anonXpClaims, users } from "@workspace/db"
 
 import { getActor } from "./auth"
 import { claimAnonXp } from "./anon-xp"
+import { stitchAnonChallengesOnSignup } from "./challenge"
 import { db } from "./db"
 import { getServerSessionId } from "./log"
 import { recordPendingReferral, stitchAnonReferralsOnSignup } from "./referral"
@@ -160,6 +161,13 @@ export const claimHandleFn = createServerFn({ method: "POST" })
     // Stitch any deferred anon referrals this sharer earned before signing up,
     // and ensure their session→account link exists (PUN-119). Never fail the claim.
     await stitchAnonReferralsOnSignup(clerkId, sessionId).catch(() => 0)
+
+    // Attach any challenges + board attempts this session created while anonymous
+    // (PUN-123) — so a returning creator who signs up keeps their throne.
+    await stitchAnonChallengesOnSignup(clerkId, sessionId).catch(() => ({
+      challenges: 0,
+      attempts: 0,
+    }))
 
     return { ok: true, handle: display, claimedXp }
   })

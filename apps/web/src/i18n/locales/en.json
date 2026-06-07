@@ -721,7 +721,41 @@
     "creating": "Setting up…",
     "startError": "Couldn't start the challenge.",
     "viewBoard": "View board",
-    "you": "You"
+    "you": "You",
+    "someone": "Someone",
+    "guest": "Guest",
+    "sendChallenge": "Send to friends",
+    "dareYourFriends": "Now dare your friends",
+    "beatCreator": "You beat {{name}}! 🔥",
+    "lostToCreator": "{{name}} stays ahead. Again?",
+    "dethronedTitle": "You've been dethroned",
+    "dethronedBody": "{{name}} beat your {{score}}/{{total}}.",
+    "cta": {
+      "fromSession": "Challenge a friend"
+    },
+    "intro": {
+      "creatorEyebrow": "/ your gauntlet",
+      "creatorTitle": "Set your score",
+      "creatorBody": "Play {{total}} bars — your score is the mark your friends have to beat.",
+      "creatorCta": "Let's go",
+      "daresYou": "{{name}} dares you: beat {{score}}/{{total}}",
+      "daresYouNoScore": "{{name}} dares you",
+      "body": "{{total}} bars. Guess the artist behind each line.",
+      "cta": "Accept the challenge"
+    },
+    "name": {
+      "title": "Your name for the board?",
+      "body": "Just a name for the board — no account needed.",
+      "placeholder": "Your name",
+      "cta": "Add me"
+    },
+    "home": {
+      "createTitle": "Challenge a friend",
+      "createDesc": "Play 5 bars, drop the link in your group chat.",
+      "beatenTitle": "You've been dethroned",
+      "beatenBy": "{{name}} beat your {{score}}/5. Comeback?",
+      "beatenGeneric": "Someone cracked your challenge."
+    }
   },
   "submit": {
     "eyebrow": "/ submit a bar",

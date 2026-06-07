@@ -721,7 +721,41 @@
     "creating": "Wird erstellt…",
     "startError": "Challenge konnte nicht gestartet werden.",
     "viewBoard": "Board ansehen",
-    "you": "Du"
+    "you": "Du",
+    "someone": "Jemand",
+    "guest": "Gast",
+    "sendChallenge": "An Freunde schicken",
+    "dareYourFriends": "Jetzt Freunde herausfordern",
+    "beatCreator": "Du hast {{name}} geschlagen! 🔥",
+    "lostToCreator": "{{name}} bleibt vorn. Nochmal?",
+    "dethronedTitle": "Du wurdest entthront",
+    "dethronedBody": "{{name}} hat dein {{score}}/{{total}} geschlagen.",
+    "cta": {
+      "fromSession": "Fordere einen Freund heraus"
+    },
+    "intro": {
+      "creatorEyebrow": "/ dein gauntlet",
+      "creatorTitle": "Setz deinen Score",
+      "creatorBody": "Spiel {{total}} Bars — dein Ergebnis ist die Marke, die deine Freunde schlagen müssen.",
+      "creatorCta": "Los geht's",
+      "daresYou": "{{name}} fordert dich: schlag {{score}}/{{total}}",
+      "daresYouNoScore": "{{name}} fordert dich heraus",
+      "body": "{{total}} Bars. Errate den Künstler hinter jeder Line.",
+      "cta": "Challenge annehmen"
+    },
+    "name": {
+      "title": "Wie heißt du fürs Board?",
+      "body": "Nur ein Name fürs Board — kein Account nötig.",
+      "placeholder": "Dein Name",
+      "cta": "Aufs Board"
+    },
+    "home": {
+      "createTitle": "Fordere einen Freund heraus",
+      "createDesc": "Spiel 5 Bars, schick den Link in deinen Gruppenchat.",
+      "beatenTitle": "Du wurdest entthront",
+      "beatenBy": "{{name}} hat dein {{score}}/5 geschlagen. Konter?",
+      "beatenGeneric": "Jemand hat deine Challenge geknackt."
+    }
   },
   "submit": {
     "eyebrow": "/ bar einreichen",

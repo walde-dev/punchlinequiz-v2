@@ -38,6 +38,10 @@ export type ConversionMetrics = {
   renderOk: number
   renderFail: number
   refLandings: number
+  /** Challenge loop (PUN-123): created → link opened (landings) → completed. */
+  challengeCreated: number
+  challengeLanded: number
+  challengeCompleted: number
   avgRounds: number
   reached5: number
   rates: {
@@ -114,6 +118,9 @@ export const getConversionMetricsFn = createServerFn({ method: "GET" })
       render_ok: number
       render_fail: number
       ref_lands: number
+      ch_created: number
+      ch_landed: number
+      ch_completed: number
     }>(sql`
       select
         count(*) filter (where name='share_clicked')::int as share_clicks,
@@ -121,7 +128,10 @@ export const getConversionMetricsFn = createServerFn({ method: "GET" })
         count(*) filter (where name='share_dismissed')::int as share_dismiss,
         count(*) filter (where name='card_render_succeeded')::int as render_ok,
         count(*) filter (where name='card_render_failed')::int as render_fail,
-        count(*) filter (where name='referral_landing_viewed')::int as ref_lands
+        count(*) filter (where name='referral_landing_viewed')::int as ref_lands,
+        count(*) filter (where name='challenge_created')::int as ch_created,
+        count(*) filter (where name='challenge_link_opened')::int as ch_landed,
+        count(*) filter (where name='challenge_play_completed')::int as ch_completed
       from game_events ${where}
     `)
 
@@ -178,6 +188,9 @@ export const getConversionMetricsFn = createServerFn({ method: "GET" })
       renderOk,
       renderFail,
       refLandings: Number(ev?.ref_lands ?? 0),
+      challengeCreated: Number(ev?.ch_created ?? 0),
+      challengeLanded: Number(ev?.ch_landed ?? 0),
+      challengeCompleted: Number(ev?.ch_completed ?? 0),
       avgRounds: Number(agg?.avg_rounds ?? 0),
       reached5,
       rates: {

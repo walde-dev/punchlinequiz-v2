@@ -1,18 +1,24 @@
-import { Link, createFileRoute } from "@tanstack/react-router"
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router"
 import { SignUpButton, useAuth } from "@clerk/tanstack-react-start"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@workspace/ui/components/button"
+import { Input } from "@workspace/ui/components/input"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { AppHeader } from "../components/app-header"
 import { BarCredit } from "../components/bar-credit"
 import { rankIconPath } from "../lib/rank-icon"
-import { getChallengeFn, submitChallengeAttemptFn } from "../lib/challenge"
+import {
+  createChallengeFn,
+  getChallengeFn,
+  submitChallengeAttemptFn,
+} from "../lib/challenge"
+import { readChallengeName, saveChallengeName } from "../lib/challenge-client"
 import { renderChallengeCard } from "../lib/share-card"
 import { setReferralToken } from "../lib/referral-client"
-import { noindexSeo } from "../lib/seo"
+import { noindexSeo, ogImageUrl, seo } from "../lib/seo"
 import { logEvent } from "../lib/track"
 import type {
   ChallengeAttemptInput,
@@ -25,10 +31,30 @@ import type {
 
 export const Route = createFileRoute("/c/$slug")({
   component: ChallengePage,
-  head: () => noindexSeo(),
   loader: async ({ params }) => ({
     data: await getChallengeFn({ data: { slug: params.slug } }),
   }),
+  // Dynamic OG so a pasted WhatsApp link unfurls as a personal dare (PUN-123).
+  // Stays noindex,follow — challenge boards aren't a search surface. (Declared
+  // after `loader` so loaderData's type is inferred.)
+  head: ({ loaderData }) => {
+    const v = (loaderData as { data: ChallengeView } | undefined)?.data
+    if (!v || !v.found) return noindexSeo()
+    const who = v.creatorHandle ?? "Jemand"
+    const hasScore = v.creatorScore != null
+    const title = hasScore
+      ? `${who}: ${v.creatorScore}/${v.size}`
+      : `${who} fordert dich heraus`
+    const subtitle = hasScore
+      ? `Schlägst du ${v.creatorScore}/${v.size}?`
+      : "Nimm die Challenge an"
+    return seo({
+      title: `${who} fordert dich heraus`,
+      description: `${who} hat ${hasScore ? `${v.creatorScore}/${v.size}` : "eine Challenge"} bei punchlinequiz geholt. Errätst du mehr Künstler hinter den Bars?`,
+      image: ogImageUrl({ title, subtitle }),
+      noindex: true,
+    })
+  },
 })
 
 const ease = "cubic-bezier(0.16, 1, 0.3, 1)"
@@ -93,7 +119,7 @@ function NotFound() {
   )
 }
 
-type Phase = "play" | "result" | "board"
+type Phase = "intro" | "play" | "result" | "board"
 
 function ChallengeRunner({
   data,
@@ -101,8 +127,9 @@ function ChallengeRunner({
   data: Extract<ChallengeView, { found: true }>
 }) {
   const { isSignedIn } = useAuth()
+  const navigate = useNavigate()
   const [phase, setPhase] = useState<Phase>(
-    data.viewerAttempt ? "board" : "play"
+    data.viewerAttempt ? "board" : "intro"
   )
   const [board, setBoard] = useState<Array<ChallengeBoardEntry>>(data.board)
   const [result, setResult] = useState<{
@@ -120,46 +147,92 @@ function ChallengeRunner({
     data.viewerHandle
   )
   const [submitting, setSubmitting] = useState(false)
+  const [creatingNext, setCreatingNext] = useState(false)
 
+  const answersRef = useRef<Array<ChallengeAttemptInput> | null>(null)
   const pendingRef = useRef<Array<ChallengeAttemptInput> | null>(null)
   const claimedRef = useRef(false)
 
   useEffect(() => {
-    logEvent("challenge_play_started", { slug: data.slug })
-    // Capture the challenge as a first-touch referral source — if this visitor
-    // signs up, the challenge creator gets credited (PUN-73).
-    setReferralToken({ source: "challenge", value: data.slug })
+    logEvent(
+      data.viewerIsCreator ? "challenge_gauntlet_started" : "challenge_link_opened",
+      { slug: data.slug, creator_score: data.creatorScore }
+    )
+    // First-touch referral capture for RECIPIENTS only — never the creator
+    // viewing their own board (PUN-123/73).
+    if (!data.viewerIsCreator)
+      setReferralToken({ source: "challenge", value: data.slug })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Persist (or score-only) an attempt; anon needs a displayName to land on the
+  // board, so a name-less anon submit returns persisted:false and we prompt.
+  async function persist(
+    answers: Array<ChallengeAttemptInput>,
+    displayName?: string
+  ) {
+    const res = await submitChallengeAttemptFn({
+      data: { slug: data.slug, answers, displayName },
+    })
+    if (!res.found) return null
+    setResult(res.result)
+    setBoard(res.board)
+    setPersisted(res.persisted)
+    if (res.persisted) {
+      setLocked(res.locked)
+      setAlreadyLocked(res.alreadyLocked)
+      setViewerHandle(res.viewerHandle)
+      clearPending(data.slug)
+      if (displayName) saveChallengeName(displayName)
+    } else {
+      pendingRef.current = answers
+      writePending(data.slug, answers)
+    }
+    return res
+  }
+
   async function onComplete(answers: Array<ChallengeAttemptInput>) {
     setSubmitting(true)
+    answersRef.current = answers
     try {
-      const res = await submitChallengeAttemptFn({
-        data: { slug: data.slug, answers },
-      })
-      if (!res.found) return
-      setResult(res.result)
-      setBoard(res.board)
-      logEvent("challenge_play_completed", {
-        slug: data.slug,
-        correct: res.result.correctCount,
-        solve_ms: res.result.solveMs,
-      })
-      if (res.persisted) {
-        setPersisted(true)
-        setLocked(res.locked)
-        setAlreadyLocked(res.alreadyLocked)
-        setViewerHandle(res.viewerHandle)
-        clearPending(data.slug)
-      } else {
-        // Anonymous — hold for claim after sign-up.
-        pendingRef.current = answers
-        writePending(data.slug, answers)
-      }
+      // Signed-in persists immediately; anon persists if we already know a name.
+      const name = isSignedIn ? undefined : (readChallengeName() ?? undefined)
+      const res = await persist(answers, name)
+      if (res)
+        logEvent("challenge_play_completed", {
+          slug: data.slug,
+          correct: res.result.correctCount,
+          solve_ms: res.result.solveMs,
+          is_creator: data.viewerIsCreator,
+        })
       setPhase("result")
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  // Anon names themselves → re-submit the held run so they land on the board.
+  async function onNameSubmit(name: string) {
+    if (!answersRef.current || submitting) return
+    setSubmitting(true)
+    try {
+      logEvent("challenge_name_set", { slug: data.slug })
+      await persist(answersRef.current, name)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  // Propagation: mint a fresh challenge so the recipient dares THEIR friends.
+  async function onDareFriends() {
+    if (creatingNext) return
+    setCreatingNext(true)
+    try {
+      const { slug } = await createChallengeFn()
+      logEvent("challenge_created", { slug, from: "propagation" })
+      navigate({ to: "/c/$slug", params: { slug } })
+    } catch {
+      setCreatingNext(false)
     }
   }
 
@@ -195,6 +268,20 @@ function ChallengeRunner({
     setPhase("play")
   }
 
+  if (phase === "intro") {
+    return (
+      <Shell>
+        <IntroView
+          creatorHandle={data.creatorHandle}
+          creatorScore={data.creatorScore}
+          size={data.size}
+          isCreator={data.viewerIsCreator}
+          onStart={() => setPhase("play")}
+        />
+      </Shell>
+    )
+  }
+
   if (phase === "play") {
     return (
       <Shell>
@@ -220,6 +307,11 @@ function ChallengeRunner({
           locked={locked}
           viewerHandle={viewerHandle}
           creatorHandle={data.creatorHandle}
+          isCreator={data.viewerIsCreator}
+          submitting={submitting}
+          creatingNext={creatingNext}
+          onNameSubmit={onNameSubmit}
+          onDareFriends={onDareFriends}
           onViewBoard={() => setPhase("board")}
         />
       </Shell>
@@ -235,9 +327,65 @@ function ChallengeRunner({
         viewerHandle={viewerHandle}
         locked={locked}
         size={data.size}
+        viewerIsCreator={data.viewerIsCreator}
+        creatingNext={creatingNext}
         onPlayAgain={playAgain}
+        onDareFriends={onDareFriends}
       />
     </Shell>
+  )
+}
+
+/**
+ * Stakes intro (PUN-123): the 1-tap framing before play. Recipients see "X dares
+ * you: beat N/5"; the creator setting their own gauntlet sees "set your score".
+ */
+function IntroView({
+  creatorHandle,
+  creatorScore,
+  size,
+  isCreator,
+  onStart,
+}: {
+  creatorHandle: string | null
+  creatorScore: number | null
+  size: number
+  isCreator: boolean
+  onStart: () => void
+}) {
+  const { t } = useTranslation()
+  const who = creatorHandle ?? t("challenge.someone")
+  return (
+    <main className="relative mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-6 px-6 text-center">
+      <span className="text-xs font-bold tracking-[0.2em] text-primary/80 uppercase">
+        {isCreator ? t("challenge.intro.creatorEyebrow") : t("challenge.eyebrow")}
+      </span>
+      <h1
+        className="font-extrabold tracking-tight text-balance"
+        style={{ fontSize: "clamp(1.9rem, 7vw, 3rem)", lineHeight: 1.05 }}
+      >
+        {isCreator
+          ? t("challenge.intro.creatorTitle")
+          : creatorScore != null
+            ? t("challenge.intro.daresYou", {
+                name: who,
+                score: creatorScore,
+                total: size,
+              })
+            : t("challenge.intro.daresYouNoScore", { name: who })}
+      </h1>
+      <p className="max-w-xs text-sm text-muted-foreground">
+        {isCreator
+          ? t("challenge.intro.creatorBody", { total: size })
+          : t("challenge.intro.body", { total: size })}
+      </p>
+      <Button
+        onClick={onStart}
+        className="cta-glow min-h-12 w-full max-w-xs text-base font-bold"
+      >
+        {isCreator ? t("challenge.intro.creatorCta") : t("challenge.intro.cta")}
+      </Button>
+    </main>
   )
 }
 
@@ -429,6 +577,11 @@ function ResultView({
   locked,
   viewerHandle,
   creatorHandle,
+  isCreator,
+  submitting,
+  creatingNext,
+  onNameSubmit,
+  onDareFriends,
   onViewBoard,
 }: {
   slug: string
@@ -444,9 +597,23 @@ function ResultView({
   locked: { correctCount: number; solveMs: number } | null
   viewerHandle: string | null
   creatorHandle: string | null
+  isCreator: boolean
+  submitting: boolean
+  creatingNext: boolean
+  onNameSubmit: (name: string) => void
+  onDareFriends: () => void
   onViewBoard: () => void
 }) {
   const { t } = useTranslation()
+  const { isSignedIn } = useAuth()
+  // Did the recipient beat the creator's score? (drives the headline emotion)
+  const creatorEntry = board.find((e) => e.isCreator)
+  const beatCreator =
+    !isCreator &&
+    creatorEntry != null &&
+    (result.correctCount > creatorEntry.correctCount ||
+      (result.correctCount === creatorEntry.correctCount &&
+        result.solveMs < creatorEntry.solveMs))
   return (
     <main className="relative mx-auto flex w-full max-w-xl flex-1 flex-col gap-6 px-5 pt-20 pb-12 md:px-8">
       <section
@@ -468,6 +635,13 @@ function ResultView({
             {t("challenge.seconds", { s: fmtSeconds(result.solveMs) })}
           </span>
         </p>
+        {!isCreator && persisted && (
+          <p className="text-sm font-bold text-primary">
+            {beatCreator
+              ? t("challenge.beatCreator", { name: creatorHandle ?? "" })
+              : t("challenge.lostToCreator", { name: creatorHandle ?? "" })}
+          </p>
+        )}
         {persisted && alreadyLocked && locked && (
           <p className="text-xs text-primary/90">
             {t("challenge.alreadyLocked", {
@@ -478,8 +652,14 @@ function ResultView({
         )}
       </section>
 
-      {/* Sign-up wall (anonymous) */}
-      {!persisted && <SignupWall />}
+      {/* Anon, no board name yet → capture a name so they land on the board. */}
+      {!persisted && (
+        <NameCapture submitting={submitting} onSubmit={onNameSubmit} />
+      )}
+
+      {/* Already on the board but anonymous → soft "lock it / sign up" (capture
+          on the return leg, never a blocking wall). */}
+      {persisted && !isSignedIn && <SignupWall />}
 
       {/* Recap */}
       <section
@@ -524,14 +704,30 @@ function ResultView({
       />
 
       <div className="flex flex-col gap-2">
-        <ShareButton
-          slug={slug}
-          correctCount={
-            persisted && locked ? locked.correctCount : result.correctCount
-          }
-          size={size}
-          creatorHandle={creatorHandle}
-        />
+        {isCreator ? (
+          // Creator just set their gauntlet → the PRIMARY action is sending it.
+          <ShareButton
+            slug={slug}
+            correctCount={
+              persisted && locked ? locked.correctCount : result.correctCount
+            }
+            size={size}
+            creatorHandle={creatorHandle}
+            label={t("challenge.sendChallenge")}
+          />
+        ) : (
+          // Recipient → PRIMARY is daring THEIR friends (keeps the loop spreading).
+          <Button
+            type="button"
+            onClick={onDareFriends}
+            disabled={creatingNext}
+            className="cta-glow min-h-12 w-full text-base font-bold"
+          >
+            {creatingNext
+              ? t("challenge.creating")
+              : t("challenge.dareYourFriends")}
+          </Button>
+        )}
         <Button
           type="button"
           variant="ghost"
@@ -542,6 +738,54 @@ function ResultView({
         </Button>
       </div>
     </main>
+  )
+}
+
+/**
+ * Anon board-name capture (PUN-123): one field, no account. Saved to localStorage
+ * so a player only types it once. Submitting puts them on the board by name.
+ */
+function NameCapture({
+  submitting,
+  onSubmit,
+}: {
+  submitting: boolean
+  onSubmit: (name: string) => void
+}) {
+  const { t } = useTranslation()
+  const [name, setName] = useState("")
+  const trimmed = name.trim()
+  return (
+    <section
+      className="flex flex-col items-center gap-3 rounded-2xl border border-primary/40 bg-primary/5 p-5 text-center"
+      style={{ animation: `pq-fade-up 0.55s ${ease} 0.06s both` }}
+    >
+      <h2 className="text-lg font-extrabold tracking-tight">
+        {t("challenge.name.title")}
+      </h2>
+      <p className="max-w-xs text-sm text-balance text-muted-foreground">
+        {t("challenge.name.body")}
+      </p>
+      <form
+        className="flex w-full max-w-xs gap-2"
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (trimmed && !submitting) onSubmit(trimmed)
+        }}
+      >
+        <Input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          maxLength={40}
+          autoFocus
+          placeholder={t("challenge.name.placeholder")}
+          aria-label={t("challenge.name.placeholder")}
+        />
+        <Button type="submit" disabled={submitting || !trimmed}>
+          {t("challenge.name.cta")}
+        </Button>
+      </form>
+    </section>
   )
 }
 
@@ -574,7 +818,10 @@ function BoardScreen({
   viewerHandle,
   locked,
   size,
+  viewerIsCreator,
+  creatingNext,
   onPlayAgain,
+  onDareFriends,
 }: {
   slug: string
   board: Array<ChallengeBoardEntry>
@@ -582,12 +829,21 @@ function BoardScreen({
   viewerHandle: string | null
   locked: { correctCount: number; solveMs: number } | null
   size: number
+  viewerIsCreator: boolean
+  creatingNext: boolean
   onPlayAgain: () => void
+  onDareFriends: () => void
 }) {
   const { t } = useTranslation()
+  const { isSignedIn } = useAuth()
+  // Dethroned = the creator is back, and someone outranks them on their own board.
+  const top = board[0]
+  const dethroned =
+    viewerIsCreator && top != null && !top.isCreator && board.length > 1
   useEffect(() => {
-    logEvent("challenge_board_viewed", { slug })
-  }, [slug])
+    logEvent("challenge_board_viewed", { slug, dethroned })
+    if (dethroned) logEvent("challenge_dethroned_viewed", { slug })
+  }, [slug, dethroned])
   return (
     <main className="relative mx-auto flex w-full max-w-xl flex-1 flex-col gap-6 px-5 pt-20 pb-12 md:px-8">
       <header
@@ -598,12 +854,22 @@ function BoardScreen({
           {t("challenge.eyebrow")}
         </span>
         <h1 className="text-3xl font-extrabold tracking-tight">
-          {t("challenge.boardTitle")}
+          {dethroned ? t("challenge.dethronedTitle") : t("challenge.boardTitle")}
         </h1>
-        {creatorHandle && (
-          <p className="text-sm text-muted-foreground">
-            {t("challenge.creatorThrewDown", { handle: creatorHandle })}
+        {dethroned ? (
+          <p className="text-sm font-semibold text-primary">
+            {t("challenge.dethronedBody", {
+              name: top?.handle ?? "",
+              score: top?.correctCount ?? 0,
+              total: size,
+            })}
           </p>
+        ) : (
+          creatorHandle && (
+            <p className="text-sm text-muted-foreground">
+              {t("challenge.creatorThrewDown", { handle: creatorHandle })}
+            </p>
+          )
         )}
         {locked && (
           <p className="text-xs text-primary/90">
@@ -615,6 +881,9 @@ function BoardScreen({
         )}
       </header>
 
+      {/* Dethroned + anonymous → the capture moment: lock your throne (sign up). */}
+      {dethroned && !isSignedIn && <SignupWall />}
+
       <Board
         board={board}
         viewerHandle={viewerHandle}
@@ -622,12 +891,26 @@ function BoardScreen({
       />
 
       <div className="flex flex-col gap-2">
-        <ShareButton
-          slug={slug}
-          correctCount={locked?.correctCount ?? null}
-          size={size}
-          creatorHandle={creatorHandle}
-        />
+        {viewerIsCreator ? (
+          <ShareButton
+            slug={slug}
+            correctCount={locked?.correctCount ?? null}
+            size={size}
+            creatorHandle={creatorHandle}
+            label={t("challenge.sendChallenge")}
+          />
+        ) : (
+          <Button
+            type="button"
+            onClick={onDareFriends}
+            disabled={creatingNext}
+            className="cta-glow min-h-12 w-full text-base font-bold"
+          >
+            {creatingNext
+              ? t("challenge.creating")
+              : t("challenge.dareYourFriends")}
+          </Button>
+        )}
         <Button
           type="button"
           variant="ghost"
@@ -686,7 +969,7 @@ function Board({
             <BoardAvatar handle={e.handle} imageUrl={e.imageUrl} />
             <div className="flex min-w-0 flex-1 flex-col">
               <span className="flex items-center gap-1.5 truncate text-sm font-bold tracking-tight text-foreground">
-                @{e.handle}
+                {e.isGuest ? e.handle : `@${e.handle}`}
                 {e.isCreator && (
                   <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[9px] font-bold tracking-wide text-primary uppercase">
                     ★
@@ -698,17 +981,23 @@ function Board({
                   </span>
                 )}
               </span>
-              <span className="flex items-center gap-1 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
-                <img
-                  src={rankIconPath(e.level.rank)}
-                  alt=""
-                  aria-hidden="true"
-                  width={14}
-                  height={14}
-                  className="select-none"
-                />
-                {isDe ? e.level.nameDe : e.level.nameEn}
-              </span>
+              {e.isGuest ? (
+                <span className="text-[10px] font-semibold tracking-wide text-muted-foreground/70 uppercase">
+                  {t("challenge.guest")}
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+                  <img
+                    src={rankIconPath(e.level.rank)}
+                    alt=""
+                    aria-hidden="true"
+                    width={14}
+                    height={14}
+                    className="select-none"
+                  />
+                  {isDe ? e.level.nameDe : e.level.nameEn}
+                </span>
+              )}
             </div>
             <div className="flex shrink-0 flex-col items-end">
               <span className="text-sm font-extrabold text-foreground tabular-nums">
@@ -753,11 +1042,13 @@ function ShareButton({
   correctCount,
   size,
   creatorHandle,
+  label,
 }: {
   slug: string
   correctCount: number | null
   size: number
   creatorHandle: string | null
+  label?: string
 }) {
   const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
@@ -814,7 +1105,7 @@ function ShareButton({
       onClick={share}
       className="cta-glow min-h-12 w-full text-base font-bold"
     >
-      {copied ? t("common.linkCopied") : t("challenge.share")}
+      {copied ? t("common.linkCopied") : (label ?? t("challenge.share"))}
     </Button>
   )
 }
