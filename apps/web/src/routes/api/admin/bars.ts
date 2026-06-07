@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { and, desc, eq, ilike, sql } from "drizzle-orm"
-import { artists, punchlines, songs } from "@workspace/db"
+import { artists, ingestItems, punchlines, songs } from "@workspace/db"
 
 import { db } from "../../../lib/db"
 import {
@@ -138,10 +138,16 @@ export const Route = createFileRoute("/api/admin/bars")({
               artistSlug: artists.slug,
               distractor1Id: punchlines.distractor1Id,
               distractor2Id: punchlines.distractor2Id,
+              ingestVideoId: ingestItems.videoId,
+              ingestTsMs: ingestItems.tsMs,
+              ingestModel: ingestItems.model,
+              ingestConfidence: ingestItems.confidence,
+              ingestStatus: ingestItems.status,
             })
             .from(punchlines)
             .innerJoin(songs, eq(songs.id, punchlines.songId))
             .innerJoin(artists, eq(artists.id, songs.artistId))
+            .leftJoin(ingestItems, eq(ingestItems.punchlineId, punchlines.id))
             .where(conds.length ? and(...conds) : undefined)
             .orderBy(random ? sql`random()` : desc(punchlines.createdAt))
             .limit(limit)

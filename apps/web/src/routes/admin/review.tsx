@@ -2,6 +2,7 @@ import { Link, createFileRoute, redirect } from "@tanstack/react-router"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
+import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { Checkbox } from "@workspace/ui/components/checkbox"
 import { Input } from "@workspace/ui/components/input"
@@ -366,6 +367,32 @@ function ReviewCard({
           Genius ↗
         </a>
       </div>
+
+      {bar.ingestVideoId ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-background/40 px-3 py-2 text-[11px] text-muted-foreground">
+          <Badge variant="muted">WHO DAT?!</Badge>
+          {bar.ingestModel ? <span>{bar.ingestModel}</span> : null}
+          {typeof bar.ingestConfidence === "number" ? (
+            <span>
+              conf {Math.round(bar.ingestConfidence * 100)}%
+            </span>
+          ) : null}
+          {bar.ingestStatus === "low_confidence" ||
+          (typeof bar.ingestConfidence === "number" && bar.ingestConfidence < 0.6) ? (
+            <Badge variant="default">niedrige Konfidenz — genau prüfen</Badge>
+          ) : null}
+          <a
+            href={`https://www.youtube.com/watch?v=${bar.ingestVideoId}${
+              bar.ingestTsMs ? `&t=${Math.floor(bar.ingestTsMs / 1000)}s` : ""
+            }`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ml-auto rounded-full border border-border/60 bg-background/40 px-2.5 py-1 font-bold tracking-[0.16em] text-muted-foreground uppercase hover:border-primary/50 hover:text-foreground"
+          >
+            ▶ Im Video ↗
+          </a>
+        </div>
+      ) : null}
 
       <Field label={t("admin.edit.line")}>
         <Textarea

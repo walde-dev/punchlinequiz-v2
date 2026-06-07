@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  launchd job: poll the WHO DAT?! playlist daily and ingest new episodes into the
+  review queue (PUN-166). Local schedule only runs while the Mac is awake.
+
+  Install:
+    1. Edit WorkingDirectory + paths below to your checkout and pnpm location.
+       Find pnpm with: which pnpm
+    2. cp scripts/ingest/scheduling/com.punchlinequiz.whodat-ingest.plist \
+         ~/Library/LaunchAgents/
+    3. launchctl load ~/Library/LaunchAgents/com.punchlinequiz.whodat-ingest.plist
+    4. Test now:  launchctl start com.punchlinequiz.whodat-ingest
+       Logs:      tail -f /tmp/whodat-ingest.out /tmp/whodat-ingest.err
+    Unload:       launchctl unload ~/Library/LaunchAgents/com.punchlinequiz.whodat-ingest.plist
+
+  CAVEAT: a local launchd schedule only polls while the machine is on and awake.
+  For always-on, use the GitHub Actions workflow instead (see ci-ingest.yml.disabled).
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.punchlinequiz.whodat-ingest</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <!-- `which pnpm` — adjust to your install (Homebrew: /opt/homebrew/bin/pnpm) -->
+    <string>/opt/homebrew/bin/pnpm</string>
+    <string>ingest:poll</string>
+    <string>--commit</string>
+  </array>
+
+  <!-- Your repo checkout. -->
+  <key>WorkingDirectory</key>
+  <string>/Users/CHANGE_ME/punchlinequiz</string>
+
+  <!-- Ensure node/pnpm/ffmpeg/yt-dlp are on PATH for the agent. -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+
+  <!-- Run daily at 09:00 local. Content is non-urgent; once a day is plenty. -->
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key><integer>9</integer>
+    <key>Minute</key><integer>0</integer>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string>/tmp/whodat-ingest.out</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/whodat-ingest.err</string>
+</dict>
+</plist>

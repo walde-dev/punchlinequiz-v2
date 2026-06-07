@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Implementation notes — Error Tracking & Observability</title>
+<title>Implementation notes — WHO DAT?! YouTube ingestion</title>
 <style>
   body { font: 14px/1.5 -apple-system, system-ui, sans-serif; max-width: 820px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }
   h1 { font-size: 1.4rem; }
@@ -17,129 +17,115 @@
 </style>
 </head>
 <body>
-<h1>Implementation notes — Error Tracking & Observability</h1>
-<p class="meta">Spec: Linear PUN-46..50 (project "Error Tracking &amp; Observability") · Started: 2026-06-02 ·
-Prior notes archived: implementation-notes-referral.html</p>
-
-<p class="meta">Stack: TanStack Start + Nitro on Vercel, Clerk auth, Node ≥20, pnpm workspace.
-Done-bar (from grill): infra-ready + <strong>synthetic-verified</strong> pre-launch; real-traffic threshold tuning is a post-launch follow-up.
-No real Sentry DSN / Axiom token / Discord webhook / MCP connection can be provisioned from this environment, so all runtime code is
-<strong>env-gated to no-op when its credential is absent</strong> (mirroring the existing <code>track.ts</code> Axiom pattern). The verification
-gate for code is <code>pnpm typecheck</code> + <code>pnpm build</code>; the remaining account/dashboard steps are listed under Open questions.</p>
+<h1>Implementation notes — WHO DAT?! YouTube punchline ingestion</h1>
+<p class="meta">Spec: <em>.context/whodat-ingest-spec.md</em> (post-grill) · Linear cf0763ff / PUN-140..171 · Started: 2026-06-07</p>
+<p class="meta">The spec doc records the design decisions reached during <code>/grill-me</code>. This file records what changed or was decided <em>during implementation</em>.</p>
 
 <h2>Design decisions</h2>
 <div class="entry decision">
-  <strong>Env-gated, no-op-without-credentials everywhere</strong>
-  <p>Client Sentry inits only when <code>VITE_SENTRY_DSN</code> is set (<code>lib/sentry.client.ts</code>); the logger
-  direct-forwards to Axiom only when <code>AXIOM_TOKEN</code>/<code>AXIOM_DATASET</code> are set (<code>lib/axiom.ts</code>, same gate
-  as <code>track.ts</code>). Local dev and the Vercel preview run with zero observability credentials; the feature ships dark until
-  accounts exist.</p>
+  <strong>Shared core lives in <code>apps/web/src/lib/ingest-core.ts</code>, db injected</strong>
+  <p>Both the web add-flow (<code>upsert.ts</code>) and the CLI import the same resolve/insert
+  primitives. The <code>db</code> handle is passed in (not imported) so the CLI supplies its own
+  <code>createDb(DATABASE_URL)</code> connection and the app keeps using its lazy proxy. Verified the
+  reuse graph (<code>deezer</code>→<code>admin</code>) is tsx-safe: runtime deps are only
+  <code>node:crypto</code> / <code>@workspace/db</code> / the inert db proxy; the <code>auth</code>
+  import in admin.ts is type-only and erased by esbuild.</p>
 </div>
 <div class="entry decision">
-  <strong>session_id propagated via the <code>pq_sid</code> cookie (PUN-47)</strong>
-  <p><code>getSessionId()</code> in <code>lib/track.ts</code> mirrors the localStorage id into a 1-year <code>pq_sid</code> cookie.
-  Server-side reads it via <code>getServerSessionId()</code> in <code>lib/log.ts</code> so server log records carry it. Client Sentry
-  sets it as a <code>session_id</code> tag at init. Join key across (client) Sentry + Axiom + the <code>gameEvents</code> DB.</p>
+  <strong><code>song.artistId</code> = the correct quiz artist, not the song's primary credit</strong>
+  <p>The reveal credits e.g. "Ansu, Tom Hengst &amp; Cato – HELD" but the quiz answer is "Tom Hengst".
+  The game derives the correct answer from <code>punchlines→songs→artists</code>, so the song row must
+  be attributed to the correct artist. The full credit is used only to improve Genius/Deezer lookup.</p>
 </div>
 <div class="entry decision">
-  <strong>Sentry is client-only; errors-only config (revised — see deviation)</strong>
-  <p>Client-only Sentry via an SSR-guarded dynamic import in <code>lib/sentry.client.ts</code> + the <code>__root.tsx</code>
-  <code>errorComponent</code>. <code>tracesSampleRate: 0</code> + browser-noise filters. The server SDK, custom server entry,
-  instrument file, and global/scope middlewares were removed — see the deviation below for why. Source-map upload is currently
-  deferred (plugin removed).</p>
+  <strong>Frame segmentation = long static runs + fuzzy line clustering</strong>
+  <p>Validated on a real episode: a settled overlay is a static graphic held for seconds, so we sample
+  1fps, crop the overlay band, and keep the middle of each run ≥<code>MIN_STATIC</code> samples
+  (<code>scripts/ingest/frames.ts</code>). Question/reveal frames of one item are merged by Levenshtein
+  line-similarity (<code>extract.ts</code>) — tolerant of OCR slips like "Dass"/"Das". Defaults favour
+  recall; all thresholds are env-tunable and measured by <code>ingest:eval</code>. On the sample episode:
+  10/10 items found, 8–9 fully auto-resolved, the rest flagged for the reviewer.</p>
+</div>
+<div class="entry decision">
+  <strong>Global line dedup (idempotency)</strong>
+  <p><code>findDuplicateLineGlobal</code> (<code>ingest-core.ts</code>) matches a bar across <em>any</em>
+  song by squashing both lines to <code>[a-z0-9]</code>. Needed because re-extraction has minor OCR/song
+  variance, so a song-scoped check let near-dupes through. Verified: forced re-ingest now inserts 0 new
+  rows (9 inserted → re-run 9 duplicate). Primary idempotency is still the episode ledger (poll skips
+  <code>done</code>); this is the second layer for resume + cross-episode dupes.</p>
+</div>
+<div class="entry decision">
+  <strong>Items with no extracted answer are recorded, not minted</strong>
+  <p>If no green reveal was captured (no correct answer), we can't form a valid bar and never guess one.
+  The item is written to <code>ingest_items</code> as <code>failed</code> with its raw extraction (so it's
+  in the ledger + logs, not silently dropped) but no punchline is created. <code>low_confidence</code>
+  therefore cleanly means "bar minted but flagged".</p>
 </div>
 
 <h2>Deviations from spec</h2>
 <div class="entry deviation">
-  <strong>Server-side Sentry dropped → Sentry is client-only (caused a prod outage first)</strong>
-  <p><strong>Spec wanted client + server Sentry; shipped client-only.</strong> Chain of events: (1) bundling
-  <code>@sentry/node</code> crashes <code>nitro@3-beta</code> + rollup@4 with
-  <code>Cannot read properties of null (reading 'getVariableForExportName')</code> on its <code>export *</code> re-exports.
-  (2) Externalizing <code>@sentry/*</code> fixed the build — but this nitro setup <em>inlines all deps and ships no
-  <code>node_modules</code></em>, so the externalized packages were simply dropped from the Vercel function. (3) The deployed
-  function still <code>import</code>ed <code>@sentry/tanstackstart-react</code> → "module not found" → <strong>unhandled 500 on every
-  request in prod</strong>. <code>traceDeps</code> did not make Nitro include them.</p>
-  <p><strong>Fix:</strong> keep <code>@sentry</code> entirely out of the server bundle. Load it client-only via a dynamic
-  <code>import("@sentry/tanstackstart-react")</code> behind <code>import.meta.env.SSR</code> (Vite dead-code-eliminates it from the
-  server build). Removed <code>server.ts</code>, <code>instrument.server.ts</code>, <code>sentry-scope.ts</code>, the global
-  middlewares, the bundle externalization, and the source-map plugin. Verified: Vercel-preset build has <em>zero</em>
-  <code>@sentry</code> refs in <code>__server.func</code>; node-server build serves <code>/</code> with HTTP 200.
-  <strong>Consequence:</strong> server exceptions are not in Sentry (they're in Axiom logs). Re-enabling server Sentry needs a
-  bundler-compatible path (rolldown, or a Nitro that ships externalized <code>node_modules</code>).</p>
+  <strong>Captions workstream cut (PUN-146, PUN-153)</strong>
+  <p>Spec assumed free German auto-subs as a cross-check. Verified: zero captions (auto or manual) on
+  any of 5 sampled episodes. Vision-only; Genius title-search is the validation/resolution signal.</p>
 </div>
 <div class="entry deviation">
-  <strong>Alert rules (PUN-49) are config, documented not coded</strong>
-  <p>Sentry alert rules (new-issue / spike / regression) live in the Sentry dashboard, not the repo. Documented in
-  <code>docs/logging-observability.md</code> → Alerting and <code>docs/observability-runbook.md</code>. No code artifact possible.</p>
+  <strong>Insert <code>active=true</code>, not <code>active=false</code> (PUN-160)</strong>
+  <p>Every player-facing query requires <code>reviewed=true AND active=true</code>; daily challenge
+  needs an explicit admin schedule. So <code>reviewed=false</code> alone quarantines a bar, while
+  <code>active=false</code> would hide it from the review queue (which filters <code>active=true</code>).
+  Confirmed with founder.</p>
 </div>
-
 <div class="entry deviation">
-  <strong>Axiom ingest URL + path changed for EU region (post-setup)</strong>
-  <p>The Sentry + Axiom orgs were created in the <strong>EU</strong> region. Two code/config consequences, both verified against the
-  live APIs: (1) <code>lib/axiom.ts</code> now builds <code>{AXIOM_URL}/v1/ingest/{dataset}</code> (was the deprecated
-  <code>api.axiom.co/v1/datasets/{name}/ingest</code>, which 404s on the edge); <code>AXIOM_URL</code> defaults to
-  <code>https://api.axiom.co</code> and is set to <code>https://eu-central-1.aws.edge.axiom.co</code> in <code>.env</code>. A live test
-  ingest returned <code>{"ingested":1}</code>. (2) Sentry source-map upload must target the EU host via the
-  <code>SENTRY_URL=https://de.sentry.io</code> env var — the plugin's <code>url</code> option isn't on its public type, so env is the
-  supported lever. The app's Axiom token is <strong>ingest-only</strong>; the MCP/runbook query path needs a query-capable token.</p>
-</div>
-
-<div class="entry deviation">
-  <strong>Pre-existing <code>db.ts</code> client leak — fixed with a lazy Proxy (out of original scope)</strong>
-  <p>Surfaced while validating the deploy: <code>apps/web/src/lib/db.ts</code> ran its <code>DATABASE_URL</code> check +
-  <code>createDb()</code> at <em>module top level</em>, so any client-reachable static import of <code>db</code> (a server-fn module
-  whose import the bundler couldn't tree-shake — modules with load-time side effects can't be dropped) executed that code in the
-  browser and threw <code>Uncaught (in promise) DATABASE_URL is required</code>. That unhandled rejection broke hydration of the
-  eagerly-loaded <code>onboarding-gate</code>/header → dead sign-in button + dead leaderboard buttons. <strong>Reproduced with the
-  original pre-observability <code>track.ts</code></strong>, so it predates this project; the re-chunking just made it bite.
-  <strong>Fix:</strong> wrap the connection in a lazy <code>Proxy</code> so importing <code>db.ts</code> has zero side effects — the
-  check + neon connection run on first property access (server-only). Verified: server DB routes still 200 (Proxy transparent to
-  drizzle); client chunk no longer executes the throw at load.</p>
+  <strong>No ffmpeg full-frame scene-detection (PUN-148/149)</strong>
+  <p>The quiz is an overlay on continuous talking-heads video; full-frame scene cuts track camera/people,
+  not overlay state. Instead: ~1fps sample → crop overlay band → perceptual-hash dedup → Gemini groups by
+  the on-screen "X/10" counter, merging each question-card frame with its green reveal frame.</p>
 </div>
 
 <h2>Tradeoffs considered</h2>
 <div class="entry tradeoff">
-  <strong>Client Sentry init via side-effect import vs a custom <code>src/client.tsx</code></strong>
-  <p>Sentry's docs put client init in a custom <code>src/client.tsx</code> entry. This app has no custom client entry (framework
-  default). Rather than introduce one and risk breaking hydration, init is a guarded side-effect import in <code>router.tsx</code>
-  (<code>import "./lib/sentry.client"</code>), client- and DSN-gated. Browser-tracing/replay integrations are omitted (we run
-  <code>tracesSampleRate 0</code>), so the router reference those wrappers need isn't required — keeping the override unnecessary.</p>
+  <strong>Single Gemini provider vs 3-way bake-off (PUN-151)</strong>
+  <p>Committed to Gemini 2.5 Flash (spec default, cheapest capable vision) + a reusable eval harness,
+  rather than building a 3-provider bake-off. Validated empirically: a real question-card and reveal
+  frame both extracted perfectly (line w/ umlauts, 3 options, green correct index, song credit, X/10).
+  Alternates only revisited if it misses the gate. Cost ≈ $0.01/episode (~125 frames).</p>
+</div>
+<div class="entry tradeoff">
+  <strong>neon-http has no interactive transactions → app-level dry-run</strong>
+  <p>The DB driver (<code>@neondatabase/serverless</code> neon-http) can't do interactive transactions,
+  so per-item work isn't wrapped in one. <code>--dry-run</code> (the default) does all read-only
+  resolution + dedup but writes nothing, rather than insert-then-rollback. On a hard failure mid-item,
+  auto-created artists/songs may be left without a bar — harmless and reusable; the global line dedup
+  keeps a re-run from duplicating.</p>
 </div>
 
 <h2>Open questions</h2>
-<div class="entry decision">
-  <strong>LIVE on prod (2026-06-02)</strong>
-  <p>Sentry (client) + Axiom (EU edge) are deployed and verified: app hydrates/interactive, Axiom events flow to the
-  <code>punchlinequiz</code> dataset. Env (DSN, Axiom token/dataset/URL) set on Vercel Production+Preview. Sentry shows no events =
-  expected (no errors yet).</p>
+<div class="entry open">
+  <strong>Golden set needs real hand-labeling (PUN-170)</strong>
+  <p><code>scripts/ingest/golden/NI7V8j3CCZM.json</code> is a <em>seed</em>: 8 of ~10 items,
+  machine-extracted then spot-verified, not fully independently labeled. The gate currently reads
+  correct 100% / line 100% / options 87.5% (one distractor OCR variant) → "FAIL" only on the options
+  threshold. <strong>Please hand-label 3 full episodes</strong> (watch + transcribe) before trusting the
+  gate at volume — see <code>golden/README.md</code>.</p>
 </div>
 <div class="entry open">
-  <strong>Remaining follow-ups (not blockers)</strong>
-  <p>(1) <strong>PUN-49 alerts + Discord</strong> — Sentry dashboard config, not done. (2) <strong>MCP</strong> — needs a
-  <em>query-capable</em> Axiom token (current one is ingest-only) + connecting Sentry/Axiom MCP for the runbook. (3)
-  <strong>Source-map upload</strong> deferred (client stacks minified; <code>SENTRY_AUTH_TOKEN</code>/<code>ORG</code>/<code>PROJECT</code>
-  set but unused). (4) <strong>Vercel → Axiom log drain</strong> deferred (needs Vercel Pro). (5) Prove Sentry capture with a test
-  error.</p>
+  <strong>~1–2 items/episode have no captured reveal → flagged, not auto-answered</strong>
+  <p>When the green reveal frame isn't sampled, the item is recorded as <code>failed</code> (no answer)
+  and not minted. Lowering <code>INGEST_MIN_STATIC</code> raises recall at the cost of more frames. Want
+  me to tune for higher reveal recall, or is "flag the few for the human" acceptable?</p>
 </div>
 <div class="entry open">
-  <strong>Re-enable server-side Sentry (deferred — bundler constraint)</strong>
-  <p>Server exceptions are currently only in Axiom, not Sentry. Re-enabling needs a path that doesn't bundle <code>@sentry/node</code>
-  into the Nitro output: candidates are rolldown-vite (no <code>export *</code> render bug), a Nitro version that ships externalized
-  <code>node_modules</code>, or loading the SDK via Node <code>--import</code> in the Vercel function. Own follow-up.</p>
+  <strong>Distractor artist near-duplicates aren't fuzzy-merged (PUN-156)</strong>
+  <p><code>resolveOrCreateArtist</code> matches existing artists by exact name/slug only. An OCR variant
+  of a distractor name (e.g. "Wa2zermann" vs "Wa22ermann") can create a near-duplicate artist row. The
+  admin can merge these; full fuzzy artist-dedup was left out of v1 scope. Worth adding?</p>
 </div>
 <div class="entry open">
-  <strong>Client source-map upload deferred</strong>
-  <p>The Sentry vite plugin was removed (it can inject server instrumentation, which would re-pollute the server bundle). So client
-  Sentry stacks are minified. Re-add deliberately with the generic <code>@sentry/vite-plugin</code> (add it as a direct dep,
-  build-time only) + <code>SENTRY_URL=https://de.sentry.io</code> for the EU org. <code>SENTRY_AUTH_TOKEN</code>/<code>ORG</code>/<code>PROJECT</code>
-  are set but currently unused.</p>
-</div>
-<div class="entry open">
-  <strong>Synthetic verification + remaining ops</strong>
-  <p>Done bar: client error → Sentry (with <code>session_id</code> tag); server error → Axiom log. Verify in a Vercel preview with env
-  set. Remaining ops: Vercel env vars (done by user), Discord alert routing, a <strong>query-capable</strong> Axiom token for the MCP
-  (the app token is ingest-only), and wiring <code>logServer()</code> calls into server paths (currently 0 call sites — Axiom only sees
-  client events + the existing console.error catches).</p>
+  <strong>drizzle-kit migrate didn't apply DDL over neon-http</strong>
+  <p>FYI/ops: <code>pnpm db:migrate</code> reported success but didn't create the tables (neon-http needs
+  a websocket driver for migrations); I applied <code>0023</code>'s SQL directly. When you run migrations
+  for real, use a direct/websocket <code>DATABASE_URL</code> or apply the SQL directly. Migration
+  <code>0023_complete_the_twelve.sql</code> is committed and correct.</p>
 </div>
 </body>
 </html>

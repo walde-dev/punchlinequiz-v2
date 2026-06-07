@@ -18,7 +18,10 @@
     "discord:setup": "tsx scripts/discord/setup.ts",
     "discord:register": "tsx scripts/discord/register-commands.ts",
     "discord:post-welcome": "tsx scripts/discord/post-welcome.ts",
-    "analytics:apply": "tsx scripts/posthog/apply.ts"
+    "analytics:apply": "tsx scripts/posthog/apply.ts",
+    "ingest:poll": "tsx scripts/ingest/poll.ts",
+    "ingest:one": "tsx scripts/ingest/one.ts",
+    "ingest:eval": "tsx scripts/ingest/eval.ts"
   },
   "devDependencies": {
     "prettier": "^3.8.1",
