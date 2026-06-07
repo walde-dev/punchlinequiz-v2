@@ -18,6 +18,47 @@ Inspired by Brian Lovin's approach: OTel traces + manual event capture + Vercel 
 - **gameEvents DB table** — every tracked event is also persisted to Postgres (the durable record; Axiom is the queryable log layer)
 - **Manual event capture** — client-side events sent via a TanStack **server function** (`recordEvent` in `lib/track.ts`), which persists to `gameEvents` and forwards to Axiom
 
+## Reading the data — gotchas
+
+Hard-won truths from cross-checking the sinks against each other (2026-06-07 audit).
+Read these before trusting any number.
+
+- **Every `logEvent` fans out to two sinks** (one choke point, `lib/track.ts`): the
+  `gameEvents` Postgres table **and** PostHog. `recordEvent` deliberately does NOT
+  re-send to PostHog, so there's no double-count.
+  - **The DB is the source of truth.** PostHog runs a consistent **~75–80% of the
+    DB** for ordinary gameplay events — adblock, dev opt-out, and sessions that never
+    load the client JS. That gap is healthy and expected; don't chase it. If a single
+    event's PostHog/DB ratio is wildly off the ~78% baseline, *that* is the anomaly.
+- **The connected PostHog MCP points at the WRONG project** ("Finto Prod", id 70125)
+  — a different product with zero punchlinequiz events. Numbers pulled through the
+  MCP are meaningless for this app. Query the real project (id `192493`) via REST:
+  `POST https://eu.posthog.com/api/projects/192493/query/` with
+  `Authorization: Bearer $POSTHOG_PERSONAL_API_KEY` and a HogQLQuery body.
+- **`$pageview` / `$pathname` are useless for funnels here.** The game is an SPA
+  served at `/`; logical screens (play, daily, summary) are state changes, not route
+  changes. `/daily` shows ~21 pageviews while `daily_opened` fires ~731×. Build
+  funnels/paths on the **custom events**, never on pathnames.
+- **Internal/admin sessions inflate the social surfaces.** QA tabs set
+  `sessionStorage["pq.internal"]`, which stamps `internal: true` on every event.
+  These are kept (for audit) but dominate some events — `leaderboard_viewed` is ~39%
+  internal, `profile_viewed` ~42%, `submissions_viewed` ~51%. Always filter
+  `props->>'internal' <> 'true'` (DB) / `properties.internal != true` (PostHog) on
+  engagement metrics. `admin_*` events are DB/Axiom-only and never reach PostHog.
+- **Signup tracking is trustworthy.** `handle_claimed` (~35) matches the Clerk user
+  count (~34) almost exactly. `xp_claimed` is lower because not every signup had anon
+  XP to bank.
+- **`card_render_succeeded` was undercounting by ~46%** pre-2026-06-07: the success
+  log sat behind an unmount guard, so completions that left the summary before the
+  (up-to-1.5s, slow-artwork) render resolved dropped the event — and it biased `ms`
+  toward only the fast renders. Fixed in `session-summary.tsx`; **data before that
+  date undercounts and is fast-biased**, so don't compare across the fix boundary.
+- **Dormant-by-design events** (fire ~never, not broken): the whole `referral_*`
+  family and broadcast-`share_*` (no demand — Challenge is the real loop); `quiz_*`
+  (the `/quiz` route ships but nothing links to it — 0 pageviews); `acceptance_seen`
+  (few accepted UGC submissions exist yet). `challenge_signup_claimed` is correctly
+  wired but low-volume — watch it as the challenge-loop conversion KPI.
+
 ## Setup
 
 ### 1. Axiom Account

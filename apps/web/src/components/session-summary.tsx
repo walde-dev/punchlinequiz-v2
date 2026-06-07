@@ -123,15 +123,22 @@ export function SessionSummary({
     const startedAt = performance.now()
     renderShareCard(cardData)
       .then((b) => {
+        // The render genuinely finished — log it BEFORE the unmount guard.
+        // This used to sit behind `if (cancelled) return`, so any session that
+        // left the summary before the render resolved (up to the 1.5s slow-
+        // artwork timeout in loadImage) dropped its success event. That
+        // silently lost ~46% of completions vs `session_completed` and biased
+        // `ms` toward only the fast renders. cardData is a stable useMemo for a
+        // finished session, so this effect runs once per mount — no double-count.
+        logEvent("card_render_succeeded", {
+          ms: Math.round(performance.now() - startedAt),
+          mode,
+        })
         if (cancelled) return
         createdUrl = URL.createObjectURL(b)
         setBlob(b)
         setPreviewUrl(createdUrl)
         setGenerating(false)
-        logEvent("card_render_succeeded", {
-          ms: Math.round(performance.now() - startedAt),
-          mode,
-        })
       })
       .catch((err) => {
         console.error(err)

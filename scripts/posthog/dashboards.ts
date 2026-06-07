@@ -56,14 +56,18 @@ export const INSIGHTS: Insight[] = [
   // ── ACQUISITION FUNNEL ────────────────────────────────────────────────────
   {
     name: "Acquisition funnel — land → first answer → 2nd round → sign-up",
-    description: "Core activation funnel for new visitors.",
+    description:
+      "Core activation funnel for new visitors. Step 1 is `session_started` " +
+      "(fired once per tab at landing, __root.tsx), NOT `$pageview` — pageviews " +
+      "are badly undercounted in this SPA (game served at `/`, few route changes) " +
+      "so they made a garbage top-of-funnel. See docs/logging-observability.md.",
     query: {
       kind: "InsightVizNode",
       source: {
         kind: "FunnelsQuery",
         dateRange: last90,
         series: [
-          { kind: "EventsNode", event: "$pageview", name: "Landed" },
+          { kind: "EventsNode", event: "session_started", name: "Landed" },
           { kind: "EventsNode", event: "round_started", name: "First round" },
           { kind: "EventsNode", event: "answer_revealed", name: "Answered" },
           { kind: "EventsNode", event: "handle_claimed", name: "Signed up" },
@@ -96,16 +100,20 @@ export const INSIGHTS: Insight[] = [
   // ── VIRALITY / K-FACTOR ───────────────────────────────────────────────────
   {
     name: "Virality funnel — share/invite → landing → sign-up",
-    description: "Distribution loop: a share or invite that lands a visitor who then signs up.",
+    description:
+      "Recipient side of the Challenge loop (the real distribution bet — the old " +
+      "broadcast `referral_*`/`share_*` events are dormant, ~0 fires). Per-person " +
+      "funnel for someone who opens a shared challenge link, plays it, and signs up. " +
+      "(The creator side is captured by k-factor below.)",
     query: {
       kind: "InsightVizNode",
       source: {
         kind: "FunnelsQuery",
         dateRange: last90,
         series: [
-          { kind: "EventsNode", event: "referral_link_shared", name: "Invite shared" },
-          { kind: "EventsNode", event: "referral_landing_viewed", name: "Invite landed" },
-          { kind: "EventsNode", event: "handle_claimed", name: "New sign-up" },
+          { kind: "EventsNode", event: "challenge_link_opened", name: "Opened challenge" },
+          { kind: "EventsNode", event: "challenge_play_completed", name: "Played it" },
+          { kind: "EventsNode", event: "challenge_signup_claimed", name: "Signed up" },
         ],
         funnelsFilter: { funnelVizType: "steps", funnelWindowInterval: 14, funnelWindowIntervalUnit: "day" },
       },
@@ -113,13 +121,15 @@ export const INSIGHTS: Insight[] = [
   },
   hogql(
     "k-factor (proxy) — invited sign-ups per inviter, weekly",
-    "Referral-confirmed sign-ups divided by distinct inviters who shared. >1 = viral.",
+    "Challenge-driven sign-ups (challenge_signup_claimed) divided by distinct " +
+      "challenge creators that week. >1 = viral. Replaces the old referral_* proxy, " +
+      "which read ~0 because broadcast sharing is dormant.",
     `SELECT toStartOfWeek(timestamp) AS week,
-        countIf(event = 'handle_claimed' AND properties.referred = true) AS invited_signups,
-        count(DISTINCT if(event = 'referral_link_shared', person_id, NULL)) AS inviters,
+        countIf(event = 'challenge_signup_claimed') AS invited_signups,
+        count(DISTINCT if(event = 'challenge_created', person_id, NULL)) AS inviters,
         round(invited_signups / nullIf(inviters, 0), 2) AS k_factor
      FROM events
-     WHERE event IN ('handle_claimed', 'referral_link_shared')
+     WHERE event IN ('challenge_signup_claimed', 'challenge_created')
        AND timestamp >= now() - INTERVAL 90 DAY
      GROUP BY week
      ORDER BY week`,
@@ -138,7 +148,7 @@ export const INSIGHTS: Insight[] = [
         series: [
           { kind: "EventsNode", event: "daily_opened", name: "Daily opened", math: "dau" },
           { kind: "EventsNode", event: "session_completed", name: "Sessions completed", math: "total" },
-          { kind: "EventsNode", event: "challenge_play_started", name: "Challenges played", math: "total" },
+          { kind: "EventsNode", event: "challenge_play_completed", name: "Challenges played", math: "total" },
           { kind: "EventsNode", event: "leaderboard_viewed", name: "Leaderboard views", math: "dau" },
         ],
       },
@@ -181,6 +191,44 @@ export const INSIGHTS: Insight[] = [
         round(signed_up / nullIf(players, 0) * 100, 1) AS signup_rate_pct
      FROM events
      WHERE timestamp >= now() - INTERVAL 90 DAY`,
+  ),
+
+  // ── SHARE-CARD HEALTH (PUN-122) ───────────────────────────────────────────
+  hogql(
+    "Share-card render health — completions vs cards rendered",
+    "Weekly: session completions vs successful/failed share-card renders, and the " +
+      "render rate. The share card is the growth engine, so a falling render_pct is " +
+      "a distribution leak. NOTE: before ~2026-06-07 `card_render_succeeded` was " +
+      "dropped when the summary unmounted before the render resolved, so render_pct " +
+      "is artificially ~50% pre-fix and step-changes upward after.",
+    `SELECT toStartOfWeek(timestamp) AS week,
+        countIf(event = 'session_completed') AS completions,
+        countIf(event = 'card_render_succeeded') AS rendered,
+        countIf(event = 'card_render_failed') AS failed,
+        round(100 * rendered / nullIf(completions, 0), 0) AS render_pct
+     FROM events
+     WHERE event IN ('session_completed', 'card_render_succeeded', 'card_render_failed')
+       AND timestamp >= now() - INTERVAL 90 DAY
+     GROUP BY week
+     ORDER BY week`,
+  ),
+
+  // ── SIGN-UP PROMPT CONVERSION ─────────────────────────────────────────────
+  hogql(
+    "Sign-up prompt conversion — by surface",
+    "Distinct sessions shown vs clicked, split by prompt surface (pill | gate | " +
+      "session_complete). Counted by DISTINCT person, not raw events: the pill/gate " +
+      "re-emit `signup_prompt_shown` once per mount (~2×/session), so raw impression " +
+      "counts overstate reach.",
+    `SELECT properties.source AS surface,
+        count(DISTINCT if(event = 'signup_prompt_shown', person_id, NULL)) AS shown,
+        count(DISTINCT if(event = 'signup_prompt_clicked', person_id, NULL)) AS clicked,
+        round(100 * clicked / nullIf(shown, 0), 1) AS click_pct
+     FROM events
+     WHERE event IN ('signup_prompt_shown', 'signup_prompt_clicked')
+       AND timestamp >= now() - INTERVAL 90 DAY
+     GROUP BY surface
+     ORDER BY shown DESC`,
   ),
 ]
 
