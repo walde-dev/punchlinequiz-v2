@@ -741,7 +741,8 @@
       "daresYou": "{{name}} fordert dich: schlag {{score}}/{{total}}",
       "daresYouNoScore": "{{name}} fordert dich heraus",
       "body": "{{total}} Bars. Errate den Künstler hinter jeder Line.",
-      "cta": "Challenge annehmen"
+      "cta": "Challenge annehmen",
+      "namePlaceholder": "Dein Name fürs Board"
     },
     "name": {
       "title": "Wie heißt du fürs Board?",
