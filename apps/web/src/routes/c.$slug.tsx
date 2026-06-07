@@ -152,6 +152,11 @@ function ChallengeRunner({
   const answersRef = useRef<Array<ChallengeAttemptInput> | null>(null)
   const pendingRef = useRef<Array<ChallengeAttemptInput> | null>(null)
   const claimedRef = useRef(false)
+  // Creator's board name, captured UP FRONT in the intro (PUN-123 fix): without
+  // it the gauntlet scored but never persisted, so the loop dead-ended at a
+  // post-game name card nobody filled. Naming first → score auto-locks → the
+  // result screen is a single "send it" action.
+  const creatorNameRef = useRef<string>("")
 
   useEffect(() => {
     logEvent(
@@ -195,8 +200,13 @@ function ChallengeRunner({
     setSubmitting(true)
     answersRef.current = answers
     try {
-      // Signed-in persists immediately; anon persists if we already know a name.
-      const name = isSignedIn ? undefined : (readChallengeName() ?? undefined)
+      // Signed-in persists immediately. Anon: the creator named up front (intro);
+      // a recipient may have a saved name from a prior board — either way persist
+      // it now so a creator's score always lands (no post-game name dead-end).
+      const anonName = data.viewerIsCreator
+        ? creatorNameRef.current
+        : readChallengeName()
+      const name = isSignedIn ? undefined : anonName || undefined
       const res = await persist(answers, name)
       if (res)
         logEvent("challenge_play_completed", {
@@ -276,7 +286,14 @@ function ChallengeRunner({
           creatorScore={data.creatorScore}
           size={data.size}
           isCreator={data.viewerIsCreator}
-          onStart={() => setPhase("play")}
+          signedIn={!!isSignedIn}
+          onStart={(name) => {
+            if (name) {
+              creatorNameRef.current = name
+              logEvent("challenge_name_set", { slug: data.slug, at: "intro" })
+            }
+            setPhase("play")
+          }}
         />
       </Shell>
     )
@@ -345,16 +362,24 @@ function IntroView({
   creatorScore,
   size,
   isCreator,
+  signedIn,
   onStart,
 }: {
   creatorHandle: string | null
   creatorScore: number | null
   size: number
   isCreator: boolean
-  onStart: () => void
+  signedIn: boolean
+  onStart: (name?: string) => void
 }) {
   const { t } = useTranslation()
   const who = creatorHandle ?? t("challenge.someone")
+  // An anonymous creator names themselves UP FRONT so the gauntlet auto-locks
+  // their score (PUN-123 fix). Signed-in creators use their @handle, no field.
+  const needsName = isCreator && !signedIn
+  const [name, setName] = useState(() => readChallengeName() ?? "")
+  const trimmed = name.trim()
+  const canStart = !needsName || trimmed.length > 0
   return (
     <main className="relative mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-6 px-6 text-center">
       <span className="text-xs font-bold tracking-[0.2em] text-primary/80 uppercase">
@@ -379,12 +404,31 @@ function IntroView({
           ? t("challenge.intro.creatorBody", { total: size })
           : t("challenge.intro.body", { total: size })}
       </p>
-      <Button
-        onClick={onStart}
-        className="cta-glow min-h-12 w-full max-w-xs text-base font-bold"
+      <form
+        className="flex w-full max-w-xs flex-col gap-3"
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (canStart) onStart(needsName ? trimmed : undefined)
+        }}
       >
-        {isCreator ? t("challenge.intro.creatorCta") : t("challenge.intro.cta")}
-      </Button>
+        {needsName && (
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            maxLength={40}
+            placeholder={t("challenge.intro.namePlaceholder")}
+            aria-label={t("challenge.intro.namePlaceholder")}
+            className="text-center"
+          />
+        )}
+        <Button
+          type="submit"
+          disabled={!canStart}
+          className="cta-glow min-h-12 w-full text-base font-bold"
+        >
+          {isCreator ? t("challenge.intro.creatorCta") : t("challenge.intro.cta")}
+        </Button>
+      </form>
     </main>
   )
 }
@@ -657,9 +701,10 @@ function ResultView({
         <NameCapture submitting={submitting} onSubmit={onNameSubmit} />
       )}
 
-      {/* Already on the board but anonymous → soft "lock it / sign up" (capture
-          on the return leg, never a blocking wall). */}
-      {persisted && !isSignedIn && <SignupWall />}
+      {/* Already on the board but anonymous → soft "lock it / sign up". Recipients
+          only: the creator's fresh result must be a single "send it" action, and
+          they're captured on the return/dethroned leg instead (PUN-123). */}
+      {persisted && !isSignedIn && !isCreator && <SignupWall />}
 
       {/* Recap */}
       <section

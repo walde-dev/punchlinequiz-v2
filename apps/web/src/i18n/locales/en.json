@@ -741,7 +741,8 @@
       "daresYou": "{{name}} dares you: beat {{score}}/{{total}}",
       "daresYouNoScore": "{{name}} dares you",
       "body": "{{total}} bars. Guess the artist behind each line.",
-      "cta": "Accept the challenge"
+      "cta": "Accept the challenge",
+      "namePlaceholder": "Your name for the board"
     },
     "name": {
       "title": "Your name for the board?",
