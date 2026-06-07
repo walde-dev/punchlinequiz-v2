@@ -139,7 +139,7 @@
     "modes": {
       "classicEyebrow": "/ klassisch",
       "classicTitle": "Errate den Artist",
-      "classicDesc": "Punchline lesen, Artist erraten. Multiple Choice.",
+      "classicDesc": "Punchline lesen, Artist erraten.",
       "classicMeta": "{{count}} Bars",
       "classicAria": "Klassischer Modus — Errate den Artist ({{count}} Bars)",
       "clozeEyebrow": "/ finishing lines",
