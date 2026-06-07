@@ -14,6 +14,8 @@ export type FrameExtraction = {
   n: number
   role: "question" | "reveal" | "other"
   line: string | null
+  /** The punchline split into its individual rap bars (canonical "/" segments). */
+  bars: Array<string>
   options: Array<string>
   correctIndex: number | null
   correctArtist: string | null
@@ -34,8 +36,14 @@ For EACH image return one object with:
 - n: the image number.
 - role: "question" if 3 neutral options are shown, "reveal" if one option is green,
   else "other".
-- line: the FULL punchline text exactly as shown — preserve line breaks as \\n,
-  German umlauts (ä ö ü ß) and quotes. null if no punchline box is visible.
+- line: the FULL punchline text exactly as shown — preserve German umlauts (ä ö ü ß)
+  and quotes. CRITICAL: keep a normal space between every word and after punctuation;
+  NEVER run two words together (e.g. "verlor'n. Die", not "verlor'n.Die"; "wir die",
+  not "wirdie"). Preserve line breaks as \\n. null if no punchline box is visible.
+- bars: the punchline split into its individual RAP BARS, one string per bar, in order.
+  A bar is one rhymed line as it would be written out (a bar may wrap across two
+  displayed lines — merge those into one bar). Each bar must have correct spacing and
+  no trailing slash. [] if no punchline. This is the canonical segmentation we store.
 - options: the artist option names top-to-bottom (only those actually shown; [] if none).
 - correctIndex: 0-based index (into options, or into the 3 quiz options if only the
   green one is shown) of the GREEN option; null if nothing is green.
@@ -52,6 +60,7 @@ const RESPONSE_SCHEMA = {
       n: { type: "INTEGER" },
       role: { type: "STRING", enum: ["question", "reveal", "other"] },
       line: { type: "STRING", nullable: true },
+      bars: { type: "ARRAY", items: { type: "STRING" } },
       options: { type: "ARRAY", items: { type: "STRING" } },
       correctIndex: { type: "INTEGER", nullable: true },
       correctArtist: { type: "STRING", nullable: true },
@@ -133,13 +142,14 @@ export async function extractFrames(
         n: j,
         role: "other" as const,
         line: null,
+        bars: [],
         options: [],
         correctIndex: null,
         correctArtist: null,
         songCredit: null,
         indexLabel: null,
       }
-      out.push({ ...r, options: r.options ?? [], frame })
+      out.push({ ...r, bars: r.bars ?? [], options: r.options ?? [], frame })
     })
   }
   return out

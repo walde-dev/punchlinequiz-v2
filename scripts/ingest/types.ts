@@ -13,8 +13,10 @@ export type CandidateFrame = {
 export type RawQuizItem = {
   /** The on-screen "X/10" index (1-based). Null if the counter wasn't read. */
   index: number | null
-  /** Punchline text, line breaks preserved. */
+  /** Canonical punchline: rap bars joined by " / " with a trailing " /". */
   line: string
+  /** The individual rap bars (the "/" segments the game renders). */
+  bars: Array<string>
   /** The three artist options, top-to-bottom (from the question-card frame). */
   options: Array<string>
   /** 0-based index of the green-highlighted correct option. */

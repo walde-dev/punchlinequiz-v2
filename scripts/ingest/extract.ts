@@ -86,12 +86,37 @@ function clusterByLine(frames: Array<Tagged>): Array<Array<Tagged>> {
   return clusters.map((c) => c.frames)
 }
 
+/**
+ * Canonical punchlinequiz line format: rap bars joined by " / " with a trailing
+ * " /" (matches scripts/lyrics/insert.ts + the game's renderBarLines, which
+ * splits on "/"). Internal whitespace collapsed to single spaces.
+ */
+function formatBarLine(bars: Array<string>): string {
+  const clean = bars.map((b) => b.trim().replace(/\s+/g, " ")).filter(Boolean)
+  return clean.length ? `${clean.join(" / ")} /` : ""
+}
+
 /** Build one quiz item from its frames; null if it lacks a usable line. */
 function buildItem(frames: Array<Tagged>): RawQuizItem | null {
   const withLine = frames.filter((f) => f.line && f.line.trim().length > 0)
   if (withLine.length === 0) return null
-  // The fullest line (question card shows the complete bar).
-  const line = withLine.map((f) => f.line!).sort((a, b) => b.length - a.length)[0].trim()
+
+  // Prefer the model's explicit bar segmentation (richest = most characters,
+  // which also tends to have the best spacing). Fall back to the fullest raw
+  // line split on its newlines.
+  const barSets = frames.map((f) => f.bars ?? []).filter((b) => b.length > 0)
+  const bestBars = barSets.sort((a, b) => b.join("").length - a.join("").length)[0]
+  let bars: Array<string>
+  if (bestBars && bestBars.length > 0) {
+    bars = bestBars.map((b) => b.trim().replace(/\s+/g, " ")).filter(Boolean)
+  } else {
+    const raw = withLine.map((f) => f.line!).sort((a, b) => b.length - a.length)[0]
+    bars = raw
+      .split(/\n+/)
+      .map((s) => s.trim().replace(/\s+/g, " "))
+      .filter(Boolean)
+  }
+  const line = formatBarLine(bars)
 
   // The richest options list (question card has all three).
   const options = frames
@@ -131,6 +156,7 @@ function buildItem(frames: Array<Tagged>): RawQuizItem | null {
   return {
     index,
     line,
+    bars,
     options,
     correctIndex,
     songTitle,
