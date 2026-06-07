@@ -49,8 +49,30 @@ function initSentry() {
         // from page global code, not ours (Sentry PUNCHLINEQUIZ-C / -D). Browser
         // noise, zero users impacted — drop it.
         /__firefox__/,
+        // Clerk's background session heartbeat (/touch) and other FAPI calls
+        // fail transiently on flaky mobile connections / navigation-aborted
+        // fetches; the SDK auto-retries and the session stays valid (Sentry
+        // PUNCHLINEQUIZ-E / -F). Non-fatal — drop it. We deliberately do NOT
+        // ignore "Failed to load Clerk JS": that one means auth/signup is
+        // broken (the funnel) and must stay visible.
+        /ClerkJS: Network error/i,
       ],
       denyUrls: [/extensions\//i, /^chrome-extension:\/\//i, /^moz-extension:\/\//i],
+      beforeSend(event) {
+        // Only the canonical custom domain is real-user production traffic. A
+        // direct hit to a per-deploy *.vercel.app alias (production builds get
+        // one too, alongside www) can't load Clerk — its FAPI only allows the
+        // prod origin — so it throws "Failed to load Clerk JS" and pages as a
+        // production error (Sentry PUNCHLINEQUIZ-6). VERCEL_ENV is fixed at
+        // build time and can't know which host was actually loaded, so relabel
+        // at runtime: anything served from a *.vercel.app host is non-canonical
+        // (internal testing), not production. Kept visible under `preview`
+        // rather than dropped, so genuine pre-launch errors still surface.
+        if (window.location.hostname.endsWith(".vercel.app")) {
+          event.environment = "preview"
+        }
+        return event
+      },
     })
     // Read the session id inline (do NOT import from track.ts — that statically
     // imports ./db, which would pull server-only code into the client bundle and
