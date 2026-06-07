@@ -1,4 +1,4 @@
-import { Show, SignInButton } from "@clerk/tanstack-react-start"
+import { Show, SignUpButton } from "@clerk/tanstack-react-start"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -77,7 +77,7 @@ function SessionClaimCtaInner() {
         {headline}
       </p>
       <p className="text-sm text-balance text-muted-foreground">{sub}</p>
-      <SignInButton mode="modal">
+      <SignUpButton mode="modal">
         <button
           type="button"
           onClick={() =>
@@ -95,7 +95,7 @@ function SessionClaimCtaInner() {
           {cta}
           <span aria-hidden="true">→</span>
         </button>
-      </SignInButton>
+      </SignUpButton>
     </div>
   )
 }
