@@ -1,31 +1,46 @@
-import { Link, createFileRoute } from "@tanstack/react-router"
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router"
 import { SignInButton, useAuth } from "@clerk/tanstack-react-start"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@workspace/ui/components/button"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@workspace/ui/components/select"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { AppHeader } from "../components/app-header"
 import { rankIconPath } from "../lib/rank-icon"
 import { getLeaderboardFn } from "../lib/leaderboard"
 import { seo } from "../lib/seo"
-import { listPlayableArtists } from "../lib/game"
 import { logEvent } from "../lib/track"
-import type { ArtistTile } from "../lib/game"
 import type {
-  LeaderboardBoard,
   LeaderboardEntry,
+  LeaderboardMetric,
   LeaderboardResult,
-  LeaderboardWindow,
+  LeaderboardScope,
 } from "../lib/leaderboard"
+
+const SCOPES: ReadonlyArray<LeaderboardScope> = ["global", "friends"]
+const METRICS: ReadonlyArray<LeaderboardMetric> = [
+  "punchlines",
+  "contributed",
+  "rank",
+]
+
+// Both axes are optional in the URL so links to /leaderboard need no params;
+// absent/invalid values resolve to the default cell (global/punchlines).
+type Search = { scope?: LeaderboardScope; metric?: LeaderboardMetric }
+
+const DEFAULT_SCOPE: LeaderboardScope = "global"
+const DEFAULT_METRIC: LeaderboardMetric = "punchlines"
+
+/** Keep only valid axis values; drop everything else (defaults applied later). */
+function parseSearch(search: Record<string, unknown>): Search {
+  const out: Search = {}
+  if (SCOPES.includes(search.scope as LeaderboardScope))
+    out.scope = search.scope as LeaderboardScope
+  if (METRICS.includes(search.metric as LeaderboardMetric))
+    out.metric = search.metric as LeaderboardMetric
+  return out
+}
 
 export const Route = createFileRoute("/leaderboard")({
   component: LeaderboardPage,
@@ -36,98 +51,80 @@ export const Route = createFileRoute("/leaderboard")({
         "Die besten Köpfe im deutschen Rap-Quiz. Wer kennt die meisten Bars?",
       path: "/leaderboard",
     }),
-  loader: async () => ({
-    initial: await getLeaderboardFn({
-      data: { board: "xp", window: "alltime" },
-    }),
-  }),
+  validateSearch: parseSearch,
+  // No loaderDeps: read the URL once on entry so a deep link (?scope=friends&
+  // metric=rank) SSRs the right cell. Intra-page tab toggles are handled
+  // client-side (cache + fetch below), so the loader must not re-run on them.
+  loader: async ({ location }) => {
+    const s = parseSearch(location.search as Record<string, unknown>)
+    return {
+      initial: await getLeaderboardFn({
+        data: {
+          scope: s.scope ?? DEFAULT_SCOPE,
+          metric: s.metric ?? DEFAULT_METRIC,
+        },
+      }),
+    }
+  },
 })
 
 const ease = "cubic-bezier(0.16, 1, 0.3, 1)"
 
+const cacheKey = (scope: LeaderboardScope, metric: LeaderboardMetric): string =>
+  `${scope}:${metric}`
+
 const EMPTY = (
-  board: LeaderboardBoard,
-  window: LeaderboardWindow
+  scope: LeaderboardScope,
+  metric: LeaderboardMetric
 ): LeaderboardResult => ({
-  board,
-  window,
+  scope,
+  metric,
   totalActiveLines: null,
   top: [],
   me: null,
 })
 
-// Cache key for a board view. Only XP varies by window; only Artist varies by
-// artistId — so the other boards collapse to a single key and never refetch
-// once seen this session.
-const cacheKey = (
-  board: LeaderboardBoard,
-  window: LeaderboardWindow,
-  artistId: number | null
-): string =>
-  board === "xp"
-    ? `xp:${window}`
-    : board === "artist"
-      ? `artist:${artistId}`
-      : board
-
 function LeaderboardPage() {
   const { initial } = Route.useLoaderData()
+  const search = Route.useSearch()
+  const scope = search.scope ?? DEFAULT_SCOPE
+  const metric = search.metric ?? DEFAULT_METRIC
+  const navigate = useNavigate({ from: Route.fullPath })
   const { t } = useTranslation()
   const { isSignedIn } = useAuth()
-  const [board, setBoard] = useState<LeaderboardBoard>("xp")
-  const [window, setWindow] = useState<LeaderboardWindow>("alltime")
-  const [artistId, setArtistId] = useState<number | null>(null)
-  const [artists, setArtists] = useState<Array<ArtistTile> | null>(null)
   const [data, setData] = useState<LeaderboardResult>(initial)
   const [loading, setLoading] = useState(false)
-  const first = useRef(true)
-  // Per-session result cache. Seeded with the loader's all-time XP board so the
-  // first view is instant; revisited tabs render from here with no refetch.
+  // Per-session result cache, keyed by scope:metric. Seeded with the loader's
+  // cell so revisited tabs render instantly with no refetch.
   const cache = useRef<Map<string, LeaderboardResult>>(
-    new Map([[cacheKey("xp", "alltime", null), initial]])
+    new Map([[cacheKey(initial.scope, initial.metric), initial]])
   )
 
-  // Lazy-load the artist list the first time the Artists board is opened.
+  // Log a view on mount and on either-axis change.
   useEffect(() => {
-    if (board !== "artist" || artists !== null) return
-    listPlayableArtists({ data: { mode: "artist" } })
-      .then((rows) => setArtists(rows))
-      .catch(() => setArtists([]))
-  }, [board, artists])
+    logEvent("leaderboard_viewed", { scope, metric })
+    if (metric === "contributed") logEvent("contributor_leaderboard_viewed", {})
+  }, [scope, metric])
 
   useEffect(() => {
-    if (first.current) {
-      first.current = false
-      logEvent("leaderboard_viewed", { board, window })
-      return
-    }
-    // Friends requires sign-in; artist requires a selected artist. In those
-    // "nothing to fetch yet" states, show the prompt instead of querying.
-    if (board === "friends" && !isSignedIn) {
+    // Friends requires sign-in → show the prompt instead of querying.
+    if (scope === "friends" && !isSignedIn) {
       setLoading(false)
-      setData(EMPTY("friends", "weekly"))
+      setData(EMPTY(scope, metric))
       return
     }
-    if (board === "artist" && artistId == null) {
-      setLoading(false)
-      setData(EMPTY("artist", "alltime"))
-      return
-    }
-    // Cache hit → render instantly, no fetch, no skeleton.
-    const key = cacheKey(board, window, artistId)
+    // Cache hit (incl. the seeded loader cell) → render instantly, no fetch.
+    const key = cacheKey(scope, metric)
     const cached = cache.current.get(key)
     if (cached) {
       setLoading(false)
       setData(cached)
       return
     }
-    // Cache miss → show the skeleton (not the previous tab's stale rows) while
-    // the new board loads.
+    // Cache miss → skeleton while the new cell loads.
     let active = true
     setLoading(true)
-    getLeaderboardFn({
-      data: { board, window, artistId: artistId ?? undefined },
-    })
+    getLeaderboardFn({ data: { scope, metric } })
       .then((r) => {
         if (!active) return
         cache.current.set(key, r)
@@ -137,20 +134,12 @@ function LeaderboardPage() {
     return () => {
       active = false
     }
-  }, [board, window, artistId, isSignedIn])
+  }, [scope, metric, isSignedIn])
 
-  function switchBoard(next: LeaderboardBoard) {
-    if (next === board) return
-    setBoard(next)
-    logEvent("leaderboard_viewed", {
-      board: next,
-      ...(next === "artist" && artistId ? { artist_id: artistId } : {}),
-    })
-    if (next === "contributor") logEvent("contributor_leaderboard_viewed", {})
-  }
+  const setAxis = (next: Partial<Search>) =>
+    navigate({ search: (prev) => ({ ...prev, ...next }), replace: true })
 
-  const showSignIn = board === "friends" && !isSignedIn
-  const showArtistPrompt = board === "artist" && artistId == null
+  const showSignIn = scope === "friends" && !isSignedIn
 
   return (
     <div className="relative flex min-h-svh flex-col overflow-hidden">
@@ -173,69 +162,34 @@ function LeaderboardPage() {
           </h1>
         </header>
 
-        {/* Board tabs */}
+        {/* Metric tabs (primary axis) */}
         <div
           className="flex flex-wrap justify-center gap-2"
           style={{ animation: `pq-fade-up 0.5s ${ease} 0.06s both` }}
         >
-          <TabButton active={board === "xp"} onClick={() => switchBoard("xp")}>
-            {t("leaderboard.tabs.xp")}
-          </TabButton>
-          <TabButton
-            active={board === "completion"}
-            onClick={() => switchBoard("completion")}
-          >
-            {t("leaderboard.tabs.completion")}
-          </TabButton>
-          <TabButton
-            active={board === "friends"}
-            onClick={() => switchBoard("friends")}
-          >
-            {t("leaderboard.tabs.friends")}
-          </TabButton>
-          <TabButton
-            active={board === "artist"}
-            onClick={() => switchBoard("artist")}
-          >
-            {t("leaderboard.tabs.artists")}
-          </TabButton>
-          <TabButton
-            active={board === "contributor"}
-            onClick={() => switchBoard("contributor")}
-          >
-            {t("leaderboard.tabs.contributor")}
-          </TabButton>
+          {METRICS.map((m) => (
+            <TabButton
+              key={m}
+              active={metric === m}
+              onClick={() => setAxis({ metric: m })}
+            >
+              {t(`leaderboard.metric.${m}`)}
+            </TabButton>
+          ))}
         </div>
 
-        {/* Window toggle (XP only) */}
-        {board === "xp" && (
-          <div className="flex justify-center gap-1.5 text-xs">
+        {/* Scope toggle (secondary axis) */}
+        <div className="flex justify-center gap-1.5 text-xs">
+          {SCOPES.map((s) => (
             <PillToggle
-              active={window === "weekly"}
-              onClick={() => setWindow("weekly")}
+              key={s}
+              active={scope === s}
+              onClick={() => setAxis({ scope: s })}
             >
-              {t("leaderboard.window.weekly")}
+              {t(`leaderboard.scope.${s}`)}
             </PillToggle>
-            <PillToggle
-              active={window === "alltime"}
-              onClick={() => setWindow("alltime")}
-            >
-              {t("leaderboard.window.alltime")}
-            </PillToggle>
-          </div>
-        )}
-
-        {/* Artist picker (Artists board) */}
-        {board === "artist" && (
-          <ArtistPicker
-            artists={artists}
-            value={artistId}
-            onChange={(id) => {
-              setArtistId(id)
-              logEvent("leaderboard_viewed", { board: "artist", artist_id: id })
-            }}
-          />
-        )}
+          ))}
+        </div>
 
         {/* Rows / prompts */}
         {showSignIn ? (
@@ -243,10 +197,6 @@ function LeaderboardPage() {
             message={t("leaderboard.friendsSignIn")}
             cta={t("nav.signIn")}
           />
-        ) : showArtistPrompt ? (
-          <p className="py-12 text-center text-sm text-muted-foreground">
-            {t("leaderboard.pickArtist")}
-          </p>
         ) : loading ? (
           <section className="flex flex-col gap-2" aria-busy="true">
             {Array.from({ length: 8 }).map((_, i) => (
@@ -260,18 +210,16 @@ function LeaderboardPage() {
           >
             {data.top.length === 0 ? (
               <p className="py-12 text-center text-sm text-muted-foreground">
-                {board === "friends"
-                  ? t("leaderboard.friendsEmpty")
-                  : board === "contributor"
-                    ? t("leaderboard.contributorEmpty")
-                    : t("leaderboard.empty")}
+                {metric === "contributed"
+                  ? t("leaderboard.contributorEmpty")
+                  : t("leaderboard.empty")}
               </p>
             ) : (
               data.top.map((entry) => (
                 <Row
                   key={`${entry.rank}-${entry.handle}`}
                   entry={entry}
-                  board={data.board}
+                  metric={data.metric}
                   totalLines={data.totalActiveLines}
                   highlight={
                     data.me?.inTop &&
@@ -286,63 +234,18 @@ function LeaderboardPage() {
       </main>
 
       {/* Sticky "your rank" row when outside the visible top list */}
-      {data.me &&
-        !data.me.inTop &&
-        !loading &&
-        !showSignIn &&
-        !showArtistPrompt && (
-          <div className="fixed inset-x-0 bottom-0 z-40 border-t border-primary/30 bg-background/95 px-5 py-3 backdrop-blur-sm md:px-8">
-            <div className="mx-auto w-full max-w-xl">
-              <Row
-                entry={data.me}
-                board={data.board}
-                totalLines={data.totalActiveLines}
-                highlight
-              />
-            </div>
+      {data.me && !data.me.inTop && !loading && !showSignIn && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-primary/30 bg-background/95 px-5 py-3 backdrop-blur-sm md:px-8">
+          <div className="mx-auto w-full max-w-xl">
+            <Row
+              entry={data.me}
+              metric={data.metric}
+              totalLines={data.totalActiveLines}
+              highlight
+            />
           </div>
-        )}
-    </div>
-  )
-}
-
-function ArtistPicker({
-  artists,
-  value,
-  onChange,
-}: {
-  artists: Array<ArtistTile> | null
-  value: number | null
-  onChange: (id: number) => void
-}) {
-  const { t } = useTranslation()
-  return (
-    <div className="flex justify-center">
-      <Select
-        value={value == null ? null : String(value)}
-        disabled={artists === null}
-        onValueChange={(v) => {
-          const id = Number(v)
-          if (Number.isInteger(id) && id > 0) onChange(id)
-        }}
-      >
-        <SelectTrigger className="w-full max-w-xs">
-          <SelectValue
-            placeholder={
-              artists === null
-                ? t("common.loading")
-                : t("leaderboard.pickArtist")
-            }
-          />
-        </SelectTrigger>
-        <SelectContent>
-          {(artists ?? []).map((a) => (
-            <SelectItem key={a.id} value={String(a.id)}>
-              {a.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        </div>
+      )}
     </div>
   )
 }
@@ -428,32 +331,22 @@ function formatCompletionPct(ratio: number, locale: string): string {
 
 function Row({
   entry,
-  board,
+  metric,
   totalLines,
   highlight,
 }: {
   entry: LeaderboardEntry
-  board: LeaderboardBoard
+  metric: LeaderboardMetric
   totalLines: number | null
   highlight?: boolean
 }) {
-  const { t, i18n } = useTranslation()
+  const { i18n } = useTranslation()
   const isDe = i18n.language.startsWith("de")
-  const locale = isDe ? "de-DE" : "en-US"
+  const tierName = isDe ? entry.level.nameDe : entry.level.nameEn
 
-  // completion + artist rank by solved-count; contributor by accepted bars;
-  // xp + friends by XP.
-  const isCount = board === "completion" || board === "artist"
-  const metricLabel =
-    board === "contributor"
-      ? t("leaderboard.barsCount", { count: entry.metric })
-      : isCount
-        ? `${entry.metric}${totalLines ? ` / ${totalLines}` : ""}`
-        : `${entry.metric.toLocaleString(locale)} XP`
-  const subLabel =
-    isCount && totalLines
-      ? `${formatCompletionPct(entry.metric / totalLines, locale)}%`
-      : null
+  // The rank board makes the tier badge the hero (XP demoted to a secondary
+  // line), so its under-handle tier label would be redundant — hide it there.
+  const showTierUnderHandle = metric !== "rank"
 
   return (
     <Link
@@ -461,7 +354,7 @@ function Row({
       params={{ handle: entry.handle }}
       onClick={() =>
         logEvent("leaderboard_profile_click", {
-          board,
+          metric,
           handle: entry.handle,
           rank: entry.rank,
         })
@@ -486,29 +379,85 @@ function Row({
         <span className="truncate text-sm font-bold tracking-tight text-foreground">
           @{entry.handle}
         </span>
-        <span className="flex items-center gap-1 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+        {showTierUnderHandle && (
+          <span className="flex items-center gap-1 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+            <img
+              src={rankIconPath(entry.level.rank)}
+              alt=""
+              aria-hidden="true"
+              width={14}
+              height={14}
+              className="select-none"
+            />
+            {tierName}
+          </span>
+        )}
+      </div>
+      <MetricValue entry={entry} metric={metric} totalLines={totalLines} />
+    </Link>
+  )
+}
+
+/** Right-hand value, by metric: solved count (+ % of pool), bar count, or the
+ *  tier badge as hero with XP demoted to a secondary line. */
+function MetricValue({
+  entry,
+  metric,
+  totalLines,
+}: {
+  entry: LeaderboardEntry
+  metric: LeaderboardMetric
+  totalLines: number | null
+}) {
+  const { t, i18n } = useTranslation()
+  const isDe = i18n.language.startsWith("de")
+  const locale = isDe ? "de-DE" : "en-US"
+  const tierName = isDe ? entry.level.nameDe : entry.level.nameEn
+
+  if (metric === "rank") {
+    return (
+      <div className="flex shrink-0 flex-col items-end">
+        <span className="flex items-center gap-1.5 text-sm font-extrabold text-foreground">
           <img
             src={rankIconPath(entry.level.rank)}
             alt=""
             aria-hidden="true"
-            width={14}
-            height={14}
+            width={16}
+            height={16}
             className="select-none"
           />
-          {isDe ? entry.level.nameDe : entry.level.nameEn}
+          {tierName}
+        </span>
+        <span className="text-[10px] font-bold text-muted-foreground tabular-nums">
+          {entry.metric.toLocaleString(locale)} XP
         </span>
       </div>
+    )
+  }
+
+  if (metric === "contributed") {
+    return (
       <div className="flex shrink-0 flex-col items-end">
         <span className="text-sm font-extrabold text-foreground tabular-nums">
-          {metricLabel}
+          {t("leaderboard.barsCount", { count: entry.metric })}
         </span>
-        {subLabel && (
-          <span className="text-[10px] font-bold text-primary tabular-nums">
-            {subLabel}
-          </span>
-        )}
       </div>
-    </Link>
+    )
+  }
+
+  // punchlines: solved count, with % of the active pool underneath.
+  return (
+    <div className="flex shrink-0 flex-col items-end">
+      <span className="text-sm font-extrabold text-foreground tabular-nums">
+        {entry.metric}
+        {totalLines ? ` / ${totalLines}` : ""}
+      </span>
+      {totalLines ? (
+        <span className="text-[10px] font-bold text-primary tabular-nums">
+          {formatCompletionPct(entry.metric / totalLines, locale)}%
+        </span>
+      ) : null}
+    </div>
   )
 }
 

@@ -11,7 +11,7 @@ import { dailyChallenges, punchlines } from "@workspace/db"
 
 import { db } from "./db"
 import { SITE_URL } from "./seo"
-import { getLeaderboard } from "./leaderboard"
+import { weeklyXpTop } from "./leaderboard"
 
 // REST core lives in discord-rest.ts (dependency-light). Re-export for callers
 // that already import these from this module (e.g. the daily cron).
@@ -123,12 +123,7 @@ export function playPayload(): Record<string, unknown> {
 }
 
 export async function leaderboardPayload(): Promise<Record<string, unknown>> {
-  const result = await getLeaderboard({
-    board: "xp",
-    window: "weekly",
-    callerId: null,
-  })
-  const top = result.top.slice(0, 10)
+  const top = await weeklyXpTop(10)
   if (top.length === 0) {
     return {
       content: `Noch keine Scores diese Woche. Sei der Erste 👉 ${SITE_URL}/play`,
