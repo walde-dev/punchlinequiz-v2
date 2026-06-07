@@ -681,23 +681,19 @@
   "leaderboard": {
     "eyebrow": "/ leaderboard",
     "title": "The Leaderboard",
-    "tabs": {
-      "xp": "XP",
-      "completion": "Bars solved",
-      "friends": "Friends",
-      "artists": "Artists",
-      "contributor": "Contributor"
+    "metric": {
+      "punchlines": "Solved",
+      "contributed": "Submitted",
+      "rank": "Rank"
     },
-    "window": {
-      "weekly": "This week",
-      "alltime": "All-time"
+    "scope": {
+      "global": "Global",
+      "friends": "Friends"
     },
     "empty": "Nobody here yet. Be the first.",
     "contributorEmpty": "No accepted bars yet. Submit one and be the first.",
     "barsCount": "{{count}} bars",
-    "friendsSignIn": "Sign in to rank against the people you follow.",
-    "friendsEmpty": "Follow some players to build your friends board.",
-    "pickArtist": "Pick an artist"
+    "friendsSignIn": "Sign in to rank against the people you follow."
   },
   "challenge": {
     "eyebrow": "/ challenge",
