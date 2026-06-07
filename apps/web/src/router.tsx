@@ -1,3 +1,6 @@
+// MUST be first: shims Object.hasOwn for Samsung Internet ≤16 before seroval
+// deserializes any server-fn payload (Sentry PUNCHLINEQUIZ-8). See polyfills.ts.
+import "./lib/polyfills"
 import { createRouter as createTanStackRouter } from "@tanstack/react-router"
 import { routeTree } from "./routeTree.gen"
 // Side-effect: client-side Sentry init (no-op unless VITE_SENTRY_DSN is set).
