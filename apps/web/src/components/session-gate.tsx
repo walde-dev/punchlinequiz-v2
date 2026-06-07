@@ -1,4 +1,4 @@
-import { Show, SignInButton } from "@clerk/tanstack-react-start"
+import { Show, SignUpButton } from "@clerk/tanstack-react-start"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -202,7 +202,7 @@ function SessionGateInner({
           </span>
         </div>
 
-        <SignInButton mode="modal">
+        <SignUpButton mode="modal">
           <Button
             size="lg"
             onClick={onClaim}
@@ -211,7 +211,7 @@ function SessionGateInner({
             {t("sessionGate.cta")}
             <span aria-hidden="true">→</span>
           </Button>
-        </SignInButton>
+        </SignUpButton>
 
         {!hard && (
           <button

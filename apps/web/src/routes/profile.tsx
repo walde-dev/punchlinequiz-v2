@@ -1,5 +1,5 @@
 import { Link, createFileRoute, redirect } from "@tanstack/react-router"
-import { SignInButton } from "@clerk/tanstack-react-start"
+import { SignUpButton } from "@clerk/tanstack-react-start"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -66,14 +66,14 @@ function AnonymousPitch({
             ? t("profile.anon.subtextWithNext", { rank: nextName })
             : t("profile.anon.subtext")}
         </p>
-        <SignInButton mode="modal">
+        <SignUpButton mode="modal">
           <Button
             size="lg"
             className="cta-glow min-h-12 px-8 text-base font-bold"
           >
             {t("profile.anon.cta")}
           </Button>
-        </SignInButton>
+        </SignUpButton>
         <Link
           to="/"
           className="text-xs text-muted-foreground hover:text-foreground"

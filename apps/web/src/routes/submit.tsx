@@ -1,5 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router"
-import { SignInButton, useAuth } from "@clerk/tanstack-react-start"
+import { SignUpButton, useAuth } from "@clerk/tanstack-react-start"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -48,14 +48,14 @@ function AnonPitch() {
       <p className="max-w-xs text-sm text-balance text-muted-foreground">
         {t("submit.anonBody")}
       </p>
-      <SignInButton mode="modal">
+      <SignUpButton mode="modal">
         <Button
           size="lg"
           className="cta-glow min-h-12 px-8 text-base font-bold"
         >
           {t("submit.cta")}
         </Button>
-      </SignInButton>
+      </SignUpButton>
       <Link
         to="/"
         className="text-xs text-muted-foreground hover:text-foreground"

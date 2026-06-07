@@ -1,4 +1,4 @@
-import { SignInButton } from "@clerk/tanstack-react-start"
+import { SignUpButton } from "@clerk/tanstack-react-start"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -41,7 +41,7 @@ export function AnonymousXpCta({ triggerKey }: { triggerKey: number }) {
       aria-live="polite"
       className="pointer-events-none absolute inset-x-0 top-0 z-30 flex justify-center"
     >
-      <SignInButton mode="modal">
+      <SignUpButton mode="modal">
         <button
           type="button"
           className={cn(
@@ -67,7 +67,7 @@ export function AnonymousXpCta({ triggerKey }: { triggerKey: number }) {
             <span aria-hidden="true">→</span>
           </span>
         </button>
-      </SignInButton>
+      </SignUpButton>
     </div>
   )
 }

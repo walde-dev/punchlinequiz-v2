@@ -1,4 +1,4 @@
-import { Show, SignInButton } from "@clerk/tanstack-react-start"
+import { Show, SignUpButton } from "@clerk/tanstack-react-start"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -60,7 +60,7 @@ function AnonXpPillInner({ refreshKey }: { refreshKey: number }) {
 
   return (
     <div className="flex justify-center" aria-live="polite">
-      <SignInButton mode="modal">
+      <SignUpButton mode="modal">
         <button
           type="button"
           onClick={() =>
@@ -85,7 +85,7 @@ function AnonXpPillInner({ refreshKey }: { refreshKey: number }) {
             <span aria-hidden="true">→</span>
           </span>
         </button>
-      </SignInButton>
+      </SignUpButton>
     </div>
   )
 }

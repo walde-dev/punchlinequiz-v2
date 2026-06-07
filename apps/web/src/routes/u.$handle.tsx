@@ -1,5 +1,5 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router"
-import { SignInButton, useAuth } from "@clerk/tanstack-react-start"
+import { SignUpButton, useAuth } from "@clerk/tanstack-react-start"
 import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -687,11 +687,11 @@ function Actions({
             : t("profile.public.follow")}
         </Button>
       ) : (
-        <SignInButton mode="modal">
+        <SignUpButton mode="modal">
           <Button className="cta-glow min-h-11 bg-primary px-6 text-sm font-bold text-primary-foreground hover:bg-primary/90">
             {t("profile.public.follow")}
           </Button>
-        </SignInButton>
+        </SignUpButton>
       )}
       <CreateChallengeButton
         label={t("profile.public.challenge")}
@@ -727,14 +727,14 @@ function CreateChallengeButton({
 
   if (!signedIn) {
     return (
-      <SignInButton mode="modal">
+      <SignUpButton mode="modal">
         <Button
           variant="ghost"
           className="min-h-11 border border-primary/50 px-5 text-sm font-bold text-primary hover:bg-primary/10"
         >
           {label}
         </Button>
-      </SignInButton>
+      </SignUpButton>
     )
   }
   return (

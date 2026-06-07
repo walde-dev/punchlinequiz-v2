@@ -1,5 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router"
-import { SignInButton, useAuth } from "@clerk/tanstack-react-start"
+import { SignUpButton, useAuth } from "@clerk/tanstack-react-start"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -558,11 +558,11 @@ function SignupWall() {
       <p className="max-w-xs text-sm text-balance text-muted-foreground">
         {t("challenge.wallBody")}
       </p>
-      <SignInButton mode="modal">
+      <SignUpButton mode="modal">
         <Button className="cta-glow min-h-11 bg-primary px-6 text-sm font-bold text-primary-foreground hover:bg-primary/90">
           {t("challenge.wallCta")}
         </Button>
-      </SignInButton>
+      </SignUpButton>
     </section>
   )
 }
