@@ -7,6 +7,7 @@ import appCss from "@workspace/ui/globals.css?url"
 import { figtreeLatinWoff2 } from "@workspace/ui/lib/fonts"
 import i18n, { LANG_STORAGE_KEY } from "../i18n"
 import { OnboardingGate } from "../components/onboarding-gate"
+import { GoogleOneTapPrompt } from "../components/google-one-tap-prompt"
 import { AnalyticsIdentity } from "../components/analytics-identity"
 import { SiteFooter } from "../components/site-footer"
 import { getBootstrapFlagsFn } from "../lib/flags"
@@ -175,6 +176,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                 on immersive game routes and the home page (which ships its own). */}
             <SiteFooter />
             <OnboardingGate />
+            {/* Friction-free signup path (PUN-139): one tap, no email/OTP/password.
+                Self-hides for signed-in users and visitors without a Google session. */}
+            <GoogleOneTapPrompt />
             <ReferralCapture />
             <AnalyticsIdentity />
           </I18nextProvider>
