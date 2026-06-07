@@ -77,7 +77,13 @@ export function SessionSummary({
     setCreatingChallenge(true)
     try {
       const { slug } = await createChallengeFn()
-      logEvent("challenge_created", { slug, from: "session" })
+      logEvent("challenge_created", {
+        slug,
+        from: "session",
+        signed_in: !!isSignedIn,
+        score,
+        total,
+      })
       navigate({ to: "/c/$slug", params: { slug } })
     } catch (e) {
       console.error(e)
@@ -291,32 +297,23 @@ export function SessionSummary({
         )}
       </div>
 
-      {/* Action buttons (PUN-122 follow-up): the win moment IS the share moment,
-          so SHARE is the primary CTA — and it never gates on the canvas render
-          (it shares text+link instantly, attaching the card image only if ready).
-          "Keep playing" drops to a clear secondary. */}
+      {/* Action buttons (PUN-123): the win moment IS the dare moment. Broadcast
+          share has ~no organic demand, so "Challenge a friend" is now the PRIMARY
+          CTA — friction-free for everyone (anon mints & sends instantly) — and
+          plain broadcast share drops to a quiet tertiary. */}
       <div className="flex flex-col gap-3">
-        {/* PRIMARY: share. Native sheet (WhatsApp/X/IG) on mobile; on desktop
-            (no navigator.share) the instant copy-link is the primary share. */}
-        {hasNativeShare ? (
-          <Button
-            type="button"
-            size="lg"
-            onClick={onNativeShare}
-            className="cta-glow min-h-12 w-full text-base font-bold"
-          >
-            {t("common.shareCard")}
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            size="lg"
-            onClick={onCopyLink}
-            className="cta-glow min-h-12 w-full text-base font-bold"
-          >
-            {copied ? `${t("common.linkCopied")} ✓` : t("common.shareCard")}
-          </Button>
-        )}
+        {/* PRIMARY: dare a friend. Works for anon; routes to the gauntlet. */}
+        <Button
+          type="button"
+          size="lg"
+          onClick={createChallenge}
+          disabled={creatingChallenge}
+          className="cta-glow min-h-12 w-full text-base font-bold"
+        >
+          {creatingChallenge
+            ? t("challenge.creating")
+            : t("challenge.cta.fromSession")}
+        </Button>
 
         {/* SECONDARY: keep playing — the engagement loop, one tap away. */}
         <Button
@@ -329,6 +326,27 @@ export function SessionSummary({
           <span aria-hidden="true">→</span>
         </Button>
 
+        {/* TERTIARY: plain broadcast share — never gates on the canvas render. */}
+        {hasNativeShare ? (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onNativeShare}
+            className="min-h-11 w-full text-sm font-bold text-muted-foreground hover:text-foreground"
+          >
+            {t("common.shareCard")}
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onCopyLink}
+            className="min-h-11 w-full text-sm font-bold text-muted-foreground hover:text-foreground"
+          >
+            {copied ? `${t("common.linkCopied")} ✓` : t("common.shareCard")}
+          </Button>
+        )}
+
         {/* Desktop only: save the card image as an optional extra. */}
         {!hasNativeShare && (
           <Button
@@ -339,22 +357,6 @@ export function SessionSummary({
             className="min-h-11 w-full border border-border/60 text-sm font-bold"
           >
             {generating ? t("session.cardGenerating") : t("common.saveCard")}
-          </Button>
-        )}
-
-        {/* Challenge a friend — a signed-in UPGRADE of the share, not a competing
-            CTA (PUN-122). Signed-out players just get the share card above. */}
-        {isSignedIn && (
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={createChallenge}
-            disabled={creatingChallenge}
-            className="min-h-12 w-full text-sm font-bold text-muted-foreground hover:text-foreground"
-          >
-            {creatingChallenge
-              ? t("challenge.creating")
-              : t("profile.public.createChallenge")}
           </Button>
         )}
 

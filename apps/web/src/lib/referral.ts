@@ -170,6 +170,52 @@ export async function recordPendingReferral(input: {
     return { recorded: true, source: "anon" }
   }
 
+  // Challenge links (PUN-123): the creator may be anonymous (no account yet).
+  // Resolve to their account if it exists, otherwise PARK by the creator's
+  // session and stitch when they sign up — mirroring the anon-share path so a
+  // friction-free anon creator still earns the referral on their return leg.
+  if (token.source === "challenge") {
+    const [ch] = await db
+      .select({
+        creatorClerkId: challenges.creatorClerkId,
+        creatorSessionId: challenges.creatorSessionId,
+      })
+      .from(challenges)
+      .where(eq(challenges.slug, token.value))
+      .limit(1)
+    if (!ch) return { recorded: false, reason: "unresolved" }
+    if (ch.creatorClerkId) {
+      if (ch.creatorClerkId === refereeClerkId)
+        return { recorded: false, reason: "self" }
+      const inserted = await db
+        .insert(referrals)
+        .values({
+          referrerClerkId: ch.creatorClerkId,
+          refereeClerkId,
+          source: "challenge",
+          status: "pending",
+        })
+        .onConflictDoNothing({ target: referrals.refereeClerkId })
+        .returning({ id: referrals.id })
+      return inserted.length === 0
+        ? { recorded: false, reason: "exists" }
+        : { recorded: true, source: "challenge" }
+    }
+    if (ch.creatorSessionId) {
+      if (refereeSessionId && ch.creatorSessionId === refereeSessionId)
+        return { recorded: false, reason: "self" }
+      const parked = await db
+        .insert(pendingAnonReferrals)
+        .values({ refereeClerkId, referrerSessionId: ch.creatorSessionId })
+        .onConflictDoNothing({ target: pendingAnonReferrals.refereeClerkId })
+        .returning({ refereeClerkId: pendingAnonReferrals.refereeClerkId })
+      return parked.length === 0
+        ? { recorded: false, reason: "exists" }
+        : { recorded: true, source: "challenge" }
+    }
+    return { recorded: false, reason: "unresolved" }
+  }
+
   const referrerClerkId = await resolveReferrer(token)
   if (!referrerClerkId) return { recorded: false, reason: "unresolved" }
   if (referrerClerkId === refereeClerkId)
