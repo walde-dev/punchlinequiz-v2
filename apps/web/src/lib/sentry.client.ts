@@ -44,6 +44,11 @@ function initSentry() {
         "ResizeObserver loop completed with undelivered notifications.",
         "Non-Error promise rejection captured",
         /AbortError/,
+        // Firefox-on-iOS injects a `window.__firefox__` helper (YouTube quality
+        // shim) into the page's global scope; when it races our code it throws
+        // from page global code, not ours (Sentry PUNCHLINEQUIZ-C / -D). Browser
+        // noise, zero users impacted — drop it.
+        /__firefox__/,
       ],
       denyUrls: [/extensions\//i, /^chrome-extension:\/\//i, /^moz-extension:\/\//i],
     })
