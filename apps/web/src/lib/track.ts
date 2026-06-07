@@ -83,14 +83,8 @@ export const recordEvent = createServerFn({ method: "POST" })
     return { ok: true }
   })
 
-/**
- * Client-side event logger. Fire-and-forget — never blocks UI.
- * Uses the TanStack server function; failures are swallowed silently so
- * tracking never breaks gameplay.
- */
-export function logEvent(name: string, props: Record<string, unknown> = {}): void {
-  if (typeof window === "undefined") return
-  const sessionId = getSessionId()
+/** Shared enrichment for both client loggers. */
+function enrichProps(props: Record<string, unknown>): Record<string, unknown> {
   // Stamp the coarse first-touch acquisition bucket (PUN-121) on every event for
   // join-free "which channel converts" slicing. Distinct key `acq_source` so it
   // never collides with the `source` prop some events use for their own surface
@@ -99,13 +93,44 @@ export function logEvent(name: string, props: Record<string, unknown> = {}): voi
   const withSource =
     acqSource && props.acq_source == null ? { ...props, acq_source: acqSource } : props
   // Stamp admin/QA sessions so the analytics dashboard can filter them out.
-  const enriched = isInternalSession()
-    ? { ...withSource, internal: true }
-    : withSource
+  return isInternalSession() ? { ...withSource, internal: true } : withSource
+}
+
+/**
+ * Client-side event logger. Fire-and-forget — never blocks UI.
+ * Uses the TanStack server function; failures are swallowed silently so
+ * tracking never breaks gameplay.
+ */
+export function logEvent(name: string, props: Record<string, unknown> = {}): void {
+  if (typeof window === "undefined") return
+  const sessionId = getSessionId()
+  const enriched = enrichProps(props)
   // Single choke point: every product event goes to BOTH sinks.
   //  1) PostHog (client SDK) — product analytics: funnels, retention, replay.
   //  2) recordEvent server fn — raw backup in the gameEvents DB + Axiom logs.
   // recordEvent intentionally does NOT re-send to PostHog (would double-count).
   capturePostHog(name, enriched)
   recordEvent({ data: { sessionId, name, props: enriched } }).catch(() => {})
+}
+
+/**
+ * Like {@link logEvent}, but resolves to whether the server fn round-trip
+ * completed (`true`) or was cancelled/failed (`false`).
+ *
+ * For events that fire at a navigation boundary — e.g. `auth_session_active`
+ * the instant Clerk flips `isSignedIn`, which coincides with Clerk's post-auth
+ * page reload — the in-flight `recordEvent` POST is frequently cancelled by the
+ * unload, so the event never reaches the DB. Callers use this ack to defer their
+ * "already logged" guard until the write actually lands, so a cancelled fire
+ * retries on the next (stable) page load instead of being suppressed forever.
+ */
+export function logEventAck(name: string, props: Record<string, unknown> = {}): Promise<boolean> {
+  if (typeof window === "undefined") return Promise.resolve(false)
+  const sessionId = getSessionId()
+  const enriched = enrichProps(props)
+  capturePostHog(name, enriched)
+  return recordEvent({ data: { sessionId, name, props: enriched } }).then(
+    () => true,
+    () => false,
+  )
 }

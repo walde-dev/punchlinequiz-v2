@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react"
 
 import { getOnboardingStatusFn } from "../lib/onboarding"
 import { identifyPostHog, resetPostHog } from "../lib/posthog"
-import { logEvent } from "../lib/track"
+import { logEventAck } from "../lib/track"
 
 /**
  * Per-tab guard so `auth_session_active` fires once per Clerk sign-in, not on
@@ -42,15 +42,29 @@ export function AnalyticsIdentity() {
       // `signup_prompt_clicked` and `handle_claimed`. Clerk's modal is a black
       // box and `session_id` was thought to rotate across it — firing here,
       // keyed (inside logEvent) to the persisted anon `pq.session_id`, lets us
-      // finally measure Clerk-modal completion (tap → signed-in → onboarded) in
-      // our own data. Once per tab so signed-in reloads don't inflate it.
+      // measure Clerk-modal completion (tap → signed-in → onboarded) in our own
+      // data.
+      //
+      // `isSignedIn` flips at the same instant Clerk reloads the page to sync the
+      // session, which used to cancel the in-flight write AND leave the per-tab
+      // guard set — so the event was lost in ~3/4 of real signups. Set the guard
+      // only AFTER the write round-trips (`logEventAck`); a cancelled fire then
+      // retries on the next stable load instead of being suppressed forever.
+      let alreadyLogged = false
       try {
-        if (window.sessionStorage.getItem(AUTH_LOGGED_KEY) !== "1") {
-          window.sessionStorage.setItem(AUTH_LOGGED_KEY, "1")
-          logEvent("auth_session_active", {})
-        }
+        alreadyLogged = window.sessionStorage.getItem(AUTH_LOGGED_KEY) === "1"
       } catch {
-        logEvent("auth_session_active", {})
+        /* storage blocked — fire without the once-per-tab guard */
+      }
+      if (!alreadyLogged) {
+        void logEventAck("auth_session_active", {}).then((ok) => {
+          if (!ok) return
+          try {
+            window.sessionStorage.setItem(AUTH_LOGGED_KEY, "1")
+          } catch {
+            /* storage blocked — best-effort only */
+          }
+        })
       }
 
       const traits: Record<string, unknown> = {
