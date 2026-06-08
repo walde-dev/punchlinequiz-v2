@@ -48,7 +48,7 @@ export async function persistItem(
   videoId: string,
   item: RawQuizItem,
   seqIndex: number,
-  opts: { commit: boolean },
+  opts: { commit: boolean; autoApprove?: boolean },
 ): Promise<PersistOutcome> {
   const itemIndex = item.index ?? seqIndex + 1
   const tsMs = item.evidence.revealTsMs ?? item.evidence.questionTsMs ?? null
@@ -143,14 +143,18 @@ export async function persistItem(
       return { itemIndex, status: "duplicate", dedupeOfPunchlineId: dupId, correctArtist: trio.correct, songTitle: title }
     }
 
+    const low = item.confidence < LOW_CONFIDENCE || !songInfo || !!creditMismatch
+
     const bar = await insertBar(db, {
       songId: song.row.id,
       line: item.line,
       distractor1Id: d1.row.id,
       distractor2Id: d2.row.id,
+      // --auto-approve goes live immediately, but low-confidence items always
+      // land in review regardless — those are the ones worth a human glance.
+      reviewed: !!opts.autoApprove && !low,
     })
 
-    const low = item.confidence < LOW_CONFIDENCE || !songInfo || !!creditMismatch
     const status: PersistOutcome["status"] = low ? "low_confidence" : "inserted"
     await recordItem(status, { punchlineId: bar.id })
     return { itemIndex, status, punchlineId: bar.id, correctArtist: trio.correct, songTitle: title }

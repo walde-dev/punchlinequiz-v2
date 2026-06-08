@@ -182,6 +182,8 @@ export async function insertBar(
     distractor2Id: number
     perfectSolution?: Array<string>
     acceptableSolutions?: Array<Array<string>>
+    /** Skip the review queue (set true only when the caller trusts the source). */
+    reviewed?: boolean
   },
 ): Promise<typeof punchlines.$inferSelect> {
   const [bar] = await db
@@ -195,6 +197,7 @@ export async function insertBar(
         : [],
       distractor1Id: input.distractor1Id,
       distractor2Id: input.distractor2Id,
+      reviewed: input.reviewed ?? false,
     })
     .returning()
   return bar

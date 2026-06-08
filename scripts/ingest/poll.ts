@@ -2,9 +2,11 @@
  * PUN-142/165: poll the playlist, process every new episode end-to-end into the
  * review queue. Idempotent — episodes already marked `done` are skipped.
  *
- *   pnpm ingest:poll            # dry-run (no DB writes); prints what it would do
- *   pnpm ingest:poll --commit   # actually insert into the review queue
- *   pnpm ingest:poll --limit 1  # cap how many new episodes to process this run
+ *   pnpm ingest:poll                    # dry-run (no DB writes); prints what it would do
+ *   pnpm ingest:poll --commit           # insert into the review queue (reviewed=false)
+ *   pnpm ingest:poll --commit --auto-approve  # insert confident bars live (reviewed=true);
+ *                                              # low-confidence ones still land in review
+ *   pnpm ingest:poll --commit --limit 1 # cap how many new episodes to process this run
  */
 import { MIN_EPISODE_SEC } from "./config.ts"
 import { startRun, logEvent } from "./log.ts"
@@ -14,6 +16,7 @@ import { listEpisodes, ytDlpAvailable } from "./ytdlp.ts"
 async function main() {
   const args = process.argv.slice(2)
   const commit = args.includes("--commit")
+  const autoApprove = args.includes("--auto-approve")
   const limitArg = args.indexOf("--limit")
   const limit = limitArg >= 0 ? Number(args[limitArg + 1]) : Infinity
 
@@ -22,7 +25,7 @@ async function main() {
   }
 
   const runId = startRun()
-  logEvent("ingest_run_started", { mode: commit ? "commit" : "dry-run", run_id: runId })
+  logEvent("ingest_run_started", { mode: commit ? "commit" : "dry-run", auto_approve: autoApprove, run_id: runId })
 
   const all = await listEpisodes()
   // Drop teasers/promos — only full episodes carry a quiz (PUN-141).
@@ -41,7 +44,7 @@ async function main() {
   let skipped = 0
   let failed = 0
   for (const ep of fresh) {
-    const r = await processEpisode(ep, { commit })
+    const r = await processEpisode(ep, { commit, autoApprove })
     inserted += r.insertedCount
     skipped += r.skippedCount
     failed += r.failedCount
@@ -57,8 +60,11 @@ async function main() {
     skipped,
     failed,
     commit,
+    auto_approve: autoApprove,
   })
   if (!commit) console.log("\n# dry-run — no DB writes. Re-run with --commit to insert.")
+  else if (autoApprove)
+    console.log("\n# auto-approve: confident bars are live (reviewed=true); low-confidence bars are in /admin/review.")
 }
 
 main().catch((e) => {

@@ -12,6 +12,7 @@ import { episodeMeta, ytDlpAvailable } from "./ytdlp.ts"
 async function main() {
   const args = process.argv.slice(2)
   const commit = args.includes("--commit")
+  const autoApprove = args.includes("--auto-approve")
   const videoId = args.find((a) => !a.startsWith("--"))
   if (!videoId) throw new Error("usage: pnpm ingest:one <videoId> [--commit]")
 
@@ -23,7 +24,7 @@ async function main() {
   logEvent("ingest_run_started", { mode: commit ? "commit" : "dry-run", run_id: runId, single: videoId })
 
   const meta = await episodeMeta(videoId)
-  const r = await processEpisode(meta, { commit })
+  const r = await processEpisode(meta, { commit, autoApprove })
 
   console.log(
     `\n# ${videoId} "${meta.title}" → ${r.insertedCount} inserted, ${r.skippedCount} dup, ${r.failedCount} failed${r.error ? ` (ERROR: ${r.error})` : ""}`,

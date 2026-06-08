@@ -30,7 +30,7 @@ function tally(outcomes: Array<PersistOutcome>): EpisodeCounts {
  */
 export async function processEpisode(
   meta: EpisodeMeta,
-  opts: { commit: boolean },
+  opts: { commit: boolean; autoApprove?: boolean },
 ): Promise<EpisodeResult> {
   const db = ingestDb()
   const { videoId, title } = meta
