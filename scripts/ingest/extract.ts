@@ -14,11 +14,18 @@ function norm(s: string | null | undefined): string {
     .replace(/[^a-z0-9]+/g, "")
 }
 
+/** Strip a trailing release-year annotation, e.g. "Molly Moon (2021)" → "Molly Moon".
+ *  The reveal credit often appends the year, which breaks the Deezer track
+ *  autocomplete in the review UI. */
+function stripYear(title: string): string {
+  return title.replace(/\s*\((?:19|20)\d{2}\)\s*$/, "").trim()
+}
+
 /** Parse "Ansu, Tom Hengst & Cato - HELD" → { title: "HELD", credit }. */
 export function parseCredit(credit: string | null): { title: string | null; credit: string | null } {
   if (!credit) return { title: null, credit: null }
   const m = credit.split(/\s+[-–—]\s+/)
-  if (m.length >= 2) return { title: m[m.length - 1].trim(), credit: credit.trim() }
+  if (m.length >= 2) return { title: stripYear(m[m.length - 1].trim()), credit: credit.trim() }
   return { title: null, credit: credit.trim() }
 }
 
