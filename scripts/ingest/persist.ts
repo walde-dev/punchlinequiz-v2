@@ -97,8 +97,13 @@ export async function persistItem(
     return { itemIndex, status: "duplicate", dedupeOfPunchlineId: globalDup, correctArtist: trio.correct }
   }
 
-  // Soft sanity check: the correct artist should appear in the reveal credit.
-  const creditMismatch = item.songCredit && !correctArtistInCredit(trio.correct, item.songCredit)
+  // Attribution guardrail: the correct (green) artist is only TRUSTED when it
+  // positively appears in the reveal credit. A missing credit is unverifiable —
+  // not innocent — so it must NOT be treated as a pass (the original
+  // `creditMismatch` only fired when a credit was present, so credit-less
+  // extractions auto-approved straight to prod with the wrong artist). Both a
+  // missing credit and a real mismatch now route the bar to human review.
+  const creditVerified = !!item.songCredit && correctArtistInCredit(trio.correct, item.songCredit)
 
   const songInfo = await resolveSongInfo(item, trio.correct)
   const title = songInfo?.title ?? `Unbekannt (WHO DAT ${videoId})`
@@ -118,7 +123,7 @@ export async function persistItem(
       if (songRow) dupId = await findDuplicateLine(db, songRow.id, item.line)
     }
     if (dupId) return { itemIndex, status: "duplicate", dedupeOfPunchlineId: dupId, correctArtist: trio.correct, songTitle: title }
-    const low = item.confidence < LOW_CONFIDENCE || !songInfo || !!creditMismatch
+    const low = item.confidence < LOW_CONFIDENCE || !songInfo || !creditVerified
     return { itemIndex, status: low ? "low_confidence" : "inserted", correctArtist: trio.correct, songTitle: title }
   }
 
@@ -143,15 +148,17 @@ export async function persistItem(
       return { itemIndex, status: "duplicate", dedupeOfPunchlineId: dupId, correctArtist: trio.correct, songTitle: title }
     }
 
-    const low = item.confidence < LOW_CONFIDENCE || !songInfo || !!creditMismatch
+    const low = item.confidence < LOW_CONFIDENCE || !songInfo || !creditVerified
 
     const bar = await insertBar(db, {
       songId: song.row.id,
       line: item.line,
       distractor1Id: d1.row.id,
       distractor2Id: d2.row.id,
-      // --auto-approve goes live immediately, but low-confidence items always
-      // land in review regardless — those are the ones worth a human glance.
+      // --auto-approve goes live immediately, but `low` items always land in
+      // review regardless — low confidence, unresolved song, OR an unverified
+      // correct-artist credit. Auto-approve only ever publishes a bar whose
+      // green answer was positively confirmed against the reveal credit.
       reviewed: !!opts.autoApprove && !low,
     })
 
