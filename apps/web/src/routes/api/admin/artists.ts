@@ -43,7 +43,11 @@ export const Route = createFileRoute("/api/admin/artists")({
             .from(artists)
             .where(conds.length ? and(...conds) : undefined)
             .orderBy(asc(artists.name))
-            .limit(500)
+            // The admin dashboard builds its id→name map from this list, so it
+            // must return every artist — a low cap drops the alphabetically-last
+            // ones and their distractor chips render as "#<id>". Ingestion has
+            // pushed the catalog past 500, so keep this well above the row count.
+            .limit(5000)
 
           // Join tags in a second query so the row shape stays flat. Empty
           // tag arrays are fine — used by the admin UI to sort distractor
