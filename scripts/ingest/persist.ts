@@ -35,11 +35,12 @@ async function findArtistId(db: IngestDb, name: string): Promise<number | null> 
 /**
  * Resolve + persist one quiz item into the review queue with provenance.
  *
- * - Items with no known correct answer (no reveal) can't form a valid bar, so
- *   they are recorded in `ingest_items` as 'low_confidence' (never silently
- *   dropped) but NOT minted as a punchline — we don't guess the answer.
- * - Everything else is inserted reviewed=false, active=true (quarantined), with
- *   an `ingest_items` provenance row.
+ * - Items with no known answer / too few options / no resolved song title can't
+ *   form a valid bar — recorded in `ingest_items` as 'failed' (never silently
+ *   dropped) but NOT minted; we never guess.
+ * - A bar only goes live (reviewed=true under --auto-approve) when its answer is
+ *   positively verifiable in the reveal credit. Unverifiable (no credit) or
+ *   mismatched answers are inserted but kept in review for a human.
  * - `commit=false` does all read-only resolution + dedup but writes nothing,
  *   returning a preview (neon-http has no interactive transactions).
  */
@@ -97,8 +98,12 @@ export async function persistItem(
     return { itemIndex, status: "duplicate", dedupeOfPunchlineId: globalDup, correctArtist: trio.correct }
   }
 
-  // Soft sanity check: the correct artist should appear in the reveal credit.
-  const creditMismatch = item.songCredit && !correctArtistInCredit(trio.correct, item.songCredit)
+  // The reveal credit is the ONLY independent check on the answer: the game keys
+  // correctness off song.artistId, which we set to whichever option Gemini read
+  // as highlighted. A misread → a live wrong answer. So a bar may only go live
+  // when its answer artist is positively verifiable in the credit. No-credit
+  // (unverifiable) and mismatch (likely misread) both stay in review.
+  const creditVerified = !!item.songCredit && correctArtistInCredit(trio.correct, item.songCredit)
 
   const songInfo = await resolveSongInfo(item, trio.correct)
   // No resolved song title → don't mint a placeholder ("Unbekannt …") row.
@@ -125,7 +130,7 @@ export async function persistItem(
       if (songRow) dupId = await findDuplicateLine(db, songRow.id, item.line)
     }
     if (dupId) return { itemIndex, status: "duplicate", dedupeOfPunchlineId: dupId, correctArtist: trio.correct, songTitle: title }
-    const low = item.confidence < LOW_CONFIDENCE || !!creditMismatch
+    const low = item.confidence < LOW_CONFIDENCE || !creditVerified
     return { itemIndex, status: low ? "low_confidence" : "inserted", correctArtist: trio.correct, songTitle: title }
   }
 
@@ -150,7 +155,7 @@ export async function persistItem(
       return { itemIndex, status: "duplicate", dedupeOfPunchlineId: dupId, correctArtist: trio.correct, songTitle: title }
     }
 
-    const low = item.confidence < LOW_CONFIDENCE || !!creditMismatch
+    const low = item.confidence < LOW_CONFIDENCE || !creditVerified
 
     const bar = await insertBar(db, {
       songId: song.row.id,
