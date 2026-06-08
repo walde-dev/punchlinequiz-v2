@@ -101,7 +101,14 @@ export async function persistItem(
   const creditMismatch = item.songCredit && !correctArtistInCredit(trio.correct, item.songCredit)
 
   const songInfo = await resolveSongInfo(item, trio.correct)
-  const title = songInfo?.title ?? `Unbekannt (WHO DAT ${videoId})`
+  // No resolved song title → don't mint a placeholder ("Unbekannt …") row.
+  // Record it as failed (visible in ingest_items) and move on; a bar with a
+  // junk song title is worse than no bar.
+  if (!songInfo) {
+    await recordItem("failed")
+    return { itemIndex, status: "failed", error: "no song title resolved", correctArtist: trio.correct }
+  }
+  const title = songInfo.title
 
   // ---- dry-run: read-only preview, no writes ----
   if (!opts.commit) {
@@ -118,7 +125,7 @@ export async function persistItem(
       if (songRow) dupId = await findDuplicateLine(db, songRow.id, item.line)
     }
     if (dupId) return { itemIndex, status: "duplicate", dedupeOfPunchlineId: dupId, correctArtist: trio.correct, songTitle: title }
-    const low = item.confidence < LOW_CONFIDENCE || !songInfo || !!creditMismatch
+    const low = item.confidence < LOW_CONFIDENCE || !!creditMismatch
     return { itemIndex, status: low ? "low_confidence" : "inserted", correctArtist: trio.correct, songTitle: title }
   }
 
@@ -143,7 +150,7 @@ export async function persistItem(
       return { itemIndex, status: "duplicate", dedupeOfPunchlineId: dupId, correctArtist: trio.correct, songTitle: title }
     }
 
-    const low = item.confidence < LOW_CONFIDENCE || !songInfo || !!creditMismatch
+    const low = item.confidence < LOW_CONFIDENCE || !!creditMismatch
 
     const bar = await insertBar(db, {
       songId: song.row.id,
