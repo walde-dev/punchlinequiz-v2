@@ -27,6 +27,16 @@ export type BarRow = {
   artistSlug: string
   distractor1Id: number
   distractor2Id: number
+  /**
+   * Ingestion provenance (PUN-162), present only for auto-ingested bars
+   * (source = WHO DAT?! YouTube). Lets a reviewer vet the bar against the
+   * source clip without leaving the queue.
+   */
+  ingestVideoId?: string | null
+  ingestTsMs?: number | null
+  ingestModel?: string | null
+  ingestConfidence?: number | null
+  ingestStatus?: string | null
 }
 
 export type ArtistRow = {

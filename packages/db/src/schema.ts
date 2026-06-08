@@ -623,3 +623,84 @@ export type AnonReferralCode = typeof anonReferralCodes.$inferSelect
 export type NewAnonReferralCode = typeof anonReferralCodes.$inferInsert
 export type PendingAnonReferral = typeof pendingAnonReferrals.$inferSelect
 export type NewPendingAnonReferral = typeof pendingAnonReferrals.$inferInsert
+
+/**
+ * Ledger of WHO DAT?! YouTube episodes the ingestion pipeline has seen
+ * (PUN-143). Keyed by the YouTube video id so a re-poll never reprocesses or
+ * double-inserts. Status drives crash-resume: an episode left `processing`
+ * after a crash is reprocessed; the per-item `ingest_items` rows make the
+ * insert itself idempotent (dedup skips already-present bars).
+ */
+export const ingestEpisodes = pgTable(
+  "ingest_episodes",
+  {
+    /** YouTube video id (the natural key — stable, unique). */
+    videoId: varchar("video_id", { length: 16 }).primaryKey(),
+    title: text("title"),
+    /** 'pending' | 'processing' | 'done' | 'failed'. */
+    status: varchar("status", { length: 16 }).notNull().default("pending"),
+    /** Quiz items the extractor found in the episode. */
+    itemCount: integer("item_count").notNull().default(0),
+    /** Items inserted as new review-queue bars this run. */
+    insertedCount: integer("inserted_count").notNull().default(0),
+    /** Items skipped because the bar already existed. */
+    skippedCount: integer("skipped_count").notNull().default(0),
+    /** Items that failed to resolve/insert. */
+    failedCount: integer("failed_count").notNull().default(0),
+    /** Last hard error, for triage. Null on success. */
+    lastError: text("last_error"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    byStatus: index("ingest_episodes_status").on(t.status, t.updatedAt),
+  }),
+)
+
+/**
+ * Per-quiz-item provenance for auto-ingested bars (PUN-159). One row per item
+ * the extractor produced; `punchlineId` is set when the item lands in the
+ * review queue (null for duplicates/failures). Reviewers use this to vet a bar
+ * (model, confidence, watch-at-timestamp deep link) without leaving the queue
+ * (PUN-162). `punchlines` itself stays free of ingestion-specific columns.
+ */
+export const ingestItems = pgTable(
+  "ingest_items",
+  {
+    id: serial("id").primaryKey(),
+    videoId: varchar("video_id", { length: 16 })
+      .notNull()
+      .references(() => ingestEpisodes.videoId, { onDelete: "cascade" }),
+    /** The minted review-queue bar, once inserted. Null for skipped/failed. */
+    punchlineId: integer("punchline_id").references(() => punchlines.id, {
+      onDelete: "set null",
+    }),
+    /** 1-based position within the episode (the on-screen "X/10"). */
+    itemIndex: integer("item_index").notNull(),
+    /** Video timestamp (ms) of the reveal frame — drives the ?t= deep link. */
+    tsMs: integer("ts_ms"),
+    /** Vision model that produced the extraction (e.g. 'gemini-2.5-flash'). */
+    model: varchar("model", { length: 48 }),
+    /** Extractor confidence 0..1; low values get flagged but still inserted. */
+    confidence: doublePrecision("confidence"),
+    /** 'inserted' | 'duplicate' | 'failed' | 'low_confidence'. */
+    status: varchar("status", { length: 16 }).notNull(),
+    /** If a duplicate, the existing bar it matched. */
+    dedupeOfPunchlineId: integer("dedupe_of_punchline_id").references(
+      () => punchlines.id,
+      { onDelete: "set null" },
+    ),
+    /** Raw extracted fields (line/options/credit/...) for audit + reprocessing. */
+    rawExtraction: json("raw_extraction").$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    byVideo: index("ingest_items_video").on(t.videoId),
+    byPunchline: index("ingest_items_punchline").on(t.punchlineId),
+  }),
+)
+
+export type IngestEpisode = typeof ingestEpisodes.$inferSelect
+export type NewIngestEpisode = typeof ingestEpisodes.$inferInsert
+export type IngestItem = typeof ingestItems.$inferSelect
+export type NewIngestItem = typeof ingestItems.$inferInsert

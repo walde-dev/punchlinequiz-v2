@@ -1,8 +1,13 @@
-import { and, eq, sql } from "drizzle-orm"
-import { artists, punchlines, songs } from "@workspace/db"
 import { db } from "./db"
-import { HttpError, normalizeLine, slugify } from "./admin"
-import { searchArtist, searchTrack } from "./deezer"
+import { HttpError } from "./admin"
+import {
+  assertDistinctArtists,
+  findDuplicateLine,
+  insertBar,
+  resolveOrCreateArtist as resolveArtistCore,
+  resolveOrCreateSong,
+} from "./ingest-core"
+import type { artists } from "@workspace/db"
 
 export type UpsertBarInput = {
   artist: string
@@ -37,168 +42,73 @@ export type UpsertResult = {
 
 type ArtistRow = typeof artists.$inferSelect
 
-/** Resolve an artist by name (case-insensitive) or slug; auto-create if missing. */
+/**
+ * Resolve an artist by name (case-insensitive) or slug; auto-create if missing.
+ * Thin wrapper over the shared core bound to the app's `db` — kept for the
+ * existing admin call sites (artists.ts).
+ */
 export async function resolveOrCreateArtist(
-  name: string
+  name: string,
 ): Promise<{ row: ArtistRow; created: boolean }> {
-  const slug = slugify(name)
-  const existing = (
-    await db
-      .select()
-      .from(artists)
-      .where(
-        sql`lower(${artists.name}) = lower(${name}) or ${artists.slug} = ${slug}`
-      )
-      .limit(1)
-  )[0]
-  if (existing) return { row: existing, created: false }
-
-  let candidate = slug || `artist-${Date.now()}`
-  let attempt = 0
-  while (
-    (
-      await db
-        .select()
-        .from(artists)
-        .where(eq(artists.slug, candidate))
-        .limit(1)
-    ).length > 0
-  ) {
-    attempt += 1
-    candidate = `${slug}-${attempt}`
-    if (attempt > 50)
-      throw new HttpError(
-        500,
-        "slug_collision",
-        "Could not generate unique slug."
-      )
-  }
-  const art = await searchArtist(name)
-  const [created] = await db
-    .insert(artists)
-    .values({
-      slug: candidate,
-      name,
-      imageUrl: art?.imageUrl ?? null,
-      artworkProvider: art ? "deezer" : null,
-      artworkExternalId: art?.id ?? null,
-    })
-    .returning()
-  return { row: created, created: true }
+  return resolveArtistCore(db, name)
 }
 
 /** Resolve or create artist + song, then insert a punchline. Throws HttpError 409 on dup line. */
 export async function upsertBar(input: UpsertBarInput): Promise<UpsertResult> {
-  const correct = await resolveOrCreateArtist(input.artist)
-  const artistRow = correct.row
-  const artistCreated = correct.created
+  const correct = await resolveArtistCore(db, input.artist)
+  const d1 = await resolveArtistCore(db, input.distractor1)
+  const d2 = await resolveArtistCore(db, input.distractor2)
 
-  const d1 = await resolveOrCreateArtist(input.distractor1)
-  const d2 = await resolveOrCreateArtist(input.distractor2)
-
-  if (d1.row.id === artistRow.id || d2.row.id === artistRow.id) {
+  try {
+    assertDistinctArtists(correct.row.id, d1.row.id, d2.row.id)
+  } catch {
     throw new HttpError(
       400,
       "distractor_conflict",
-      "Distractors must differ from the correct artist."
-    )
-  }
-  if (d1.row.id === d2.row.id) {
-    throw new HttpError(
-      400,
-      "distractor_conflict",
-      "Distractors must be two different artists."
+      "Distractors must be two different artists, both different from the correct artist.",
     )
   }
 
-  let songRow = (
-    await db
-      .select()
-      .from(songs)
-      .where(
-        and(
-          eq(songs.artistId, artistRow.id),
-          sql`lower(${songs.title}) = lower(${input.song})`
-        )
-      )
-      .limit(1)
-  )[0]
+  const song = await resolveOrCreateSong(db, {
+    artistId: correct.row.id,
+    title: input.song,
+    artworkArtistName: correct.row.name,
+    album: input.album ?? null,
+    releaseYear: input.releaseYear ?? null,
+  })
 
-  let songCreated = false
-  if (!songRow) {
-    const trackArt = await searchTrack(artistRow.name, input.song)
-    const [created] = await db
-      .insert(songs)
-      .values({
-        artistId: artistRow.id,
-        title: input.song,
-        album: input.album ?? null,
-        albumArtUrl: trackArt?.albumArtUrl ?? null,
-        artworkProvider: trackArt ? "deezer" : null,
-        artworkTrackId: trackArt?.trackId ?? null,
-        artworkAlbumId: trackArt?.albumId ?? null,
-        releaseYear: input.releaseYear ?? null,
-      })
-      .returning()
-    songRow = created
-    songCreated = true
-  }
-
-  const normalized = normalizeLine(input.line)
-  const existing = (
-    await db
-      .select({ id: punchlines.id })
-      .from(punchlines)
-      .where(
-        and(
-          eq(punchlines.songId, songRow.id),
-          sql`lower(regexp_replace(trim(${punchlines.line}), '\\s+', ' ', 'g')) = ${normalized}`
-        )
-      )
-      .limit(1)
-  )[0]
-
-  if (existing) {
-    throw new HttpError(
-      409,
-      "duplicate_line",
-      "This bar already exists for this song.",
-      {
-        existingId: existing.id,
-      }
-    )
-  }
-
-  const [bar] = await db
-    .insert(punchlines)
-    .values({
-      songId: songRow.id,
-      line: input.line.trim(),
-      perfectSolution: input.perfectSolution ?? [],
-      acceptableSolutions: input.acceptableSolutions
-        ? input.acceptableSolutions.map((arr) => arr.map((s) => s.trim()))
-        : [],
-      distractor1Id: d1.row.id,
-      distractor2Id: d2.row.id,
+  const dupId = await findDuplicateLine(db, song.row.id, input.line)
+  if (dupId) {
+    throw new HttpError(409, "duplicate_line", "This bar already exists for this song.", {
+      existingId: dupId,
     })
-    .returning()
+  }
+
+  const bar = await insertBar(db, {
+    songId: song.row.id,
+    line: input.line,
+    distractor1Id: d1.row.id,
+    distractor2Id: d2.row.id,
+    perfectSolution: input.perfectSolution,
+    acceptableSolutions: input.acceptableSolutions,
+  })
 
   return {
     punchlineId: bar.id,
-    songId: songRow.id,
-    artistId: artistRow.id,
+    songId: song.row.id,
+    artistId: correct.row.id,
     distractor1Id: d1.row.id,
     distractor2Id: d2.row.id,
     created: {
-      artist: artistCreated,
-      song: songCreated,
+      artist: correct.created,
+      song: song.created,
       distractor1: d1.created,
       distractor2: d2.created,
     },
     artwork: {
-      artistExternalId: artistRow.artworkExternalId ?? null,
-      trackId: songRow.artworkTrackId ?? null,
-      albumId: songRow.artworkAlbumId ?? null,
+      artistExternalId: correct.row.artworkExternalId ?? null,
+      trackId: song.row.artworkTrackId ?? null,
+      albumId: song.row.artworkAlbumId ?? null,
     },
   }
 }

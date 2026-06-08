@@ -1,0 +1,45 @@
+# WHO DAT?! ingestion — always-on alternative to the local launchd schedule (PUN-166).
+#
+# DISABLED BY DEFAULT: this file ends in `.disabled` so GitHub never runs it.
+# To enable an always-on daily poll:
+#   1. cp scripts/ingest/scheduling/ci-ingest.yml.disabled .github/workflows/whodat-ingest.yml
+#   2. Add repo secrets: DATABASE_URL, GEMINI_API_KEY, GENIUS_ACCESS_TOKEN,
+#      AXIOM_TOKEN, AXIOM_DATASET (and optionally YT_DLP_* / a cookies file).
+#   3. Commit. It will then run on the cron below + on-demand.
+#
+# CAVEAT: YouTube increasingly blocks datacenter IPs (HTTP 403 / PO-token / SABR).
+# The `android` player client helps but is not guaranteed on cloud runners; you
+# may need to supply cookies (yt-dlp --cookies) via a secret. The founder's Mac
+# (residential IP) is the reliable path; this CI workflow is a convenience.
+name: whodat-ingest
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "0 7 * * *" # 07:00 UTC daily
+concurrency:
+  group: whodat-ingest
+  cancel-in-progress: false
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install yt-dlp + ffmpeg
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+          pipx install yt-dlp || python3 -m pip install --user yt-dlp
+      - name: Poll + ingest new episodes
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GENIUS_ACCESS_TOKEN: ${{ secrets.GENIUS_ACCESS_TOKEN }}
+          AXIOM_TOKEN: ${{ secrets.AXIOM_TOKEN }}
+          AXIOM_DATASET: ${{ secrets.AXIOM_DATASET }}
+        run: pnpm ingest:poll --commit
