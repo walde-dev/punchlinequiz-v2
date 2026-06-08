@@ -23,7 +23,7 @@ export async function listEpisodes(): Promise<Array<EpisodeMeta>> {
       ...baseArgs,
       "--flat-playlist",
       "--print",
-      "%(id)s\t%(title)s",
+      "%(id)s\t%(title)s\t%(duration)s",
       PLAYLIST_URL,
     ],
     { timeoutMs: 120_000, label: "yt-dlp playlist" },
@@ -32,10 +32,13 @@ export async function listEpisodes(): Promise<Array<EpisodeMeta>> {
   for (const line of res.stdout.split("\n")) {
     const trimmed = line.trim()
     if (!trimmed) continue
-    const [videoId, ...rest] = trimmed.split("\t")
-    const title = rest.join("\t")
+    const [videoId, title, dur] = trimmed.split("\t")
     if (!videoId) continue
-    const meta: EpisodeMeta = { videoId, title }
+    const meta: EpisodeMeta = {
+      videoId,
+      title: title ?? "",
+      durationSec: dur && dur !== "NA" ? Number(dur) : null,
+    }
     if (isQuizEpisode(meta)) episodes.push(meta)
   }
   return episodes

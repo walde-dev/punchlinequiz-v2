@@ -6,6 +6,7 @@
  *   pnpm ingest:poll --commit   # actually insert into the review queue
  *   pnpm ingest:poll --limit 1  # cap how many new episodes to process this run
  */
+import { MIN_EPISODE_SEC } from "./config.ts"
 import { startRun, logEvent } from "./log.ts"
 import { isNew, processEpisode } from "./pipeline.ts"
 import { listEpisodes, ytDlpAvailable } from "./ytdlp.ts"
@@ -24,8 +25,13 @@ async function main() {
   logEvent("ingest_run_started", { mode: commit ? "commit" : "dry-run", run_id: runId })
 
   const all = await listEpisodes()
+  // Drop teasers/promos — only full episodes carry a quiz (PUN-141).
+  const full = all.filter((ep) => ep.durationSec == null || ep.durationSec >= MIN_EPISODE_SEC)
+  const shortSkipped = all.length - full.length
+  if (shortSkipped > 0) console.log(`# skipped ${shortSkipped} short clip(s) (<${MIN_EPISODE_SEC}s, likely teasers)`)
+
   const fresh: Array<(typeof all)[number]> = []
-  for (const ep of all) {
+  for (const ep of full) {
     if (await isNew(ep.videoId)) fresh.push(ep)
     if (fresh.length >= limit) break
   }

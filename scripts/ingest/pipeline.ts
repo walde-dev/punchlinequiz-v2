@@ -60,6 +60,17 @@ export async function processEpisode(
       ms_extract: tExtract - tSeg,
     })
 
+    // Guard against silently burying a real episode: lots of candidate frames
+    // but zero extracted items means extraction failed (e.g. a transient
+    // Gemini outage), not that the episode is empty. Mark it failed (retryable)
+    // rather than done. A genuinely empty/non-quiz clip yields few frames.
+    if (items.length === 0 && frames.length >= 20) {
+      const error = `0 items from ${frames.length} candidate frames — extraction failure, retryable`
+      if (opts.commit) await markFailed(db, videoId, error).catch(() => {})
+      logEvent("episode_failed", { video_id: videoId, error })
+      return { videoId, itemCount: 0, insertedCount: 0, skippedCount: 0, failedCount: 0, outcomes: [], error }
+    }
+
     const outcomes: Array<PersistOutcome> = []
     for (let i = 0; i < items.length; i++) {
       const outcome = await persistItem(db, videoId, items[i], i, opts)

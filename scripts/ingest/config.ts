@@ -33,6 +33,9 @@ export const ACCURACY_TARGETS = { correctAnswer: 0.95, line: 0.9, options: 0.9 }
 /** Items below this extractor confidence are flagged 'low_confidence' (never dropped). */
 export const LOW_CONFIDENCE = 0.6
 
+/** Skip clips shorter than this — they're teasers/promos, not full quiz episodes. */
+export const MIN_EPISODE_SEC = 120
+
 /** Frame sampling cadence (fps) and download cap (px) — 720p is plenty for OCR. */
 export const SAMPLE_FPS = 1
 export const MAX_VIDEO_HEIGHT = 720
