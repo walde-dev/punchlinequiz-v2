@@ -20,8 +20,8 @@ export type ShareCardData = {
   artistImageUrl?: string | null
 }
 
-const GOLD = "#fbbf24"
-const FG = "#fafafa"
+export const GOLD = "#fbbf24"
+export const FG = "#fafafa"
 const BG_TOP = "#1a1a1a"
 const BG_BOTTOM = "#0d0d0d"
 
@@ -46,7 +46,7 @@ function eyebrow(data: ShareCardData): string {
   return i18n.t("share.eyebrowClassic").toUpperCase()
 }
 
-async function loadImage(url: string): Promise<HTMLImageElement | null> {
+export async function loadImage(url: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
     const img = new Image()
     img.crossOrigin = "anonymous"
@@ -66,7 +66,7 @@ async function loadImage(url: string): Promise<HTMLImageElement | null> {
   })
 }
 
-async function ensureFonts(): Promise<void> {
+export async function ensureFonts(): Promise<void> {
   if (typeof document === "undefined") return
   // Pre-load the weights we use on the card so canvas measures them right.
   try {
@@ -261,7 +261,7 @@ export function shareFilenameFor(data: ShareCardData): string {
 }
 
 /** Shared charcoal background + gold spotlight + dot grid. */
-function drawBackground(ctx: CanvasRenderingContext2D, size: number) {
+export function drawBackground(ctx: CanvasRenderingContext2D, size: number) {
   const bg = ctx.createLinearGradient(0, 0, 0, size)
   bg.addColorStop(0, BG_TOP)
   bg.addColorStop(1, BG_BOTTOM)
