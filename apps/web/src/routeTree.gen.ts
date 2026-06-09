@@ -30,6 +30,7 @@ import { Route as ArtistSlugRouteImport } from './routes/artist.$slug'
 import { Route as ApiOgRouteImport } from './routes/api/og'
 import { Route as AdminXpRouteImport } from './routes/admin/xp'
 import { Route as AdminSubmissionsRouteImport } from './routes/admin/submissions'
+import { Route as AdminSlidesRouteImport } from './routes/admin/slides'
 import { Route as AdminReviewRouteImport } from './routes/admin/review'
 import { Route as AdminOnboardingRouteImport } from './routes/admin/onboarding'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
@@ -164,6 +165,11 @@ const AdminXpRoute = AdminXpRouteImport.update({
 const AdminSubmissionsRoute = AdminSubmissionsRouteImport.update({
   id: '/admin/submissions',
   path: '/admin/submissions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminSlidesRoute = AdminSlidesRouteImport.update({
+  id: '/admin/slides',
+  path: '/admin/slides',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminReviewRoute = AdminReviewRouteImport.update({
@@ -337,6 +343,7 @@ export interface FileRoutesByFullPath {
   '/admin/login': typeof AdminLoginRoute
   '/admin/onboarding': typeof AdminOnboardingRoute
   '/admin/review': typeof AdminReviewRoute
+  '/admin/slides': typeof AdminSlidesRoute
   '/admin/submissions': typeof AdminSubmissionsRoute
   '/admin/xp': typeof AdminXpRoute
   '/api/og': typeof ApiOgRoute
@@ -389,6 +396,7 @@ export interface FileRoutesByTo {
   '/admin/login': typeof AdminLoginRoute
   '/admin/onboarding': typeof AdminOnboardingRoute
   '/admin/review': typeof AdminReviewRoute
+  '/admin/slides': typeof AdminSlidesRoute
   '/admin/submissions': typeof AdminSubmissionsRoute
   '/admin/xp': typeof AdminXpRoute
   '/api/og': typeof ApiOgRoute
@@ -443,6 +451,7 @@ export interface FileRoutesById {
   '/admin/login': typeof AdminLoginRoute
   '/admin/onboarding': typeof AdminOnboardingRoute
   '/admin/review': typeof AdminReviewRoute
+  '/admin/slides': typeof AdminSlidesRoute
   '/admin/submissions': typeof AdminSubmissionsRoute
   '/admin/xp': typeof AdminXpRoute
   '/api/og': typeof ApiOgRoute
@@ -498,6 +507,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/admin/onboarding'
     | '/admin/review'
+    | '/admin/slides'
     | '/admin/submissions'
     | '/admin/xp'
     | '/api/og'
@@ -550,6 +560,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/admin/onboarding'
     | '/admin/review'
+    | '/admin/slides'
     | '/admin/submissions'
     | '/admin/xp'
     | '/api/og'
@@ -603,6 +614,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/admin/onboarding'
     | '/admin/review'
+    | '/admin/slides'
     | '/admin/submissions'
     | '/admin/xp'
     | '/api/og'
@@ -657,6 +669,7 @@ export interface RootRouteChildren {
   AdminLoginRoute: typeof AdminLoginRoute
   AdminOnboardingRoute: typeof AdminOnboardingRoute
   AdminReviewRoute: typeof AdminReviewRoute
+  AdminSlidesRoute: typeof AdminSlidesRoute
   AdminSubmissionsRoute: typeof AdminSubmissionsRoute
   AdminXpRoute: typeof AdminXpRoute
   ApiOgRoute: typeof ApiOgRoute
@@ -831,6 +844,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/submissions'
       fullPath: '/admin/submissions'
       preLoaderRoute: typeof AdminSubmissionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/slides': {
+      id: '/admin/slides'
+      path: '/admin/slides'
+      fullPath: '/admin/slides'
+      preLoaderRoute: typeof AdminSlidesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/review': {
@@ -1138,6 +1158,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminLoginRoute: AdminLoginRoute,
   AdminOnboardingRoute: AdminOnboardingRoute,
   AdminReviewRoute: AdminReviewRoute,
+  AdminSlidesRoute: AdminSlidesRoute,
   AdminSubmissionsRoute: AdminSubmissionsRoute,
   AdminXpRoute: AdminXpRoute,
   ApiOgRoute: ApiOgRoute,
