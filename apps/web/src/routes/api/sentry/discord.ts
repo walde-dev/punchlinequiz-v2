@@ -72,6 +72,28 @@ export const Route = createFileRoute("/api/sentry/discord")({
           return new Response("bad request", { status: 400 })
         }
 
+        // Sentry's internal-integration `issue`/`error` webhook fires on EVERY
+        // lifecycle change (created, resolved, assigned, ignored, archived …),
+        // and this bridge posts whatever it receives. So resolving issues pages
+        // #alerts with one "error" per resolve — e.g. clearing 9 issues spams 9
+        // alerts. Drop administrative actions: an alert should mean a NEW or
+        // regressed problem, never a state change we made ourselves. `created`
+        // and `unresolved` (regression) pass; payloads without an `action`
+        // (alert-rule / legacy webhooks) pass untouched.
+        const action: unknown = body.action
+        const ADMIN_ACTIONS = new Set([
+          "resolved",
+          "assigned",
+          "unassigned",
+          "ignored",
+          "archived",
+          "resolved_in_next_release",
+          "resolved_in_release",
+        ])
+        if (typeof action === "string" && ADMIN_ACTIONS.has(action)) {
+          return json({ skipped: `action=${action}` })
+        }
+
         // Normalize across Sentry payload shapes: legacy webhook (top-level
         // fields + `event`), alert-rule action (`data.event`), and internal-
         // integration resource webhooks (`data.issue` / `data.error`).
