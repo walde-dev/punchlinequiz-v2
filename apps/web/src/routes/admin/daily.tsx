@@ -8,14 +8,17 @@ import { Input } from "@workspace/ui/components/input"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { AdminShell } from "../../components/admin-shell"
+import { Combobox } from "../../components/combobox"
 import {
   deleteDailyChallenge,
+  fetchArtists,
   fetchBars,
   fetchDailyChallenges,
   scheduleDailyChallenge,
 } from "../../lib/admin-client"
 import { isAdminFn } from "../../lib/session"
-import type { BarRow, DailyRow } from "../../lib/admin-client"
+import type { ComboboxItem } from "../../components/combobox"
+import type { ArtistRow, BarRow, DailyRow } from "../../lib/admin-client"
 
 export const Route = createFileRoute("/admin/daily")({
   component: AdminDailyPage,
@@ -32,7 +35,7 @@ function todayBerlin(): string {
 function AdminDailyPage() {
   const { t } = useTranslation()
   const [items, setItems] = useState<Array<DailyRow>>([])
-  const [bars, setBars] = useState<Array<BarRow>>([])
+  const [artists, setArtists] = useState<Array<ArtistRow>>([])
   const [loading, setLoading] = useState(true)
   const [includePast, setIncludePast] = useState(false)
   const [err, setErr] = useState<string | null>(null)
@@ -41,12 +44,12 @@ function AdminDailyPage() {
     setLoading(true)
     setErr(null)
     try {
-      const [d, b] = await Promise.all([
+      const [d, a] = await Promise.all([
         fetchDailyChallenges({ all: includePast }),
-        fetchBars({ limit: 500 }),
+        fetchArtists(),
       ])
       setItems(d.items)
-      setBars(b.items)
+      setArtists(a.items)
     } catch (e) {
       setErr(String(e))
     } finally {
@@ -91,7 +94,7 @@ function AdminDailyPage() {
         </div>
 
         <ScheduleForm
-          bars={bars}
+          artists={artists}
           scheduledIds={scheduledIds}
           scheduledDates={scheduledDates}
           today={today}
@@ -196,14 +199,16 @@ function AdminDailyPage() {
   )
 }
 
+const PAGE_SIZE = 25
+
 function ScheduleForm({
-  bars,
+  artists,
   scheduledIds,
   scheduledDates,
   today,
   onScheduled,
 }: {
-  bars: Array<BarRow>
+  artists: Array<ArtistRow>
   scheduledIds: Set<number>
   scheduledDates: Set<string>
   today: string
@@ -212,8 +217,15 @@ function ScheduleForm({
   const { t } = useTranslation()
   const [date, setDate] = useState(() => nextOpenDate(today, scheduledDates))
   const [search, setSearch] = useState("")
-  const [results, setResults] = useState<Array<BarRow> | null>(null)
-  const [searching, setSearching] = useState(false)
+  const [artistName, setArtistName] = useState("")
+  const [artistId, setArtistId] = useState<number | null>(null)
+  const [reviewedOnly, setReviewedOnly] = useState(false)
+  const [page, setPage] = useState(0)
+  const [results, setResults] = useState<{
+    items: Array<BarRow>
+    total: number
+  }>({ items: [], total: 0 })
+  const [loading, setLoading] = useState(true)
   const [picked, setPicked] = useState<BarRow | null>(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
@@ -225,41 +237,59 @@ function ScheduleForm({
     )
   }, [scheduledDates, today])
 
-  // Search the full DB server-side (debounced), so matches outside the
-  // pre-loaded recent bars are still found. Empty search falls back to the
-  // pre-loaded list.
+  // Any filter change resets to the first page.
   useEffect(() => {
-    const q = search.trim()
-    if (!q) {
-      setResults(null)
-      setSearching(false)
-      return
-    }
-    setSearching(true)
+    setPage(0)
+  }, [search, artistId, reviewedOnly, scheduledIds])
+
+  // Server-side, paginated fetch (debounced). Filters + already-scheduled
+  // exclusion all happen server-side so the page totals stay accurate.
+  useEffect(() => {
     let cancelled = false
+    setLoading(true)
     const handle = setTimeout(async () => {
       try {
-        const { items } = await fetchBars({ search: q, limit: 200 })
-        if (!cancelled) setResults(items)
-      } catch {
-        if (!cancelled) setResults([])
+        const res = await fetchBars({
+          search: search.trim() || undefined,
+          artistId: artistId ?? undefined,
+          reviewed: reviewedOnly ? true : undefined,
+          excludeIds: scheduledIds.size ? Array.from(scheduledIds) : undefined,
+          limit: PAGE_SIZE,
+          offset: page * PAGE_SIZE,
+        })
+        if (!cancelled) {
+          setResults({ items: res.items, total: res.total })
+          setErr(null)
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setResults({ items: [], total: 0 })
+          setErr(String(e))
+        }
       } finally {
-        if (!cancelled) setSearching(false)
+        if (!cancelled) setLoading(false)
       }
     }, 250)
     return () => {
       cancelled = true
       clearTimeout(handle)
     }
-  }, [search])
+  }, [search, artistId, reviewedOnly, scheduledIds, page])
 
-  const candidates = useMemo(() => {
-    const source = results ?? bars
-    return source
-      .filter((b) => b.active)
-      .filter((b) => !scheduledIds.has(b.id))
-      .slice(0, 50)
-  }, [bars, results, scheduledIds])
+  const candidates = results.items
+  const total = results.total
+  const from = total === 0 ? 0 : page * PAGE_SIZE + 1
+  const to = Math.min((page + 1) * PAGE_SIZE, total)
+  const hasPrev = page > 0
+  const hasNext = (page + 1) * PAGE_SIZE < total
+  const hasFilters = search.trim() !== "" || artistId != null || reviewedOnly
+
+  function resetFilters() {
+    setSearch("")
+    setArtistName("")
+    setArtistId(null)
+    setReviewedOnly(false)
+  }
 
   const dateInvalid = !date || date < today || scheduledDates.has(date)
 
@@ -320,6 +350,43 @@ function ScheduleForm({
         </div>
       </div>
 
+      {!picked && (
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="min-w-[200px] flex-1">
+            <FilterArtistCombobox
+              artists={artists}
+              value={artistName}
+              onChange={(name) => {
+                setArtistName(name)
+                if (artistId != null) setArtistId(null)
+              }}
+              onPick={(a) => {
+                setArtistName(a.name)
+                setArtistId(a.id)
+              }}
+            />
+          </div>
+          <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+            <Checkbox
+              checked={reviewedOnly}
+              onCheckedChange={(v) => setReviewedOnly(v === true)}
+            />
+            {t("admin.daily.reviewedOnly")}
+          </label>
+          {hasFilters && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={resetFilters}
+              className="text-xs font-semibold text-muted-foreground"
+            >
+              {t("admin.daily.resetFilters")}
+            </Button>
+          )}
+        </div>
+      )}
+
       {dateInvalid && date && (
         <p className="text-xs text-destructive">
           {scheduledDates.has(date)
@@ -354,36 +421,65 @@ function ScheduleForm({
           </Button>
         </div>
       ) : (
-        <ul className="flex max-h-[320px] flex-col divide-y divide-border/40 overflow-y-auto rounded-xl border border-border/40 bg-background/30">
-          {candidates.length === 0 ? (
-            <li className="px-3 py-6 text-center text-xs text-muted-foreground">
-              {searching || bars.length === 0
-                ? t("admin.daily.loadingBars")
-                : t("admin.daily.noBar")}
-            </li>
-          ) : (
-            candidates.map((b) => (
-              <li key={b.id}>
-                <button
-                  type="button"
-                  onClick={() => setPicked(b)}
-                  className="flex w-full flex-col items-start gap-1 px-3 py-2 text-left transition-colors hover:bg-card/80"
-                >
-                  <span className="text-sm leading-snug font-semibold">
-                    {b.line}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    <span className="font-semibold text-primary">
-                      {b.artistName}
-                    </span>
-                    <span className="opacity-60"> · {b.songTitle}</span>
-                    <span className="opacity-40"> · #{b.id}</span>
-                  </span>
-                </button>
+        <div className="flex flex-col gap-2">
+          <ul className="flex max-h-[320px] flex-col divide-y divide-border/40 overflow-y-auto rounded-xl border border-border/40 bg-background/30">
+            {candidates.length === 0 ? (
+              <li className="px-3 py-6 text-center text-xs text-muted-foreground">
+                {loading ? t("admin.daily.loadingBars") : t("admin.daily.noBar")}
               </li>
-            ))
+            ) : (
+              candidates.map((b) => (
+                <li key={b.id}>
+                  <button
+                    type="button"
+                    onClick={() => setPicked(b)}
+                    className="flex w-full flex-col items-start gap-1 px-3 py-2 text-left transition-colors hover:bg-card/80"
+                  >
+                    <span className="text-sm leading-snug font-semibold">
+                      {b.line}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      <span className="font-semibold text-primary">
+                        {b.artistName}
+                      </span>
+                      <span className="opacity-60"> · {b.songTitle}</span>
+                      <span className="opacity-40"> · #{b.id}</span>
+                    </span>
+                  </button>
+                </li>
+              ))
+            )}
+          </ul>
+          {total > 0 && (
+            <div className="flex items-center justify-between gap-3 px-1 text-xs text-muted-foreground">
+              <span className="tabular-nums">
+                {t("admin.daily.pageInfo", { from, to, total })}
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={!hasPrev || loading}
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  className="text-xs font-semibold"
+                >
+                  {t("admin.daily.prev")}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={!hasNext || loading}
+                  onClick={() => setPage((p) => p + 1)}
+                  className="text-xs font-semibold"
+                >
+                  {t("admin.daily.next")}
+                </Button>
+              </div>
+            </div>
           )}
-        </ul>
+        </div>
       )}
 
       {err && <p className="text-xs text-destructive">{err}</p>}
@@ -399,6 +495,44 @@ function ScheduleForm({
         </Button>
       </div>
     </form>
+  )
+}
+
+function FilterArtistCombobox({
+  artists,
+  value,
+  onChange,
+  onPick,
+}: {
+  artists: Array<ArtistRow>
+  value: string
+  onChange: (v: string) => void
+  onPick: (a: ArtistRow) => void
+}) {
+  const { t } = useTranslation()
+  return (
+    <Combobox
+      value={value}
+      onChange={onChange}
+      onPick={(item) => {
+        const a = artists.find((x) => String(x.id) === item.key)
+        if (a) onPick(a)
+        else onChange(item.label)
+      }}
+      minChars={1}
+      search={async (q): Promise<Array<ComboboxItem>> => {
+        const needle = q.trim().toLowerCase()
+        return artists
+          .filter((a) => a.name.toLowerCase().includes(needle))
+          .slice(0, 50)
+          .map((a) => ({
+            key: String(a.id),
+            label: a.name,
+            imageUrl: a.imageUrl,
+          }))
+      }}
+      placeholder={t("admin.daily.filterArtist")}
+    />
   )
 }
 

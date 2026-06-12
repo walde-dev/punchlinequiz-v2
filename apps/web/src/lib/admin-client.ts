@@ -66,8 +66,16 @@ export async function fetchBars(opts: {
   song?: string
   includeInactive?: boolean
   limit?: number
+  offset?: number
   reviewed?: boolean
-}): Promise<{ items: Array<BarRow>; total: number }> {
+  /** Bar ids to drop from the result set (e.g. already-scheduled dailies). */
+  excludeIds?: Array<number>
+}): Promise<{
+  items: Array<BarRow>
+  total: number
+  limit: number
+  offset: number
+}> {
   const url = new URL("/api/admin/bars", window.location.origin)
   if (opts.search?.trim()) url.searchParams.set("search", opts.search.trim())
   if (opts.artistId && opts.artistId > 0)
@@ -78,7 +86,11 @@ export async function fetchBars(opts: {
   if (opts.includeInactive) url.searchParams.set("includeInactive", "true")
   if (opts.reviewed !== undefined)
     url.searchParams.set("reviewed", String(opts.reviewed))
+  if (opts.excludeIds && opts.excludeIds.length > 0)
+    url.searchParams.set("excludeIds", opts.excludeIds.join(","))
   url.searchParams.set("limit", String(opts.limit ?? 100))
+  if (opts.offset && opts.offset > 0)
+    url.searchParams.set("offset", String(opts.offset))
   const res = await fetch(url, { credentials: "same-origin" })
   return jsonOrThrow(res)
 }
