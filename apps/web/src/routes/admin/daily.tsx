@@ -212,6 +212,8 @@ function ScheduleForm({
   const { t } = useTranslation()
   const [date, setDate] = useState(() => nextOpenDate(today, scheduledDates))
   const [search, setSearch] = useState("")
+  const [results, setResults] = useState<Array<BarRow> | null>(null)
+  const [searching, setSearching] = useState(false)
   const [picked, setPicked] = useState<BarRow | null>(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
@@ -223,22 +225,41 @@ function ScheduleForm({
     )
   }, [scheduledDates, today])
 
+  // Search the full DB server-side (debounced), so matches outside the
+  // pre-loaded recent bars are still found. Empty search falls back to the
+  // pre-loaded list.
+  useEffect(() => {
+    const q = search.trim()
+    if (!q) {
+      setResults(null)
+      setSearching(false)
+      return
+    }
+    setSearching(true)
+    let cancelled = false
+    const handle = setTimeout(async () => {
+      try {
+        const { items } = await fetchBars({ search: q, limit: 200 })
+        if (!cancelled) setResults(items)
+      } catch {
+        if (!cancelled) setResults([])
+      } finally {
+        if (!cancelled) setSearching(false)
+      }
+    }, 250)
+    return () => {
+      cancelled = true
+      clearTimeout(handle)
+    }
+  }, [search])
+
   const candidates = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    return bars
+    const source = results ?? bars
+    return source
       .filter((b) => b.active)
       .filter((b) => !scheduledIds.has(b.id))
-      .filter((b) => {
-        if (!q) return true
-        return (
-          b.line.toLowerCase().includes(q) ||
-          b.artistName.toLowerCase().includes(q) ||
-          b.songTitle.toLowerCase().includes(q) ||
-          String(b.id) === q
-        )
-      })
-      .slice(0, 30)
-  }, [bars, scheduledIds, search])
+      .slice(0, 50)
+  }, [bars, results, scheduledIds])
 
   const dateInvalid = !date || date < today || scheduledDates.has(date)
 
@@ -336,7 +357,7 @@ function ScheduleForm({
         <ul className="flex max-h-[320px] flex-col divide-y divide-border/40 overflow-y-auto rounded-xl border border-border/40 bg-background/30">
           {candidates.length === 0 ? (
             <li className="px-3 py-6 text-center text-xs text-muted-foreground">
-              {bars.length === 0
+              {searching || bars.length === 0
                 ? t("admin.daily.loadingBars")
                 : t("admin.daily.noBar")}
             </li>

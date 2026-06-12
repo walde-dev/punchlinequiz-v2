@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { and, desc, eq, ilike, sql } from "drizzle-orm"
+import { and, desc, eq, ilike, or, sql } from "drizzle-orm"
 import { artists, ingestItems, punchlines, songs } from "@workspace/db"
 
 import { db } from "../../../lib/db"
@@ -98,7 +98,18 @@ export const Route = createFileRoute("/api/admin/bars")({
             conds.push(ilike(artists.name, `%${artistQ}%`))
           }
           if (songQ) conds.push(ilike(songs.title, `%${songQ}%`))
-          if (searchQ) conds.push(ilike(punchlines.line, `%${searchQ}%`))
+          if (searchQ) {
+            const term = searchQ.trim()
+            const idMatch = /^\d+$/.test(term)
+            conds.push(
+              or(
+                ilike(punchlines.line, `%${term}%`),
+                ilike(artists.name, `%${term}%`),
+                ilike(songs.title, `%${term}%`),
+                ...(idMatch ? [eq(punchlines.id, Number(term))] : [])
+              )
+            )
+          }
           if (reviewedParam === "true")
             conds.push(eq(punchlines.reviewed, true))
           if (reviewedParam === "false")
