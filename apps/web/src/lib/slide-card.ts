@@ -246,11 +246,10 @@ function footerCta(ctx: Ctx, line: string) {
   ctx.fillText("punchlinequiz.de", PAD, H - 100)
 }
 
-/** Renders the 4 carousel slides for one bar and returns them in order. */
+/** Renders the 3 carousel slides for one bar and returns them in order. */
 export async function renderSlides(data: SlideData): Promise<Array<Blob>> {
   await ensureFonts()
   const hook = data.hooks?.hook?.trim() || "Wer hat das gerappt?"
-  const tension = data.hooks?.tension?.trim() || "Na… schon sicher? 👀"
   const flex = data.hooks?.flex?.trim() || "Gewusst? Dann kennst du dich aus."
 
   // Preload the artist images once (reused on options + reveal slides).
@@ -280,14 +279,18 @@ export async function renderSlides(data: SlideData): Promise<Array<Blob>> {
   s1.ctx.textBaseline = "top"
   s1.ctx.fillText("swipe →", PAD, H - 120)
 
-  // ---- Slide 2: OPTIONS ----
+  // ---- Slide 2: OPTIONS (comment-bait moved here, where the eyeballs are) ----
   const s2 = newCanvas()
-  eyebrow(s2.ctx, "Wer war’s?", 360)
-  drawBar(s2.ctx, data.line, 430, 360, 700, 52)
+  eyebrow(s2.ctx, "Wer war’s?", 340)
+  drawBar(s2.ctx, data.line, 410, 240, 700, 46)
+  s2.ctx.font = `800 36px ${FONT}`
+  s2.ctx.fillStyle = GOLD
+  s2.ctx.textBaseline = "top"
+  s2.ctx.fillText("Tipp in die Kommentare 👇", PAD, 720)
   const letters = ["A", "B", "C"]
-  const rowH = 132
-  const rowGap = 26
-  const rowsTop = 880
+  const rowH = 124
+  const rowGap = 22
+  const rowsTop = 800
   data.choices.slice(0, 3).forEach((c, i) => {
     const y = rowsTop + i * (rowH + rowGap)
     s2.ctx.fillStyle = "rgba(255,255,255,0.05)"
@@ -298,57 +301,40 @@ export async function renderSlides(data: SlideData): Promise<Array<Blob>> {
     roundRect(s2.ctx, PAD, y, W - PAD * 2, rowH, rowH / 2)
     s2.ctx.stroke()
     const cy = y + rowH / 2
-    circleAvatar(s2.ctx, imgs.get(c.id) ?? null, PAD + rowH / 2, cy, rowH / 2 - 14, initialsOf(c.name))
+    circleAvatar(s2.ctx, imgs.get(c.id) ?? null, PAD + rowH / 2, cy, rowH / 2 - 12, initialsOf(c.name))
     s2.ctx.fillStyle = GOLD
-    s2.ctx.font = `900 44px ${FONT}`
+    s2.ctx.font = `900 42px ${FONT}`
     s2.ctx.textBaseline = "middle"
-    s2.ctx.fillText(letters[i], PAD + rowH + 16, cy)
+    s2.ctx.fillText(letters[i], PAD + rowH + 14, cy)
     s2.ctx.fillStyle = FG
-    s2.ctx.font = `800 46px ${FONT}`
-    s2.ctx.fillText(c.name, PAD + rowH + 88, cy)
+    s2.ctx.font = `800 44px ${FONT}`
+    s2.ctx.fillText(c.name, PAD + rowH + 82, cy)
   })
 
-  // ---- Slide 3: TENSION ----
+  // ---- Slide 3: REVEAL (the payoff — now reached in one fewer swipe) ----
   const s3 = newCanvas()
-  eyebrow(s3.ctx, "Letzte Chance", 360)
-  {
-    const { size, lines } = fitBar(s3.ctx, tension, W - PAD * 2, 520, 900, 96, 48)
-    s3.ctx.font = `900 ${size}px ${FONT}`
-    s3.ctx.fillStyle = FG
-    s3.ctx.textAlign = "center"
-    s3.ctx.textBaseline = "middle"
-    const lineH = size * 1.16
-    let y = H / 2 - ((lines.length - 1) * lineH) / 2
-    for (const l of lines) {
-      s3.ctx.fillText(l, W / 2, y)
-      y += lineH
-    }
-    s3.ctx.textAlign = "left"
-  }
-
-  // ---- Slide 4: REVEAL ----
-  const s4 = newCanvas()
-  eyebrow(s4.ctx, "Die Antwort", 360)
+  eyebrow(s3.ctx, "Die Antwort", 360)
   const avR = 150
-  circleAvatar(s4.ctx, correctImg, W / 2, 620, avR, initialsOf(data.correctName))
-  s4.ctx.textAlign = "center"
-  s4.ctx.fillStyle = GOLD
-  s4.ctx.font = `900 72px ${FONT}`
-  s4.ctx.textBaseline = "top"
-  s4.ctx.fillText(data.correctName, W / 2, 810)
-  s4.ctx.fillStyle = "rgba(250,250,250,0.75)"
-  s4.ctx.font = `700 36px ${FONT}`
+  circleAvatar(s3.ctx, correctImg, W / 2, 620, avR, initialsOf(data.correctName))
+  s3.ctx.textAlign = "center"
+  s3.ctx.fillStyle = GOLD
+  s3.ctx.font = `900 72px ${FONT}`
+  s3.ctx.textBaseline = "top"
+  s3.ctx.fillText(data.correctName, W / 2, 810)
+  s3.ctx.fillStyle = "rgba(250,250,250,0.75)"
+  s3.ctx.font = `700 36px ${FONT}`
   // flex line (wrapped, centered)
   {
-    const flexLines = wrapBar(s4.ctx, flex, W - PAD * 2)
+    const flexLines = wrapBar(s3.ctx, flex, W - PAD * 2)
     let y = 910
     for (const l of flexLines) {
-      s4.ctx.fillText(l, W / 2, y)
+      s3.ctx.fillText(l, W / 2, y)
       y += 36 * 1.25
     }
   }
-  s4.ctx.textAlign = "left"
-  footerCta(s4.ctx, "500+ Bars → Link in Bio")
+  s3.ctx.textAlign = "left"
+  // Week-2: the UTM bio link is live → drive to it.
+  footerCta(s3.ctx, "500+ Bars → Link in Bio")
 
-  return Promise.all([toBlob(s1.canvas), toBlob(s2.canvas), toBlob(s3.canvas), toBlob(s4.canvas)])
+  return Promise.all([toBlob(s1.canvas), toBlob(s2.canvas), toBlob(s3.canvas)])
 }
