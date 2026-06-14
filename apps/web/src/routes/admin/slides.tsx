@@ -28,7 +28,7 @@ export const Route = createFileRoute("/admin/slides")({
   }),
 })
 
-const SLIDE_LABELS = ["Hook", "Optionen", "Spannung", "Auflösung"]
+const SLIDE_LABELS = ["Hook", "Optionen", "Auflösung"]
 
 function SlidesStudio() {
   const { i: iParam, bar: barParam } = Route.useSearch()
