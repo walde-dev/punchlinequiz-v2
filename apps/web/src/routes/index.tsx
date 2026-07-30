@@ -26,10 +26,13 @@ export const Route = createFileRoute("/")({
     }),
     scripts: [jsonLd(websiteJsonLd()), jsonLd(organizationJsonLd())],
   }),
-  loader: async () => {
-    const daily = await getDailyChallenge({ data: {} })
-    return { dailyNumber: daily?.number ?? null }
-  },
+  // NOTE: intentionally NO server loader here. `/` is the URL uptime monitors
+  // (SentryUptimeBot) ping every few minutes. A loader that queries Postgres
+  // for the daily number would wake Neon's compute on every bare HTTP hit and
+  // keep it from ever scaling to zero — that alone was ~350 CU-hrs/month of
+  // "dormant" compute. The daily number is fetched client-side instead (below),
+  // so a JS-less bot ping renders the page without ever touching the DB. Real
+  // browsers still get the badge. Do NOT move this back into a loader.
 })
 
 const ease = "cubic-bezier(0.16, 1, 0.3, 1)"
@@ -48,7 +51,19 @@ function BetaBadge({ label }: { label: string }) {
 
 function HomePage() {
   const { t } = useTranslation()
-  const { dailyNumber } = Route.useLoaderData()
+  // Client-side fetch (not a loader) so the SentryUptimeBot ping never wakes the
+  // DB — see the note on the Route above. Mirrors ChallengeHomeSection's pattern.
+  const [dailyNumber, setDailyNumber] = useState<number | null>(null)
+
+  useEffect(() => {
+    let active = true
+    getDailyChallenge({ data: {} })
+      .then((d) => active && setDailyNumber(d?.number ?? null))
+      .catch(() => {})
+    return () => {
+      active = false
+    }
+  }, [])
 
   return (
     <div className="relative flex min-h-svh flex-col overflow-hidden">
