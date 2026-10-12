@@ -19,22 +19,6 @@ const API_BASE = "https://api.deezer.com"
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
-function realImage(url: unknown): string | null {
-  if (typeof url !== "string" || !url) return null
-  if (url.includes("/images/artist//")) return null
-  if (url.includes("/images/cover//")) return null
-  if (url.includes("/images/album//")) return null
-  return url
-}
-
-function pickAlbumImage(a: Record<string, unknown>): string | null {
-  return (
-    realImage(a.cover_xl) ??
-    realImage(a.cover_big) ??
-    realImage(a.cover_medium) ??
-    realImage(a.cover)
-  )
-}
 
 async function deezer<T>(path: string): Promise<T | null> {
   for (let attempt = 1; attempt <= 5; attempt += 1) {
@@ -87,7 +71,6 @@ async function searchTrack(artistName: string, title: string) {
   return {
     trackId: String(hit.id),
     albumId: String(album.id ?? ""),
-    albumArtUrl: pickAlbumImage(album),
   }
 }
 
@@ -139,8 +122,8 @@ async function backfillSongs() {
     if (match) {
       await db
         .update(songs)
+        // No albumArtUrl: covers are label-owned, see 0025 migration.
         .set({
-          albumArtUrl: match.albumArtUrl,
           artworkProvider: "deezer",
           artworkTrackId: match.trackId,
           artworkAlbumId: match.albumId || null,
@@ -148,7 +131,7 @@ async function backfillSongs() {
         .where(eq(songs.id, row.id))
       hits += 1
       console.log(
-        `  ✓ ${row.artistName} — ${row.title} → ${match.trackId}${match.albumArtUrl ? "" : " (no image)"}`,
+        `  ✓ ${row.artistName} — ${row.title} → ${match.trackId}`,
       )
     } else {
       console.log(`  ✗ ${row.artistName} — ${row.title} (no match)`)
