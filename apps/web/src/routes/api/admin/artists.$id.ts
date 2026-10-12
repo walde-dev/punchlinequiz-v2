@@ -41,7 +41,7 @@ export const Route = createFileRoute("/api/admin/artists/$id")({
             max: 2048,
           })
           if (imageUrl !== undefined) patch.imageUrl = imageUrl
-          // Artwork override: paste a Deezer artist ID to re-resolve image,
+          // Artwork override: paste a Deezer artist ID to relink the artist,
           // or null to clear it.
           if (body.artworkExternalId !== undefined) {
             if (body.artworkExternalId === null) {
@@ -67,7 +67,9 @@ export const Route = createFileRoute("/api/admin/artists/$id")({
                 }
                 patch.artworkProvider = "deezer"
                 patch.artworkExternalId = match.id
-                patch.imageUrl = match.imageUrl
+                // Link the id only; Deezer artist photos are agency-owned
+                // (see 0024 migration), so never copy the image across.
+                patch.imageUrl = null
                 audit(
                   "artwork_overridden",
                   {

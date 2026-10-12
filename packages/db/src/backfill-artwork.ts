@@ -27,15 +27,6 @@ function realImage(url: unknown): string | null {
   return url
 }
 
-function pickArtistImage(a: Record<string, unknown>): string | null {
-  return (
-    realImage(a.picture_xl) ??
-    realImage(a.picture_big) ??
-    realImage(a.picture_medium) ??
-    realImage(a.picture)
-  )
-}
-
 function pickAlbumImage(a: Record<string, unknown>): string | null {
   return (
     realImage(a.cover_xl) ??
@@ -77,10 +68,7 @@ async function searchArtist(name: string) {
   )
   const hit = body?.data?.[0]
   if (!hit) return null
-  return {
-    id: String(hit.id),
-    imageUrl: pickArtistImage(hit),
-  }
+  return { id: String(hit.id) }
 }
 
 async function searchTrack(artistName: string, title: string) {
@@ -116,14 +104,15 @@ async function backfillArtists() {
     if (match) {
       await db
         .update(artists)
+        // No imageUrl: Deezer artist photos belong to agencies (dpa et al.)
+        // and showing them got us a copyright claim. Monogram instead.
         .set({
-          imageUrl: match.imageUrl,
           artworkProvider: "deezer",
           artworkExternalId: match.id,
         })
         .where(eq(artists.id, row.id))
       hits += 1
-      console.log(`  ✓ ${row.name} → ${match.id}${match.imageUrl ? "" : " (no image)"}`)
+      console.log(`  ✓ ${row.name} → ${match.id}`)
     } else {
       console.log(`  ✗ ${row.name} (no match)`)
     }
