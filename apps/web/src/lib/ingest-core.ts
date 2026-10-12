@@ -54,7 +54,8 @@ export async function resolveOrCreateArtist(
     .values({
       slug: candidate,
       name,
-      imageUrl: art?.imageUrl ?? null,
+      // Never store Deezer artist photos: agency-owned, see 0024 migration.
+      imageUrl: null,
       artworkProvider: art ? "deezer" : null,
       artworkExternalId: art?.id ?? null,
     })
