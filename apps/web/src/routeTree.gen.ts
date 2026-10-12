@@ -9,107 +9,62 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SubmitRouteImport } from './routes/submit'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as ProfileRouteImport } from './routes/profile'
-import { Route as PlayRouteImport } from './routes/play'
-import { Route as NutzungsbedingungenRouteImport } from './routes/nutzungsbedingungen'
-import { Route as LeaderboardRouteImport } from './routes/leaderboard'
-import { Route as ImpressumRouteImport } from './routes/impressum'
-import { Route as FinishingRouteImport } from './routes/finishing'
-import { Route as DatenschutzRouteImport } from './routes/datenschutz'
-import { Route as DailyRouteImport } from './routes/daily'
-import { Route as ArtistsRouteImport } from './routes/artists'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ArtistsRouteImport } from './routes/artists'
+import { Route as DailyRouteImport } from './routes/daily'
+import { Route as DatenschutzRouteImport } from './routes/datenschutz'
+import { Route as FinishingRouteImport } from './routes/finishing'
+import { Route as ImpressumRouteImport } from './routes/impressum'
+import { Route as LeaderboardRouteImport } from './routes/leaderboard'
+import { Route as NutzungsbedingungenRouteImport } from './routes/nutzungsbedingungen'
+import { Route as PlayRouteImport } from './routes/play'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as SubmitRouteImport } from './routes/submit'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
-import { Route as UHandleRouteImport } from './routes/u.$handle'
-import { Route as QuizSlugRouteImport } from './routes/quiz.$slug'
-import { Route as IHandleRouteImport } from './routes/i.$handle'
-import { Route as CSlugRouteImport } from './routes/c.$slug'
-import { Route as ArtistSlugRouteImport } from './routes/artist.$slug'
-import { Route as ApiOgRouteImport } from './routes/api/og'
-import { Route as AdminXpRouteImport } from './routes/admin/xp'
-import { Route as AdminSubmissionsRouteImport } from './routes/admin/submissions'
-import { Route as AdminSlidesRouteImport } from './routes/admin/slides'
-import { Route as AdminReviewRouteImport } from './routes/admin/review'
-import { Route as AdminOnboardingRouteImport } from './routes/admin/onboarding'
-import { Route as AdminLoginRouteImport } from './routes/admin/login'
-import { Route as AdminLevelsRouteImport } from './routes/admin/levels'
-import { Route as AdminDailyRouteImport } from './routes/admin/daily'
-import { Route as AdminAnalyticsRouteImport } from './routes/admin/analytics'
 import { Route as AdminActivityRouteImport } from './routes/admin/activity'
+import { Route as AdminAnalyticsRouteImport } from './routes/admin/analytics'
+import { Route as AdminDailyRouteImport } from './routes/admin/daily'
+import { Route as AdminLevelsRouteImport } from './routes/admin/levels'
+import { Route as AdminLoginRouteImport } from './routes/admin/login'
+import { Route as AdminOnboardingRouteImport } from './routes/admin/onboarding'
+import { Route as AdminReviewRouteImport } from './routes/admin/review'
+import { Route as AdminSlidesRouteImport } from './routes/admin/slides'
+import { Route as AdminSubmissionsRouteImport } from './routes/admin/submissions'
+import { Route as AdminXpRouteImport } from './routes/admin/xp'
+import { Route as ApiOgRouteImport } from './routes/api/og'
+import { Route as ArtistSlugRouteImport } from './routes/artist.$slug'
+import { Route as CSlugRouteImport } from './routes/c.$slug'
+import { Route as IHandleRouteImport } from './routes/i.$handle'
+import { Route as QuizSlugRouteImport } from './routes/quiz.$slug'
+import { Route as UHandleRouteImport } from './routes/u.$handle'
 import { Route as AdminAnalyticsIndexRouteImport } from './routes/admin/analytics.index'
-import { Route as ApiSentryDiscordRouteImport } from './routes/api/sentry/discord'
-import { Route as ApiDiscordInteractionsRouteImport } from './routes/api/discord/interactions'
-import { Route as ApiCronRetentionReportRouteImport } from './routes/api/cron/retention-report'
-import { Route as ApiCronDiscordDailyRouteImport } from './routes/api/cron/discord-daily'
-import { Route as ApiAdminXpConfigRouteImport } from './routes/api/admin/xp-config'
-import { Route as ApiAdminTagsRouteImport } from './routes/api/admin/tags'
-import { Route as ApiAdminSubmissionsRouteImport } from './routes/api/admin/submissions'
-import { Route as ApiAdminPingRouteImport } from './routes/api/admin/ping'
-import { Route as ApiAdminLevelsRouteImport } from './routes/api/admin/levels'
-import { Route as ApiAdminDailyRouteImport } from './routes/api/admin/daily'
-import { Route as ApiAdminBarsRouteImport } from './routes/api/admin/bars'
-import { Route as ApiAdminArtistsRouteImport } from './routes/api/admin/artists'
 import { Route as AdminAnalyticsLinesRouteImport } from './routes/admin/analytics.lines'
-import { Route as ApiAdminSubmissionsIdRouteImport } from './routes/api/admin/submissions.$id'
-import { Route as ApiAdminSongsIdRouteImport } from './routes/api/admin/songs.$id'
-import { Route as ApiAdminSearchTracksRouteImport } from './routes/api/admin/search.tracks'
-import { Route as ApiAdminSearchArtistsRouteImport } from './routes/api/admin/search.artists'
-import { Route as ApiAdminDailyIdRouteImport } from './routes/api/admin/daily.$id'
-import { Route as ApiAdminBarsIdRouteImport } from './routes/api/admin/bars.$id'
+import { Route as ApiAdminArtistsRouteImport } from './routes/api/admin/artists'
+import { Route as ApiAdminBarsRouteImport } from './routes/api/admin/bars'
+import { Route as ApiAdminDailyRouteImport } from './routes/api/admin/daily'
+import { Route as ApiAdminLevelsRouteImport } from './routes/api/admin/levels'
+import { Route as ApiAdminPingRouteImport } from './routes/api/admin/ping'
+import { Route as ApiAdminSubmissionsRouteImport } from './routes/api/admin/submissions'
+import { Route as ApiAdminTagsRouteImport } from './routes/api/admin/tags'
+import { Route as ApiAdminXpConfigRouteImport } from './routes/api/admin/xp-config'
+import { Route as ApiCronDiscordDailyRouteImport } from './routes/api/cron/discord-daily'
+import { Route as ApiCronRetentionReportRouteImport } from './routes/api/cron/retention-report'
+import { Route as ApiDiscordInteractionsRouteImport } from './routes/api/discord/interactions'
+import { Route as ApiSentryDiscordRouteImport } from './routes/api/sentry/discord'
 import { Route as ApiAdminArtistsIdRouteImport } from './routes/api/admin/artists.$id'
-import { Route as ApiAdminSearchTrackIdRouteImport } from './routes/api/admin/search.track.$id'
+import { Route as ApiAdminBarsIdRouteImport } from './routes/api/admin/bars.$id'
+import { Route as ApiAdminDailyIdRouteImport } from './routes/api/admin/daily.$id'
+import { Route as ApiAdminSearchArtistsRouteImport } from './routes/api/admin/search.artists'
+import { Route as ApiAdminSearchTracksRouteImport } from './routes/api/admin/search.tracks'
+import { Route as ApiAdminSongsIdRouteImport } from './routes/api/admin/songs.$id'
+import { Route as ApiAdminSubmissionsIdRouteImport } from './routes/api/admin/submissions.$id'
 import { Route as ApiAdminArtistsIdTagsRouteImport } from './routes/api/admin/artists.$id.tags'
+import { Route as ApiAdminSearchTrackIdRouteImport } from './routes/api/admin/search.track.$id'
 
-const SubmitRoute = SubmitRouteImport.update({
-  id: '/submit',
-  path: '/submit',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfileRoute = ProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PlayRoute = PlayRouteImport.update({
-  id: '/play',
-  path: '/play',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NutzungsbedingungenRoute = NutzungsbedingungenRouteImport.update({
-  id: '/nutzungsbedingungen',
-  path: '/nutzungsbedingungen',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LeaderboardRoute = LeaderboardRouteImport.update({
-  id: '/leaderboard',
-  path: '/leaderboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ImpressumRoute = ImpressumRouteImport.update({
-  id: '/impressum',
-  path: '/impressum',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FinishingRoute = FinishingRouteImport.update({
-  id: '/finishing',
-  path: '/finishing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DatenschutzRoute = DatenschutzRouteImport.update({
-  id: '/datenschutz',
-  path: '/datenschutz',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DailyRoute = DailyRouteImport.update({
-  id: '/daily',
-  path: '/daily',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ArtistsRoute = ArtistsRouteImport.update({
@@ -117,9 +72,54 @@ const ArtistsRoute = ArtistsRouteImport.update({
   path: '/artists',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const DailyRoute = DailyRouteImport.update({
+  id: '/daily',
+  path: '/daily',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DatenschutzRoute = DatenschutzRouteImport.update({
+  id: '/datenschutz',
+  path: '/datenschutz',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FinishingRoute = FinishingRouteImport.update({
+  id: '/finishing',
+  path: '/finishing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ImpressumRoute = ImpressumRouteImport.update({
+  id: '/impressum',
+  path: '/impressum',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeaderboardRoute = LeaderboardRouteImport.update({
+  id: '/leaderboard',
+  path: '/leaderboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NutzungsbedingungenRoute = NutzungsbedingungenRouteImport.update({
+  id: '/nutzungsbedingungen',
+  path: '/nutzungsbedingungen',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlayRoute = PlayRouteImport.update({
+  id: '/play',
+  path: '/play',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SubmitRoute = SubmitRouteImport.update({
+  id: '/submit',
+  path: '/submit',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
@@ -127,74 +127,9 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const UHandleRoute = UHandleRouteImport.update({
-  id: '/u/$handle',
-  path: '/u/$handle',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const QuizSlugRoute = QuizSlugRouteImport.update({
-  id: '/quiz/$slug',
-  path: '/quiz/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IHandleRoute = IHandleRouteImport.update({
-  id: '/i/$handle',
-  path: '/i/$handle',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CSlugRoute = CSlugRouteImport.update({
-  id: '/c/$slug',
-  path: '/c/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ArtistSlugRoute = ArtistSlugRouteImport.update({
-  id: '/artist/$slug',
-  path: '/artist/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiOgRoute = ApiOgRouteImport.update({
-  id: '/api/og',
-  path: '/api/og',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminXpRoute = AdminXpRouteImport.update({
-  id: '/admin/xp',
-  path: '/admin/xp',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminSubmissionsRoute = AdminSubmissionsRouteImport.update({
-  id: '/admin/submissions',
-  path: '/admin/submissions',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminSlidesRoute = AdminSlidesRouteImport.update({
-  id: '/admin/slides',
-  path: '/admin/slides',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminReviewRoute = AdminReviewRouteImport.update({
-  id: '/admin/review',
-  path: '/admin/review',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminOnboardingRoute = AdminOnboardingRouteImport.update({
-  id: '/admin/onboarding',
-  path: '/admin/onboarding',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminLoginRoute = AdminLoginRouteImport.update({
-  id: '/admin/login',
-  path: '/admin/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminLevelsRoute = AdminLevelsRouteImport.update({
-  id: '/admin/levels',
-  path: '/admin/levels',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminDailyRoute = AdminDailyRouteImport.update({
-  id: '/admin/daily',
-  path: '/admin/daily',
+const AdminActivityRoute = AdminActivityRouteImport.update({
+  id: '/admin/activity',
+  path: '/admin/activity',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
@@ -202,9 +137,74 @@ const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
   path: '/admin/analytics',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminActivityRoute = AdminActivityRouteImport.update({
-  id: '/admin/activity',
-  path: '/admin/activity',
+const AdminDailyRoute = AdminDailyRouteImport.update({
+  id: '/admin/daily',
+  path: '/admin/daily',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminLevelsRoute = AdminLevelsRouteImport.update({
+  id: '/admin/levels',
+  path: '/admin/levels',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/admin/login',
+  path: '/admin/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminOnboardingRoute = AdminOnboardingRouteImport.update({
+  id: '/admin/onboarding',
+  path: '/admin/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminReviewRoute = AdminReviewRouteImport.update({
+  id: '/admin/review',
+  path: '/admin/review',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminSlidesRoute = AdminSlidesRouteImport.update({
+  id: '/admin/slides',
+  path: '/admin/slides',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminSubmissionsRoute = AdminSubmissionsRouteImport.update({
+  id: '/admin/submissions',
+  path: '/admin/submissions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminXpRoute = AdminXpRouteImport.update({
+  id: '/admin/xp',
+  path: '/admin/xp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOgRoute = ApiOgRouteImport.update({
+  id: '/api/og',
+  path: '/api/og',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArtistSlugRoute = ArtistSlugRouteImport.update({
+  id: '/artist/$slug',
+  path: '/artist/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CSlugRoute = CSlugRouteImport.update({
+  id: '/c/$slug',
+  path: '/c/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IHandleRoute = IHandleRouteImport.update({
+  id: '/i/$handle',
+  path: '/i/$handle',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuizSlugRoute = QuizSlugRouteImport.update({
+  id: '/quiz/$slug',
+  path: '/quiz/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UHandleRoute = UHandleRouteImport.update({
+  id: '/u/$handle',
+  path: '/u/$handle',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminAnalyticsIndexRoute = AdminAnalyticsIndexRouteImport.update({
@@ -212,54 +212,14 @@ const AdminAnalyticsIndexRoute = AdminAnalyticsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminAnalyticsRoute,
 } as any)
-const ApiSentryDiscordRoute = ApiSentryDiscordRouteImport.update({
-  id: '/api/sentry/discord',
-  path: '/api/sentry/discord',
-  getParentRoute: () => rootRouteImport,
+const AdminAnalyticsLinesRoute = AdminAnalyticsLinesRouteImport.update({
+  id: '/lines',
+  path: '/lines',
+  getParentRoute: () => AdminAnalyticsRoute,
 } as any)
-const ApiDiscordInteractionsRoute = ApiDiscordInteractionsRouteImport.update({
-  id: '/api/discord/interactions',
-  path: '/api/discord/interactions',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiCronRetentionReportRoute = ApiCronRetentionReportRouteImport.update({
-  id: '/api/cron/retention-report',
-  path: '/api/cron/retention-report',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiCronDiscordDailyRoute = ApiCronDiscordDailyRouteImport.update({
-  id: '/api/cron/discord-daily',
-  path: '/api/cron/discord-daily',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAdminXpConfigRoute = ApiAdminXpConfigRouteImport.update({
-  id: '/api/admin/xp-config',
-  path: '/api/admin/xp-config',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAdminTagsRoute = ApiAdminTagsRouteImport.update({
-  id: '/api/admin/tags',
-  path: '/api/admin/tags',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAdminSubmissionsRoute = ApiAdminSubmissionsRouteImport.update({
-  id: '/api/admin/submissions',
-  path: '/api/admin/submissions',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAdminPingRoute = ApiAdminPingRouteImport.update({
-  id: '/api/admin/ping',
-  path: '/api/admin/ping',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAdminLevelsRoute = ApiAdminLevelsRouteImport.update({
-  id: '/api/admin/levels',
-  path: '/api/admin/levels',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAdminDailyRoute = ApiAdminDailyRouteImport.update({
-  id: '/api/admin/daily',
-  path: '/api/admin/daily',
+const ApiAdminArtistsRoute = ApiAdminArtistsRouteImport.update({
+  id: '/api/admin/artists',
+  path: '/api/admin/artists',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAdminBarsRoute = ApiAdminBarsRouteImport.update({
@@ -267,24 +227,74 @@ const ApiAdminBarsRoute = ApiAdminBarsRouteImport.update({
   path: '/api/admin/bars',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiAdminArtistsRoute = ApiAdminArtistsRouteImport.update({
-  id: '/api/admin/artists',
-  path: '/api/admin/artists',
+const ApiAdminDailyRoute = ApiAdminDailyRouteImport.update({
+  id: '/api/admin/daily',
+  path: '/api/admin/daily',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminAnalyticsLinesRoute = AdminAnalyticsLinesRouteImport.update({
-  id: '/lines',
-  path: '/lines',
-  getParentRoute: () => AdminAnalyticsRoute,
+const ApiAdminLevelsRoute = ApiAdminLevelsRouteImport.update({
+  id: '/api/admin/levels',
+  path: '/api/admin/levels',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const ApiAdminSubmissionsIdRoute = ApiAdminSubmissionsIdRouteImport.update({
+const ApiAdminPingRoute = ApiAdminPingRouteImport.update({
+  id: '/api/admin/ping',
+  path: '/api/admin/ping',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminSubmissionsRoute = ApiAdminSubmissionsRouteImport.update({
+  id: '/api/admin/submissions',
+  path: '/api/admin/submissions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminTagsRoute = ApiAdminTagsRouteImport.update({
+  id: '/api/admin/tags',
+  path: '/api/admin/tags',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminXpConfigRoute = ApiAdminXpConfigRouteImport.update({
+  id: '/api/admin/xp-config',
+  path: '/api/admin/xp-config',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCronDiscordDailyRoute = ApiCronDiscordDailyRouteImport.update({
+  id: '/api/cron/discord-daily',
+  path: '/api/cron/discord-daily',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCronRetentionReportRoute = ApiCronRetentionReportRouteImport.update({
+  id: '/api/cron/retention-report',
+  path: '/api/cron/retention-report',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiDiscordInteractionsRoute = ApiDiscordInteractionsRouteImport.update({
+  id: '/api/discord/interactions',
+  path: '/api/discord/interactions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSentryDiscordRoute = ApiSentryDiscordRouteImport.update({
+  id: '/api/sentry/discord',
+  path: '/api/sentry/discord',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminArtistsIdRoute = ApiAdminArtistsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
-  getParentRoute: () => ApiAdminSubmissionsRoute,
+  getParentRoute: () => ApiAdminArtistsRoute,
 } as any)
-const ApiAdminSongsIdRoute = ApiAdminSongsIdRouteImport.update({
-  id: '/api/admin/songs/$id',
-  path: '/api/admin/songs/$id',
+const ApiAdminBarsIdRoute = ApiAdminBarsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiAdminBarsRoute,
+} as any)
+const ApiAdminDailyIdRoute = ApiAdminDailyIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiAdminDailyRoute,
+} as any)
+const ApiAdminSearchArtistsRoute = ApiAdminSearchArtistsRouteImport.update({
+  id: '/api/admin/search/artists',
+  path: '/api/admin/search/artists',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAdminSearchTracksRoute = ApiAdminSearchTracksRouteImport.update({
@@ -292,35 +302,25 @@ const ApiAdminSearchTracksRoute = ApiAdminSearchTracksRouteImport.update({
   path: '/api/admin/search/tracks',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiAdminSearchArtistsRoute = ApiAdminSearchArtistsRouteImport.update({
-  id: '/api/admin/search/artists',
-  path: '/api/admin/search/artists',
+const ApiAdminSongsIdRoute = ApiAdminSongsIdRouteImport.update({
+  id: '/api/admin/songs/$id',
+  path: '/api/admin/songs/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiAdminDailyIdRoute = ApiAdminDailyIdRouteImport.update({
+const ApiAdminSubmissionsIdRoute = ApiAdminSubmissionsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
-  getParentRoute: () => ApiAdminDailyRoute,
-} as any)
-const ApiAdminBarsIdRoute = ApiAdminBarsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => ApiAdminBarsRoute,
-} as any)
-const ApiAdminArtistsIdRoute = ApiAdminArtistsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => ApiAdminArtistsRoute,
-} as any)
-const ApiAdminSearchTrackIdRoute = ApiAdminSearchTrackIdRouteImport.update({
-  id: '/api/admin/search/track/$id',
-  path: '/api/admin/search/track/$id',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => ApiAdminSubmissionsRoute,
 } as any)
 const ApiAdminArtistsIdTagsRoute = ApiAdminArtistsIdTagsRouteImport.update({
   id: '/tags',
   path: '/tags',
   getParentRoute: () => ApiAdminArtistsIdRoute,
+} as any)
+const ApiAdminSearchTrackIdRoute = ApiAdminSearchTrackIdRouteImport.update({
+  id: '/api/admin/search/track/$id',
+  path: '/api/admin/search/track/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -699,74 +699,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/submit': {
-      id: '/submit'
-      path: '/submit'
-      fullPath: '/submit'
-      preLoaderRoute: typeof SubmitRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile': {
-      id: '/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/play': {
-      id: '/play'
-      path: '/play'
-      fullPath: '/play'
-      preLoaderRoute: typeof PlayRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/nutzungsbedingungen': {
-      id: '/nutzungsbedingungen'
-      path: '/nutzungsbedingungen'
-      fullPath: '/nutzungsbedingungen'
-      preLoaderRoute: typeof NutzungsbedingungenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/leaderboard': {
-      id: '/leaderboard'
-      path: '/leaderboard'
-      fullPath: '/leaderboard'
-      preLoaderRoute: typeof LeaderboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/impressum': {
-      id: '/impressum'
-      path: '/impressum'
-      fullPath: '/impressum'
-      preLoaderRoute: typeof ImpressumRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/finishing': {
-      id: '/finishing'
-      path: '/finishing'
-      fullPath: '/finishing'
-      preLoaderRoute: typeof FinishingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/datenschutz': {
-      id: '/datenschutz'
-      path: '/datenschutz'
-      fullPath: '/datenschutz'
-      preLoaderRoute: typeof DatenschutzRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/daily': {
-      id: '/daily'
-      path: '/daily'
-      fullPath: '/daily'
-      preLoaderRoute: typeof DailyRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/artists': {
@@ -776,11 +713,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ArtistsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/daily': {
+      id: '/daily'
+      path: '/daily'
+      fullPath: '/daily'
+      preLoaderRoute: typeof DailyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/datenschutz': {
+      id: '/datenschutz'
+      path: '/datenschutz'
+      fullPath: '/datenschutz'
+      preLoaderRoute: typeof DatenschutzRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/finishing': {
+      id: '/finishing'
+      path: '/finishing'
+      fullPath: '/finishing'
+      preLoaderRoute: typeof FinishingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/impressum': {
+      id: '/impressum'
+      path: '/impressum'
+      fullPath: '/impressum'
+      preLoaderRoute: typeof ImpressumRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leaderboard': {
+      id: '/leaderboard'
+      path: '/leaderboard'
+      fullPath: '/leaderboard'
+      preLoaderRoute: typeof LeaderboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/nutzungsbedingungen': {
+      id: '/nutzungsbedingungen'
+      path: '/nutzungsbedingungen'
+      fullPath: '/nutzungsbedingungen'
+      preLoaderRoute: typeof NutzungsbedingungenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/play': {
+      id: '/play'
+      path: '/play'
+      fullPath: '/play'
+      preLoaderRoute: typeof PlayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/submit': {
+      id: '/submit'
+      path: '/submit'
+      fullPath: '/submit'
+      preLoaderRoute: typeof SubmitRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -790,102 +790,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/u/$handle': {
-      id: '/u/$handle'
-      path: '/u/$handle'
-      fullPath: '/u/$handle'
-      preLoaderRoute: typeof UHandleRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/quiz/$slug': {
-      id: '/quiz/$slug'
-      path: '/quiz/$slug'
-      fullPath: '/quiz/$slug'
-      preLoaderRoute: typeof QuizSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/i/$handle': {
-      id: '/i/$handle'
-      path: '/i/$handle'
-      fullPath: '/i/$handle'
-      preLoaderRoute: typeof IHandleRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/c/$slug': {
-      id: '/c/$slug'
-      path: '/c/$slug'
-      fullPath: '/c/$slug'
-      preLoaderRoute: typeof CSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/artist/$slug': {
-      id: '/artist/$slug'
-      path: '/artist/$slug'
-      fullPath: '/artist/$slug'
-      preLoaderRoute: typeof ArtistSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/og': {
-      id: '/api/og'
-      path: '/api/og'
-      fullPath: '/api/og'
-      preLoaderRoute: typeof ApiOgRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/xp': {
-      id: '/admin/xp'
-      path: '/admin/xp'
-      fullPath: '/admin/xp'
-      preLoaderRoute: typeof AdminXpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/submissions': {
-      id: '/admin/submissions'
-      path: '/admin/submissions'
-      fullPath: '/admin/submissions'
-      preLoaderRoute: typeof AdminSubmissionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/slides': {
-      id: '/admin/slides'
-      path: '/admin/slides'
-      fullPath: '/admin/slides'
-      preLoaderRoute: typeof AdminSlidesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/review': {
-      id: '/admin/review'
-      path: '/admin/review'
-      fullPath: '/admin/review'
-      preLoaderRoute: typeof AdminReviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/onboarding': {
-      id: '/admin/onboarding'
-      path: '/admin/onboarding'
-      fullPath: '/admin/onboarding'
-      preLoaderRoute: typeof AdminOnboardingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/login': {
-      id: '/admin/login'
-      path: '/admin/login'
-      fullPath: '/admin/login'
-      preLoaderRoute: typeof AdminLoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/levels': {
-      id: '/admin/levels'
-      path: '/admin/levels'
-      fullPath: '/admin/levels'
-      preLoaderRoute: typeof AdminLevelsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/daily': {
-      id: '/admin/daily'
-      path: '/admin/daily'
-      fullPath: '/admin/daily'
-      preLoaderRoute: typeof AdminDailyRouteImport
+    '/admin/activity': {
+      id: '/admin/activity'
+      path: '/admin/activity'
+      fullPath: '/admin/activity'
+      preLoaderRoute: typeof AdminActivityRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/analytics': {
@@ -895,11 +804,102 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAnalyticsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/activity': {
-      id: '/admin/activity'
-      path: '/admin/activity'
-      fullPath: '/admin/activity'
-      preLoaderRoute: typeof AdminActivityRouteImport
+    '/admin/daily': {
+      id: '/admin/daily'
+      path: '/admin/daily'
+      fullPath: '/admin/daily'
+      preLoaderRoute: typeof AdminDailyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/levels': {
+      id: '/admin/levels'
+      path: '/admin/levels'
+      fullPath: '/admin/levels'
+      preLoaderRoute: typeof AdminLevelsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/login': {
+      id: '/admin/login'
+      path: '/admin/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/onboarding': {
+      id: '/admin/onboarding'
+      path: '/admin/onboarding'
+      fullPath: '/admin/onboarding'
+      preLoaderRoute: typeof AdminOnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/review': {
+      id: '/admin/review'
+      path: '/admin/review'
+      fullPath: '/admin/review'
+      preLoaderRoute: typeof AdminReviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/slides': {
+      id: '/admin/slides'
+      path: '/admin/slides'
+      fullPath: '/admin/slides'
+      preLoaderRoute: typeof AdminSlidesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/submissions': {
+      id: '/admin/submissions'
+      path: '/admin/submissions'
+      fullPath: '/admin/submissions'
+      preLoaderRoute: typeof AdminSubmissionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/xp': {
+      id: '/admin/xp'
+      path: '/admin/xp'
+      fullPath: '/admin/xp'
+      preLoaderRoute: typeof AdminXpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/og': {
+      id: '/api/og'
+      path: '/api/og'
+      fullPath: '/api/og'
+      preLoaderRoute: typeof ApiOgRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/artist/$slug': {
+      id: '/artist/$slug'
+      path: '/artist/$slug'
+      fullPath: '/artist/$slug'
+      preLoaderRoute: typeof ArtistSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/c/$slug': {
+      id: '/c/$slug'
+      path: '/c/$slug'
+      fullPath: '/c/$slug'
+      preLoaderRoute: typeof CSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/i/$handle': {
+      id: '/i/$handle'
+      path: '/i/$handle'
+      fullPath: '/i/$handle'
+      preLoaderRoute: typeof IHandleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/quiz/$slug': {
+      id: '/quiz/$slug'
+      path: '/quiz/$slug'
+      fullPath: '/quiz/$slug'
+      preLoaderRoute: typeof QuizSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/u/$handle': {
+      id: '/u/$handle'
+      path: '/u/$handle'
+      fullPath: '/u/$handle'
+      preLoaderRoute: typeof UHandleRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/analytics/': {
@@ -909,74 +909,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAnalyticsIndexRouteImport
       parentRoute: typeof AdminAnalyticsRoute
     }
-    '/api/sentry/discord': {
-      id: '/api/sentry/discord'
-      path: '/api/sentry/discord'
-      fullPath: '/api/sentry/discord'
-      preLoaderRoute: typeof ApiSentryDiscordRouteImport
-      parentRoute: typeof rootRouteImport
+    '/admin/analytics/lines': {
+      id: '/admin/analytics/lines'
+      path: '/lines'
+      fullPath: '/admin/analytics/lines'
+      preLoaderRoute: typeof AdminAnalyticsLinesRouteImport
+      parentRoute: typeof AdminAnalyticsRoute
     }
-    '/api/discord/interactions': {
-      id: '/api/discord/interactions'
-      path: '/api/discord/interactions'
-      fullPath: '/api/discord/interactions'
-      preLoaderRoute: typeof ApiDiscordInteractionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/cron/retention-report': {
-      id: '/api/cron/retention-report'
-      path: '/api/cron/retention-report'
-      fullPath: '/api/cron/retention-report'
-      preLoaderRoute: typeof ApiCronRetentionReportRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/cron/discord-daily': {
-      id: '/api/cron/discord-daily'
-      path: '/api/cron/discord-daily'
-      fullPath: '/api/cron/discord-daily'
-      preLoaderRoute: typeof ApiCronDiscordDailyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/xp-config': {
-      id: '/api/admin/xp-config'
-      path: '/api/admin/xp-config'
-      fullPath: '/api/admin/xp-config'
-      preLoaderRoute: typeof ApiAdminXpConfigRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/tags': {
-      id: '/api/admin/tags'
-      path: '/api/admin/tags'
-      fullPath: '/api/admin/tags'
-      preLoaderRoute: typeof ApiAdminTagsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/submissions': {
-      id: '/api/admin/submissions'
-      path: '/api/admin/submissions'
-      fullPath: '/api/admin/submissions'
-      preLoaderRoute: typeof ApiAdminSubmissionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/ping': {
-      id: '/api/admin/ping'
-      path: '/api/admin/ping'
-      fullPath: '/api/admin/ping'
-      preLoaderRoute: typeof ApiAdminPingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/levels': {
-      id: '/api/admin/levels'
-      path: '/api/admin/levels'
-      fullPath: '/api/admin/levels'
-      preLoaderRoute: typeof ApiAdminLevelsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/daily': {
-      id: '/api/admin/daily'
-      path: '/api/admin/daily'
-      fullPath: '/api/admin/daily'
-      preLoaderRoute: typeof ApiAdminDailyRouteImport
+    '/api/admin/artists': {
+      id: '/api/admin/artists'
+      path: '/api/admin/artists'
+      fullPath: '/api/admin/artists'
+      preLoaderRoute: typeof ApiAdminArtistsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/bars': {
@@ -986,32 +930,102 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminBarsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/admin/artists': {
-      id: '/api/admin/artists'
-      path: '/api/admin/artists'
-      fullPath: '/api/admin/artists'
-      preLoaderRoute: typeof ApiAdminArtistsRouteImport
+    '/api/admin/daily': {
+      id: '/api/admin/daily'
+      path: '/api/admin/daily'
+      fullPath: '/api/admin/daily'
+      preLoaderRoute: typeof ApiAdminDailyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/analytics/lines': {
-      id: '/admin/analytics/lines'
-      path: '/lines'
-      fullPath: '/admin/analytics/lines'
-      preLoaderRoute: typeof AdminAnalyticsLinesRouteImport
-      parentRoute: typeof AdminAnalyticsRoute
+    '/api/admin/levels': {
+      id: '/api/admin/levels'
+      path: '/api/admin/levels'
+      fullPath: '/api/admin/levels'
+      preLoaderRoute: typeof ApiAdminLevelsRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/api/admin/submissions/$id': {
-      id: '/api/admin/submissions/$id'
+    '/api/admin/ping': {
+      id: '/api/admin/ping'
+      path: '/api/admin/ping'
+      fullPath: '/api/admin/ping'
+      preLoaderRoute: typeof ApiAdminPingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/submissions': {
+      id: '/api/admin/submissions'
+      path: '/api/admin/submissions'
+      fullPath: '/api/admin/submissions'
+      preLoaderRoute: typeof ApiAdminSubmissionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/tags': {
+      id: '/api/admin/tags'
+      path: '/api/admin/tags'
+      fullPath: '/api/admin/tags'
+      preLoaderRoute: typeof ApiAdminTagsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/xp-config': {
+      id: '/api/admin/xp-config'
+      path: '/api/admin/xp-config'
+      fullPath: '/api/admin/xp-config'
+      preLoaderRoute: typeof ApiAdminXpConfigRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/cron/discord-daily': {
+      id: '/api/cron/discord-daily'
+      path: '/api/cron/discord-daily'
+      fullPath: '/api/cron/discord-daily'
+      preLoaderRoute: typeof ApiCronDiscordDailyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/cron/retention-report': {
+      id: '/api/cron/retention-report'
+      path: '/api/cron/retention-report'
+      fullPath: '/api/cron/retention-report'
+      preLoaderRoute: typeof ApiCronRetentionReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/discord/interactions': {
+      id: '/api/discord/interactions'
+      path: '/api/discord/interactions'
+      fullPath: '/api/discord/interactions'
+      preLoaderRoute: typeof ApiDiscordInteractionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/sentry/discord': {
+      id: '/api/sentry/discord'
+      path: '/api/sentry/discord'
+      fullPath: '/api/sentry/discord'
+      preLoaderRoute: typeof ApiSentryDiscordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/artists/$id': {
+      id: '/api/admin/artists/$id'
       path: '/$id'
-      fullPath: '/api/admin/submissions/$id'
-      preLoaderRoute: typeof ApiAdminSubmissionsIdRouteImport
-      parentRoute: typeof ApiAdminSubmissionsRoute
+      fullPath: '/api/admin/artists/$id'
+      preLoaderRoute: typeof ApiAdminArtistsIdRouteImport
+      parentRoute: typeof ApiAdminArtistsRoute
     }
-    '/api/admin/songs/$id': {
-      id: '/api/admin/songs/$id'
-      path: '/api/admin/songs/$id'
-      fullPath: '/api/admin/songs/$id'
-      preLoaderRoute: typeof ApiAdminSongsIdRouteImport
+    '/api/admin/bars/$id': {
+      id: '/api/admin/bars/$id'
+      path: '/$id'
+      fullPath: '/api/admin/bars/$id'
+      preLoaderRoute: typeof ApiAdminBarsIdRouteImport
+      parentRoute: typeof ApiAdminBarsRoute
+    }
+    '/api/admin/daily/$id': {
+      id: '/api/admin/daily/$id'
+      path: '/$id'
+      fullPath: '/api/admin/daily/$id'
+      preLoaderRoute: typeof ApiAdminDailyIdRouteImport
+      parentRoute: typeof ApiAdminDailyRoute
+    }
+    '/api/admin/search/artists': {
+      id: '/api/admin/search/artists'
+      path: '/api/admin/search/artists'
+      fullPath: '/api/admin/search/artists'
+      preLoaderRoute: typeof ApiAdminSearchArtistsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/search/tracks': {
@@ -1021,40 +1035,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminSearchTracksRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/admin/search/artists': {
-      id: '/api/admin/search/artists'
-      path: '/api/admin/search/artists'
-      fullPath: '/api/admin/search/artists'
-      preLoaderRoute: typeof ApiAdminSearchArtistsRouteImport
+    '/api/admin/songs/$id': {
+      id: '/api/admin/songs/$id'
+      path: '/api/admin/songs/$id'
+      fullPath: '/api/admin/songs/$id'
+      preLoaderRoute: typeof ApiAdminSongsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/admin/daily/$id': {
-      id: '/api/admin/daily/$id'
+    '/api/admin/submissions/$id': {
+      id: '/api/admin/submissions/$id'
       path: '/$id'
-      fullPath: '/api/admin/daily/$id'
-      preLoaderRoute: typeof ApiAdminDailyIdRouteImport
-      parentRoute: typeof ApiAdminDailyRoute
-    }
-    '/api/admin/bars/$id': {
-      id: '/api/admin/bars/$id'
-      path: '/$id'
-      fullPath: '/api/admin/bars/$id'
-      preLoaderRoute: typeof ApiAdminBarsIdRouteImport
-      parentRoute: typeof ApiAdminBarsRoute
-    }
-    '/api/admin/artists/$id': {
-      id: '/api/admin/artists/$id'
-      path: '/$id'
-      fullPath: '/api/admin/artists/$id'
-      preLoaderRoute: typeof ApiAdminArtistsIdRouteImport
-      parentRoute: typeof ApiAdminArtistsRoute
-    }
-    '/api/admin/search/track/$id': {
-      id: '/api/admin/search/track/$id'
-      path: '/api/admin/search/track/$id'
-      fullPath: '/api/admin/search/track/$id'
-      preLoaderRoute: typeof ApiAdminSearchTrackIdRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/api/admin/submissions/$id'
+      preLoaderRoute: typeof ApiAdminSubmissionsIdRouteImport
+      parentRoute: typeof ApiAdminSubmissionsRoute
     }
     '/api/admin/artists/$id/tags': {
       id: '/api/admin/artists/$id/tags'
@@ -1062,6 +1055,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/admin/artists/$id/tags'
       preLoaderRoute: typeof ApiAdminArtistsIdTagsRouteImport
       parentRoute: typeof ApiAdminArtistsIdRoute
+    }
+    '/api/admin/search/track/$id': {
+      id: '/api/admin/search/track/$id'
+      path: '/api/admin/search/track/$id'
+      fullPath: '/api/admin/search/track/$id'
+      preLoaderRoute: typeof ApiAdminSearchTrackIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }

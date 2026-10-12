@@ -16,6 +16,7 @@ import { captureReferralFromUrl } from "../lib/referral-client"
 import { logEvent } from "../lib/track"
 import { isStaleRouteLoad, recoverFromStaleDeploy } from "../lib/preload-recovery"
 import { DEFAULT_DESCRIPTION, OG_DEFAULT_SUBTITLE, SITE_NAME, ogImageUrl } from "../lib/seo"
+import type { ErrorComponentProps } from "@tanstack/react-router"
 import type { BootstrapFlags } from "../lib/flags"
 
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
@@ -70,7 +71,7 @@ export const Route = createRootRoute({
 })
 
 /** Route-level error boundary: reports to Sentry, then shows a slick fallback. */
-function ErrorPage({ error }: { error: Error }) {
+function ErrorPage({ error }: ErrorComponentProps) {
   const { t } = useTranslation()
   useEffect(() => {
     // Client-only Sentry capture; SSR-guarded so the server bundle stays free
