@@ -35,12 +35,9 @@ export const Route = createFileRoute("/artist/$slug")({
         title: `${a.name} Punchline-Quiz`,
         description,
         path: `/artist/${a.slug}`,
-        // Branded 1200×630 card with the artist photo embedded (not the raw 1:1
-        // photo, which is wrong-ratio + heavy for share unfurls).
         image: ogImageUrl({
           title: `${a.name} Punchline-Quiz`,
           subtitle: `${a.barCount} Bars · jetzt spielen`,
-          image: a.imageUrl,
         }),
         type: "music.musician",
       }),
