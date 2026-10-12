@@ -1,6 +1,8 @@
 // Deezer Public API client. Free, no auth required.
-// Used to resolve artwork (artist portraits + album/track covers) on admin bar
-// add. Failures degrade gracefully to monogram fallback in the UI.
+// Used to match artists and tracks on admin bar add. Image URLs are never
+// returned: Deezer's photos and covers belong to agencies and labels, and
+// showing them got us a copyright claim (see 0024/0025 migrations). The UI
+// renders monograms instead.
 
 import { audit } from "./admin"
 
@@ -46,33 +48,7 @@ function nameMatches(query: string, candidate: string): boolean {
   return qTokens.every((t) => cTokens.includes(t))
 }
 
-/** Deezer returns placeholder URLs (with `//` after `/images/<type>/`) when no
- * image exists. Treat those as null. */
-function realImageOrNull(url: unknown): string | null {
-  if (typeof url !== "string" || url.length === 0) return null
-  if (url.includes("/images/artist//")) return null
-  if (url.includes("/images/cover//")) return null
-  if (url.includes("/images/album//")) return null
-  return url
-}
 
-function pickArtistImage(a: Record<string, unknown>): string | null {
-  return (
-    realImageOrNull(a.picture_xl) ??
-    realImageOrNull(a.picture_big) ??
-    realImageOrNull(a.picture_medium) ??
-    realImageOrNull(a.picture)
-  )
-}
-
-function pickAlbumImage(a: Record<string, unknown>): string | null {
-  return (
-    realImageOrNull(a.cover_xl) ??
-    realImageOrNull(a.cover_big) ??
-    realImageOrNull(a.cover_medium) ??
-    realImageOrNull(a.cover)
-  )
-}
 
 async function deezerFetch(path: string): Promise<unknown> {
   let attempt = 0
@@ -154,7 +130,7 @@ export async function searchArtist(
     const match: DeezerArtistMatch = {
       id: String(hit.id),
       name: String(hit.name),
-      imageUrl: pickArtistImage(hit),
+      imageUrl: null,
     }
     audit("artwork_resolve_hit", {
       provider: "deezer",
@@ -219,7 +195,7 @@ export async function searchTrack(
       albumId: String(album.id ?? ""),
       title: String(hit.title ?? title),
       artistName: String(artist.name ?? artistName),
-      albumArtUrl: pickAlbumImage(album),
+      albumArtUrl: null,
     }
     audit("artwork_resolve_hit", {
       provider: "deezer",
@@ -264,7 +240,7 @@ export async function searchArtistsList(
     return (body.data ?? []).map((a) => ({
       id: String(a.id),
       name: String(a.name ?? ""),
-      imageUrl: pickArtistImage(a),
+      imageUrl: null,
     }))
   } catch {
     return []
@@ -297,7 +273,7 @@ export async function searchTracksList(
         artistId: String(artist.id ?? ""),
         albumId: String(album.id ?? ""),
         albumTitle: String(album.title ?? ""),
-        albumArtUrl: pickAlbumImage(album),
+        albumArtUrl: null,
         releaseYear: year && Number.isFinite(year) ? year : null,
       }
     })
@@ -317,7 +293,7 @@ export async function getArtistById(
     return {
       id: String(body.id),
       name: String(body.name ?? ""),
-      imageUrl: pickArtistImage(body),
+      imageUrl: null,
     }
   } catch (e) {
     audit("artwork_resolve_failed", {
@@ -352,7 +328,7 @@ export async function getTrackById(
       albumId: String(album.id ?? ""),
       title: String(body.title ?? ""),
       artistName: String(artist.name ?? ""),
-      albumArtUrl: pickAlbumImage(album),
+      albumArtUrl: null,
       albumTitle: String(album.title ?? ""),
       releaseYear: Number.isFinite(yearNum) ? yearNum : null,
     }
