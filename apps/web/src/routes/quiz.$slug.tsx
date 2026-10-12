@@ -48,7 +48,6 @@ export const Route = createFileRoute("/quiz/$slug")({
     const image = ogImageUrl({
       title,
       subtitle: `${a.punchlineCount} Bars · schaffst du 5/5?`,
-      image: a.imageUrl,
     })
     // noindex,follow: /quiz is a share/play target, not a search surface.
     return seo({

@@ -6,8 +6,8 @@ import { DEFAULT_OG_IMAGE, absoluteUrl } from "../../lib/seo"
 /**
  * Reusable dynamic OG image generator (PUN-105).
  *
- * Generic, content-agnostic: callers pass `title`, `subtitle`, and an optional
- * `image` URL via query params; we render a branded 1200×630 PNG (charcoal +
+ * Generic, content-agnostic: callers pass `title` and `subtitle` via query
+ * params; we render a branded 1200×630 PNG (charcoal +
  * gold + bold type) for link unfurls (Reddit/WhatsApp/Twitter/Discord). The
  * /quiz pages are the first consumer (PUN-106); the Daily Share Card project
  * (PUN-39) reuses this same endpoint.
@@ -55,7 +55,6 @@ export const Route = createFileRoute("/api/og")({
           const params = new URL(request.url).searchParams
           const title = (params.get("title") ?? "").slice(0, 80)
           const subtitle = (params.get("subtitle") ?? "").slice(0, 90)
-          const image = params.get("image") ?? null
           if (!title) return fallback()
 
           const figtree = await loadFigtree()
@@ -92,22 +91,9 @@ export const Route = createFileRoute("/api/og")({
                 <span style={{ color: GOLD }}>/quiz</span>
               </div>
 
-              {/* Hero: optional artist photo + title/subtitle */}
+              {/* Hero: title/subtitle. No third-party photos: rendering one
+                  here copies it onto our server (see 0024 migration). */}
               <div style={{ display: "flex", alignItems: "center", gap: 40 }}>
-                {image ? (
-                  <img
-                    src={image}
-                    width={180}
-                    height={180}
-                    style={{
-                      width: 180,
-                      height: 180,
-                      borderRadius: 180,
-                      objectFit: "cover",
-                      border: `4px solid ${GOLD}`,
-                    }}
-                  />
-                ) : null}
                 <div
                   style={{ display: "flex", flexDirection: "column", flex: 1 }}
                 >

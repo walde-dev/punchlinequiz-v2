@@ -31,19 +31,17 @@ export function absoluteUrl(pathOrUrl: string): string {
 
 /**
  * Absolute URL to the dynamic OG image route (PUN-105). Any page can build a
- * branded per-entity unfurl card from a title + optional subtitle/image.
+ * branded per-entity unfurl card from a title + optional subtitle.
  * og:image must be absolute (scrapers don't resolve relative paths), so this
  * always returns a SITE_URL-rooted URL.
  */
 export function ogImageUrl(input: {
   title: string
   subtitle?: string
-  image?: string | null
 }): string {
   const qs = new URLSearchParams()
   qs.set("title", input.title)
   if (input.subtitle) qs.set("subtitle", input.subtitle)
-  if (input.image) qs.set("image", input.image)
   return absoluteUrl(`/api/og?${qs.toString()}`)
 }
 
